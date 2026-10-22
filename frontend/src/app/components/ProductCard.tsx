@@ -12,7 +12,8 @@ interface ProductCardProps {
 export function ProductCard({ product, priority = false }: ProductCardProps) {
   const variantsCount = product.variants?.length ?? 0;
   const primaryMedia = product.image || product.images?.[0] || '';
-  const discountPercentage = product.compareAtPrice && product.compareAtPrice > product.price
+  const hasDiscount = (product.compareAtPrice ?? 0) > product.price;
+  const discountPercentage = hasDiscount
     ? Math.round((1 - product.price / product.compareAtPrice) * 100)
     : 0;
 
@@ -78,7 +79,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
                 <span className="align-top text-xs md:text-sm">₹</span>
                 {product.price.toLocaleString('en-IN')}
               </span>
-              {product.compareAtPrice && product.compareAtPrice > product.price && (
+              {hasDiscount && (
                 <>
                   <span className="text-xs text-muted-foreground line-through">
                     ₹{product.compareAtPrice.toLocaleString('en-IN')}
