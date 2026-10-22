@@ -194,7 +194,7 @@ export function Payment() {
         order_id: order.paymentDetails.razorpayOrderId,
         name: 'Shoe Style',
         description: `Order ${order.orderNumber}`,
-        image: `${window.location.origin}/shoe-style-logo.png`,
+        image: `${window.location.origin}/shoe-style-logo.svg`,
         handler: (response: RazorpayResponse) => { void handleVerifiedPayment(response); },
         prefill: {
           name: order.shippingAddress?.fullName || order.customerName || '',

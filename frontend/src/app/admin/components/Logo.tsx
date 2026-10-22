@@ -9,7 +9,7 @@ export function Logo({ className, showSubtitle = true }: LogoProps) {
   return (
     <div className={cn('flex items-center gap-3', className)}>
       <img
-        src="/shoe-style-logo.png"
+        src="/shoe-style-logo.svg"
         alt="Shoe Style"
         className="h-10 w-auto object-contain"
       />
