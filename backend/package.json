@@ -1,0 +1,48 @@
+{
+  "name": "harish-cloths-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Harish Cloths admin and storefront",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "test": "node --test",
+    "catalog:october:dry-run": "node scripts/import-october-2026-catalog.js",
+    "catalog:october:apply": "node scripts/import-october-2026-catalog.js --apply",
+    "catalog:sneakers:dry-run": "node scripts/import-october-11-sneakers.js",
+    "catalog:sneakers:apply": "node scripts/import-october-11-sneakers.js --apply",
+    "catalog:heels:dry-run": "node scripts/import-october-22-heels.js",
+    "catalog:heels:apply": "node scripts/import-october-22-heels.js --apply",
+    "catalog:apparel:dry-run": "node scripts/import-october-12-apparel.js",
+    "catalog:apparel:apply": "node scripts/import-october-12-apparel.js --apply",
+    "catalog:outfit-sets:dry-run": "node scripts/import-october-12-outfit-sets.js",
+    "catalog:outfit-sets:apply": "node scripts/import-october-12-outfit-sets.js --apply",
+    "catalog:october14-outfits:dry-run": "node scripts/import-october-14-outfit-sets.js",
+    "catalog:october14-outfits:apply": "node scripts/import-october-14-outfit-sets.js --apply",
+    "audit:inventory": "node scripts/audit-inventory-drift.js",
+    "migrate:phones:dry-run": "node scripts/migrate-customer-phones.js",
+    "migrate:phones": "node scripts/migrate-customer-phones.js --apply"
+  },
+  "dependencies": {
+    "@clerk/express": "^2.1.78",
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.5.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.22.3",
+    "express-rate-limit": "^8.7.1",
+    "helmet": "^8.1.0",
+    "joi": "^18.2.9",
+    "jsonwebtoken": "^9.0.2",
+    "libphonenumber-js": "^1.13.14",
+    "mongoose": "^8.24.5",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^10.0.16",
+    "proxy-addr": "^2.0.8",
+    "razorpay": "^2.9.8",
+    "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
+  }
+}

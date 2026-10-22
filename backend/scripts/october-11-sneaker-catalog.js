@@ -1,0 +1,51 @@
+const shoeSizes = ['6', '7', '8', '9', '10'];
+
+const rows = [
+  ['Monogram Panel White Court Sneakers', 800, 'White / Brown'],
+  ['Shark Star Black Court Sneakers', 800, 'Black / White'],
+  ['Sand Black Chunky Trail Sneakers', 699, 'Sand / Black'],
+  ['Silver Mesh Runner Sneakers', 699, 'White / Silver'],
+  ['White Luxe Chunky Sneakers', 1099, 'White / Gold'],
+  ['Charm Lace White Platform Sneakers', 800, 'White / Brown / Gold'],
+  ['Fashion Strap Mono Chunky Sneakers', 699, 'White / Black'],
+  ['Navy Mesh Runner Sneakers', 699, 'Navy / White'],
+  ['Retro White Grey Court Sneakers', 800, 'White / Grey / Black'],
+  ['Mint Green Retro Court Sneakers', 800, 'Mint / Green / White'],
+  ['Black White Retro Court Sneakers', 800, 'Black / White'],
+  ['Graphite Black Retro Court Sneakers', 800, 'Grey / Black / White'],
+  ['Panda High-Top Court Sneakers', 800, 'Black / White'],
+  ['White Luxe Chunky Sneakers — Gold Edition', 1099, 'White / Gold'],
+  ['White Black Retro Court Sneakers', 800, 'White / Black'],
+  ['Panda Mid-Top Court Sneakers', 699, 'Black / White'],
+  ['Glow Green Star Court Sneakers', 1099, 'White / Neon Green'],
+  ['Sail Grey Retro Court Sneakers', 800, 'Sail / Grey / Black'],
+  ['Charcoal Red Retro Court Sneakers', 800, 'Charcoal / Red / Black'],
+  ['White Blue Retro Court Sneakers', 800, 'White / Blue'],
+  ['Monogram Black White Skate Sneakers', 1099, 'Black / White'],
+  ['Sage White Retro Court Sneakers', 800, 'White / Sage / Grey'],
+  ['Sail Blue Gum Retro Court Sneakers', 800, 'Sail / Blue / Gum'],
+  ['Beige Floral Luxe Court Sneakers', 1099, 'Beige / White'],
+  ['Panda High-Top Court Sneakers — Classic', 800, 'Black / White'],
+  ['Panda Low-Top Court Sneakers', 699, 'Black / White'],
+  ['Black White Mesh Court Sneakers', 800, 'Black / White'],
+  ['Black Three-Stripe Suede Sneakers', 599, 'Black / White'],
+  ['Cream Air Detail Court Sneakers', 800, 'Cream / White'],
+  ['White Green Gum Retro Court Sneakers', 800, 'White / Green / Gum'],
+  ['Graphite Black Court Sneakers', 800, 'Grey / Black / White'],
+  ['Triple White Luxe Court Sneakers', 1099, 'White / Gold'],
+  ['Sail Black Retro Court Sneakers', 800, 'Sail / Black / Grey'],
+];
+
+const sneakerCatalog = rows.map(([name, price, color], index) => ({
+  sku: `GSH-OCT11-SNK-${String(index + 1).padStart(3, '0')}`,
+  imageFile: `sneaker-${String(index + 1).padStart(3, '0')}.jpeg`,
+  name,
+  price,
+  compareAtPrice: price === 1099 ? 1599 : price === 800 ? 1199 : price === 699 ? 999 : 899,
+  colors: [color],
+  categoryName: 'Sneakers',
+  clothingType: 'Sneakers',
+  availableSizes: shoeSizes,
+}));
+
+module.exports = { shoeSizes, sneakerCatalog };

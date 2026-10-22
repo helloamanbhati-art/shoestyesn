@@ -1,0 +1,174 @@
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { useAdminAuth } from './AdminAuthContext';
+import { API_BASE_URL } from '../api/client';
+
+export interface Brand {
+  id: string;
+  name: string;
+  productCount?: number;
+}
+
+interface BrandContextType {
+  brands: Brand[];
+  loading: boolean;
+  error: string | null;
+  addBrand: (brand: Brand) => Promise<boolean>;
+  updateBrand: (id: string, brand: Brand) => Promise<boolean>;
+  deleteBrand: (id: string) => Promise<boolean>;
+  getBrandById: (id: string) => Brand | undefined;
+}
+
+const BrandContext = createContext<BrandContextType | undefined>(undefined);
+
+function getAuthHeaders() {
+  return {
+    'Content-Type': 'application/json',
+  };
+}
+
+export function BrandProvider({ children }: { children: ReactNode }) {
+  const { admin, loading: authLoading } = useAdminAuth();
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchBrands = async () => {
+      if (authLoading) return;
+      if (!admin) {
+        setBrands([]);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      try {
+        console.log('[fetchBrands] Starting...');
+        const response = await fetch(`${API_BASE_URL}/api/v1/admin/brands`, {
+          headers: getAuthHeaders(),
+          credentials: 'include',
+        });
+        console.log('[fetchBrands] Response status:', response.status);
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('[fetchBrands] Data received:', data);
+          const mapped = (data.brands || [])
+            .filter((b: any) => b.name && b.name.toLowerCase() !== 'unknown')
+            .map((b: any) => ({
+              id: b._id || b.id,
+              name: b.name,
+              productCount: b.productCount || 0,
+            }));
+          setBrands(mapped);
+        } else {
+          const errorData = await response.json();
+          const message = errorData?.message || 'Failed to fetch brands';
+          console.error('[fetchBrands] Error:', errorData);
+          setError(message);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+        console.error('[fetchBrands] Exception:', error);
+        setError(message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBrands();
+  }, [admin, authLoading]);
+
+  const addBrand = async (brand: Brand): Promise<boolean> => {
+    try {
+      console.log('[addBrand] Sending request to:', `${API_BASE_URL}/api/v1/admin/brands`);
+      console.log('[addBrand] Payload:', { name: brand.name });
+
+      const response = await fetch(`${API_BASE_URL}/api/v1/admin/brands`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({ name: brand.name }),
+      });
+      console.log('[addBrand] Response status:', response.status);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('[addBrand] Success:', data);
+        setBrands(prev => [...prev, {
+          id: data.brand._id || data.brand.id,
+          name: data.brand.name,
+          productCount: 0,
+        }]);
+        return true;
+      } else {
+        const errorData = await response.json();
+        console.error('[addBrand] Error response:', errorData);
+        return false;
+      }
+    } catch (error) {
+      console.error('[addBrand] Exception:', error);
+      return false;
+    }
+  };
+
+  const updateBrand = async (id: string, brand: Brand): Promise<boolean> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/admin/brands/${id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({ name: brand.name }),
+      });
+      if (response.ok) {
+        setBrands(prev => prev.map(b => b.id === id ? { ...b, name: brand.name } : b));
+        return true;
+      } else {
+        const errorData = await response.json();
+        console.error('Error updating brand:', errorData);
+        return false;
+      }
+    } catch (error) {
+      console.error('Error updating brand:', error);
+      return false;
+    }
+  };
+
+  const deleteBrand = async (id: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/admin/brands/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      if (response.ok) {
+        setBrands(prev => prev.filter(b => b.id !== id));
+        return true;
+      } else {
+        const errorData = await response.json();
+        console.error('Error deleting brand:', errorData);
+        return false;
+      }
+    } catch (error) {
+      console.error('Error deleting brand:', error);
+      return false;
+    }
+  };
+
+  const getBrandById = (id: string) => {
+    return brands.find(b => b.id === id);
+  };
+
+  return (
+    <BrandContext.Provider value={{ brands, loading, error, addBrand, updateBrand, deleteBrand, getBrandById }}>
+      {children}
+    </BrandContext.Provider>
+  );
+}
+
+export function useBrands() {
+  const context = useContext(BrandContext);
+  if (!context) {
+    throw new Error('useBrands must be used within BrandProvider');
+  }
+  return context;
+}

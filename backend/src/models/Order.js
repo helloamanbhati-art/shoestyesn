@@ -1,0 +1,250 @@
+const mongoose = require("mongoose");
+
+const selectedVariantSchema = new mongoose.Schema({
+  variantId: { type: String, required: true },
+  variantName: { type: String, required: true, trim: true },
+  color: { type: String, default: null },
+  pattern: { type: String, default: null },
+  sku: { type: String, default: null },
+  thumbnail: { type: String, default: null },
+  primaryImage: { type: String, default: null },
+  galleryImages: { type: [String], default: [] },
+  priceAtPurchase: { type: Number, default: 0 }
+}, { _id: false });
+
+const selectedComponentSchema = new mongoose.Schema({
+  componentId: { type: String, required: true, trim: true },
+  name: { type: String, required: true, trim: true },
+  size: { type: String, required: true, trim: true },
+}, { _id: false });
+
+const orderItemSchema = new mongoose.Schema(
+  {
+    product: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Product",
+      required: true,
+    },
+    productName: String,
+    productImage: String,
+    brand: String,
+    size: {
+      type: String,
+      default: null,
+    },
+    selectedComponents: { type: [selectedComponentSchema], default: [] },
+    color: {
+      type: String,
+      default: null,
+    },
+    selectedVariant: {
+      type: selectedVariantSchema,
+      default: null,
+    },
+    price: { type: Number, required: true, min: 0 },
+    quantity: { type: Number, required: true, min: 1 },
+    meters: Number,
+    soldBy: {
+      type: String,
+      enum: ["meter", "piece"],
+      required: true,
+    },
+    subtotal: { type: Number, required: true, min: 0 },
+    additionalChargeName: { type: String, default: '' },
+    additionalChargeAmount: { type: Number, default: 0, min: 0 },
+    discount: { type: Number, default: 0, min: 0 },
+    tax: { type: Number, default: 0, min: 0 },
+    total: { type: Number, required: true, min: 0 },
+  },
+  { _id: true }
+);
+
+const orderSchema = new mongoose.Schema(
+  {
+    // Order Number
+    orderNumber: {
+      type: String,
+      unique: true,
+      required: true,
+    },
+
+    // Customer Info
+    customer: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Customer",
+      default: null,
+    },
+    checkoutIdempotencyKey: { type: String },
+    guestAccessTokenHash: { type: String, select: false },
+    customerName: String,
+    customerEmail: String,
+    customerPhone: String,
+
+    // Items
+    items: {
+      type: [orderItemSchema],
+      required: [true, "Order must have items"],
+      validate: [(items) => items.length > 0, "Order must have at least one item"],
+    },
+
+    // Pricing
+    subtotal: { type: Number, required: true, min: 0 },
+    tax: { type: Number, default: 0, min: 0 },
+    discount: { type: Number, default: 0, min: 0 },
+    shippingCost: { type: Number, default: 0, min: 0 },
+    total: { type: Number, required: true, min: 0 },
+
+    // Discounts and Coupons
+    couponCode: String,
+    couponDiscount: { type: Number, default: 0, min: 0 },
+    loyaltyPointsUsed: { type: Number, default: 0, min: 0 },
+
+    // Shipping
+    shippingAddress: {
+      fullName: String,
+      phone: String,
+      houseName: String,
+      building: String,
+      street: String,
+      landmark: String,
+      addressLine1: String,
+      addressLine2: String,
+      city: String,
+      state: String,
+      zipCode: String,
+      country: String,
+    },
+    shippingMethod: {
+      type: String,
+      enum: ["standard", "express", "overnight"],
+      default: "standard",
+    },
+    trackingNumber: String,
+    carrier: String, // e.g., "Shipway", "Easypost"
+
+
+
+    // Payment
+    paymentMethod: {
+      type: String,
+      enum: ["razorpay", "upi", "card", "netbanking", "wallet"],
+      default: "razorpay",
+    },
+    paymentStatus: {
+      type: String,
+      enum: ["pending", "paid", "failed", "refunded", "cancelled"],
+      default: "pending",
+    },
+    paymentDetails: {
+      razorpayOrderId: String,
+      razorpayPaymentId: String,
+      razorpaySignature: String,
+      transactionId: String,
+      paidAmount: Number,
+      paidAt: Date,
+      failureReason: String,
+    },
+
+    // Order Status
+    status: {
+      type: String,
+      enum: [
+        "pending",
+        "confirmed",
+        "processing",
+        "shipped",
+        "out_for_delivery",
+        "delivered",
+        "cancelled",
+        "refunded",
+      ],
+      default: "pending",
+    },
+    statusHistory: [
+      {
+        status: String,
+        updatedAt: { type: Date, default: Date.now },
+        updatedBy: mongoose.Schema.Types.ObjectId,
+        notes: String,
+      },
+    ],
+    stockReservation: {
+      status: {
+        type: String,
+        enum: ["reserved", "released", "consumed"],
+        default: "reserved",
+      },
+      reservedAt: { type: Date, default: Date.now },
+      releasedAt: Date,
+      consumedAt: Date,
+    },
+
+    // Return/Refund
+    refundStatus: {
+      type: String,
+      enum: ["none", "requested", "approved", "rejected", "processed"],
+      default: "none",
+    },
+    refundAmount: { type: Number, default: 0, min: 0 },
+    refundReason: String,
+    refundRequestDate: Date,
+    refundProcessedDate: Date,
+
+    // Delivery
+    deliveredAt: Date,
+    estimatedDeliveryDate: Date,
+
+    // Notes
+    customerNotes: String,
+    adminNotes: String,
+    internalNotes: String,
+
+    // Metadata
+    source: {
+      type: String,
+      enum: ["web", "mobile", "api"],
+      default: "web",
+    },
+    ipAddress: String,
+    userAgent: String,
+  },
+  { timestamps: true }
+);
+
+orderSchema.set('toJSON', {
+  transform: (_document, value) => {
+    delete value.guestAccessTokenHash;
+    return value;
+  },
+});
+
+// Auto-generate order number
+orderSchema.pre("save", async function (next) {
+  if (!this.isModified("orderNumber") && !this.orderNumber) {
+    const count = await this.constructor.countDocuments();
+    const date = new Date();
+    const dateStr = date
+      .toISOString()
+      .slice(0, 10)
+      .replace(/-/g, "");
+    this.orderNumber = `ORD-${dateStr}-${String(count + 1).padStart(5, "0")}`;
+  }
+  next();
+});
+
+// Index for faster queries
+orderSchema.index({ customer: 1 });
+orderSchema.index({ customerEmail: 1 });
+orderSchema.index({ guestAccessTokenHash: 1 }, { sparse: true });
+orderSchema.index({ status: 1 });
+orderSchema.index({ createdAt: -1 });
+orderSchema.index({ paymentStatus: 1 });
+orderSchema.index(
+  { customer: 1, checkoutIdempotencyKey: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { checkoutIdempotencyKey: { $type: "string" } },
+  }
+);
+
+module.exports = mongoose.model("Order", orderSchema);
