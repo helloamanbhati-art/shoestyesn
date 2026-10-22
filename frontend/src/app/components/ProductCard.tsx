@@ -64,8 +64,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
           </div>
 
           <CardContent className="flex flex-1 flex-col bg-transparent px-2.5 pb-3 pt-2.5 text-left [&:last-child]:pb-3 md:px-3">
-            <p className="truncate text-sm font-semibold text-foreground">{product.brand}</p>
-            <h3 className="mt-0.5 line-clamp-2 text-sm font-normal leading-5 text-foreground sm:min-h-10 sm:text-[15px]">
+            <h3 className="line-clamp-2 text-sm font-normal leading-5 text-foreground sm:min-h-10 sm:text-[15px]">
               {product.name}
             </h3>
             {product.shortDescription && (

@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { OutfitComponent, ProductVariant, SelectedOutfitComponent, SelectedVariantSnapshot } from "../types/product";
 import { isVideoMediaUrl } from "../utils/media";
 import { saveBuyNowItem } from "../checkout/buyNowStorage";
+import { WomenSizeGuideDialog } from "../components/WomenSizeGuideDialog";
+import { getEuShoeSize, isFootwearProduct } from "../utils/womenShoeSizes";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -391,6 +393,7 @@ export function ProductDetail() {
   const purchaseDisabled = !product.inStock || (requiresSize && !selectedSize) || missingComponentCount > 0;
   const productLookupCode = product.id.slice(-8).toUpperCase();
   const hasPinkShootDetails = productLookupCode === '36A46A94';
+  const usesEuShoeSizes = isFootwearProduct(product);
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-4 sm:px-6 lg:px-8">
@@ -439,7 +442,7 @@ export function ProductDetail() {
                 {product.outfitComponents.map((component, index) => <fieldset key={component.componentId}><legend className="text-sm font-medium">{index + 1}. {component.name} <span className="text-destructive" aria-hidden="true">*</span></legend><div className="mt-2 flex flex-wrap gap-2">{component.availableSizes.map((size) => { const selected = componentSizes[component.componentId] === size; return <button key={size} type="button" onClick={() => setComponentSizes((current) => ({ ...current, [component.componentId]: size }))} className={`min-h-10 min-w-12 rounded-sm border px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${selected ? 'border-foreground bg-foreground text-background' : 'bg-background hover:border-foreground'}`} aria-pressed={selected}>{size}</button>; })}</div></fieldset>)}
                 <p className="text-xs font-medium" aria-live="polite">{missingComponentCount === 0 ? 'All sizes selected — ready to add.' : `${missingComponentCount} size${missingComponentCount === 1 ? '' : 's'} still required.`}</p>
               </section>
-            ) : product.availableSizes && product.availableSizes.length > 0 ? <fieldset><legend className="text-sm font-semibold">Size <span className="text-destructive" aria-hidden="true">*</span><span className="sr-only">(required)</span></legend><div className="mt-2 flex flex-wrap gap-2">{product.availableSizes.map((size) => <button key={size} type="button" onClick={() => setSelectedSize(size)} className={`min-h-10 min-w-12 rounded-sm border px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${selectedSize === size ? 'border-foreground bg-foreground text-background' : 'border-input bg-background hover:border-foreground hover:bg-accent'}`} aria-pressed={selectedSize === size} aria-label={`Size ${size}${selectedSize === size ? ', selected' : ''}`}>{size}</button>)}</div><p className={`mt-1.5 text-xs ${selectedSize ? 'font-medium text-foreground' : 'text-muted-foreground'}`} aria-live="polite">{selectedSize ? `Selected: ${selectedSize}` : 'Select a size to continue'}</p></fieldset> : <div><p className="text-sm font-semibold">Sold by</p><p className="mt-2 text-sm text-muted-foreground">{product.soldBy === 'meter' ? 'Fabric length' : 'One piece'}</p></div>}
+            ) : product.availableSizes && product.availableSizes.length > 0 ? <fieldset><div className="flex items-center justify-between gap-4"><legend className="text-sm font-semibold">Select {usesEuShoeSizes ? 'EU size' : 'size'} <span className="text-destructive" aria-hidden="true">*</span><span className="sr-only">(required)</span></legend>{usesEuShoeSizes && <WomenSizeGuideDialog />}</div><div className="mt-2 grid grid-cols-4 gap-2 sm:flex sm:flex-wrap">{product.availableSizes.map((size) => { const displaySize = usesEuShoeSizes ? getEuShoeSize(size) : size; return <button key={size} type="button" onClick={() => setSelectedSize(size)} className={`min-h-12 min-w-14 rounded-sm border px-3 py-2 text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${selectedSize === size ? 'border-foreground bg-foreground text-background' : 'border-input bg-background hover:border-foreground hover:bg-accent'}`} aria-pressed={selectedSize === size} aria-label={`${usesEuShoeSizes ? 'EU size' : 'Size'} ${displaySize}${selectedSize === size ? ', selected' : ''}`}>{displaySize}</button>; })}</div><p className={`mt-2 text-xs ${selectedSize ? 'font-medium text-foreground' : 'text-muted-foreground'}`} aria-live="polite">{selectedSize ? `Selected: ${usesEuShoeSizes ? 'EU ' : ''}${usesEuShoeSizes ? getEuShoeSize(selectedSize) : selectedSize}` : `Choose your ${usesEuShoeSizes ? 'EU ' : ''}size to continue`}</p></fieldset> : <div><p className="text-sm font-semibold">Sold by</p><p className="mt-2 text-sm text-muted-foreground">{product.soldBy === 'meter' ? 'Fabric length' : 'One piece'}</p></div>}
           </div>
 
           <div ref={buttonRef} className="space-y-2">

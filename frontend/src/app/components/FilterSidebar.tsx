@@ -1,11 +1,11 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ComponentType, type ReactNode, type SVGProps } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import {
-  BadgePercent,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   CircleDollarSign,
+  Footprints,
   Grid2X2,
   House,
   Info,
@@ -15,17 +15,17 @@ import {
   PackageSearch,
   RotateCcw,
   Ruler,
-  Shirt,
-  Tags,
   Truck,
   X,
 } from 'lucide-react';
 import { FilterState, BrandCount, CategoryCount, ClothingTypeCount } from '../types/product';
+import { getEuShoeSize } from '../utils/womenShoeSizes';
 import { Button } from './ui/button';
 
 interface SizeCount {
   size: string;
   count: number;
+  startingPrice: number | null;
 }
 
 interface FilterSidebarProps {
@@ -42,13 +42,15 @@ interface FilterSidebarProps {
 }
 
 interface MenuGroupProps {
-  icon: typeof Layers3;
+  icon: SidebarIcon;
   label: string;
   open: boolean;
   collapsed: boolean;
   onToggle: () => void;
   children: ReactNode;
 }
+
+type SidebarIcon = ComponentType<SVGProps<SVGSVGElement>>;
 
 function MenuGroup({ icon: Icon, label, open, collapsed, onToggle, children }: MenuGroupProps) {
   return (
@@ -87,7 +89,7 @@ function MenuGroup({ icon: Icon, label, open, collapsed, onToggle, children }: M
 interface SidebarLinkProps {
   to: string;
   label: string;
-  icon: typeof House;
+  icon: SidebarIcon;
   collapsed: boolean;
   onClick: () => void;
   active?: boolean;
@@ -115,7 +117,6 @@ export function FilterSidebar({
   filters,
   onFiltersChange,
   priceRanges,
-  brandCounts,
   categoryCounts,
   sizeCounts = [],
   clothingTypeCounts = [],
@@ -128,7 +129,6 @@ export function FilterSidebar({
   const [categoriesOpen, setCategoriesOpen] = useState(true);
   const [sizesOpen, setSizesOpen] = useState(false);
   const [typesOpen, setTypesOpen] = useState(false);
-  const [brandsOpen, setBrandsOpen] = useState(false);
   const [pricesOpen, setPricesOpen] = useState(false);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -145,13 +145,6 @@ export function FilterSidebar({
 
   const handlePredefinedRangeClick = (min: number, max: number) => {
     onFiltersChange({ ...filters, priceRange: [min, max] });
-  };
-
-  const handleBrandToggle = (brand: string) => {
-    const selectedBrands = filters.selectedBrands.includes(brand)
-      ? filters.selectedBrands.filter((item) => item !== brand)
-      : [...filters.selectedBrands, brand];
-    onFiltersChange({ ...filters, selectedBrands });
   };
 
   const handleCategoryClick = (category: string) => {
@@ -233,32 +226,36 @@ export function FilterSidebar({
               })}
             </MenuGroup>
 
-            <SidebarLink to="/?sale=true" label="Sale" icon={BadgePercent} collapsed={collapsed} onClick={onClose} active={isSaleView} />
-
             <div className={`my-3 border-t border-gray-200 dark:border-gray-700 ${collapsed ? 'md:mx-2' : ''}`} />
             <p className={`px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400 ${collapsed ? 'md:sr-only' : ''}`}>Shop filters</p>
 
             {sizeCounts.length > 0 && (
               <MenuGroup
                 icon={Ruler}
-                label="Sizes"
+                label="EU Sizes"
                 open={sizesOpen}
                 collapsed={collapsed}
                 onToggle={() => setSizesOpen((open) => !open)}
               >
-                {sizeCounts.map(({ size, count }) => {
+                {sizeCounts.map(({ size, count, startingPrice }) => {
                   const selected = filters.selectedSizes.includes(size);
+                  const euSize = getEuShoeSize(size);
                   return (
                     <button
                       type="button"
                       key={size}
                       onClick={() => handleSizeToggle(size)}
                       aria-pressed={selected}
+                      aria-label={`EU size ${euSize}${startingPrice !== null ? `, from ₹${startingPrice.toLocaleString('en-IN')}` : ', unavailable'}`}
                       disabled={count === 0}
                       className={`${submenuButtonClass} disabled:opacity-40 ${selected ? 'font-semibold text-[#3145a5] dark:text-indigo-300' : ''}`}
                     >
-                      <span>{size}</span>
-                      <span className="text-xs text-gray-400">{count}</span>
+                      <span>{euSize}</span>
+                      {startingPrice !== null && (
+                        <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                          From ₹{startingPrice.toLocaleString('en-IN')}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -267,7 +264,7 @@ export function FilterSidebar({
 
             {clothingTypeCounts.length > 0 && (
               <MenuGroup
-                icon={Shirt}
+                icon={Footprints}
                 label="Product types"
                 open={typesOpen}
                 collapsed={collapsed}
@@ -284,32 +281,6 @@ export function FilterSidebar({
                       className={`${submenuButtonClass} capitalize ${selected ? 'font-semibold text-[#3145a5] dark:text-indigo-300' : ''}`}
                     >
                       <span className="truncate">{type}</span>
-                      <span className="text-xs text-gray-400">{count}</span>
-                    </button>
-                  );
-                })}
-              </MenuGroup>
-            )}
-
-            {brandCounts.length > 0 && (
-              <MenuGroup
-                icon={Tags}
-                label="Brands"
-                open={brandsOpen}
-                collapsed={collapsed}
-                onToggle={() => setBrandsOpen((open) => !open)}
-              >
-                {brandCounts.map(({ brand, count }) => {
-                  const selected = filters.selectedBrands.includes(brand);
-                  return (
-                    <button
-                      type="button"
-                      key={brand}
-                      onClick={() => handleBrandToggle(brand)}
-                      aria-pressed={selected}
-                      className={`${submenuButtonClass} ${selected ? 'font-semibold text-[#3145a5] dark:text-indigo-300' : ''}`}
-                    >
-                      <span className="truncate">{brand}</span>
                       <span className="text-xs text-gray-400">{count}</span>
                     </button>
                   );

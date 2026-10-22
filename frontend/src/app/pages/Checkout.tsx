@@ -14,6 +14,7 @@ import { usePageTitle } from '../hooks/usePageTitle';
 import { clearGuestData, loadGuestCheckoutProfile, saveGuestCheckoutProfile, saveGuestOrderToken } from '../guest/guestStorage';
 import { clearBuyNowItem, loadBuyNowItem } from '../checkout/buyNowStorage';
 import { getCheckoutSubmitState } from '../checkout/checkoutSubmitState';
+import { getEuShoeSize, isFootwearProduct } from '../utils/womenShoeSizes';
 
 interface FormData {
   firstName: string; lastName: string; email: string; phone: string;
@@ -274,7 +275,7 @@ export function Checkout() {
                     const selection = [
                       item.selectedVariant?.variantName && item.selectedVariant.variantName !== 'Default' ? item.selectedVariant.variantName : null,
                       item.selectedColor,
-                      item.selectedSize ? `Size ${item.selectedSize}` : null,
+                      item.selectedSize ? (isFootwearProduct(item) ? `EU Size ${getEuShoeSize(item.selectedSize)}` : `Size ${item.selectedSize}`) : null,
                       item.selectedMeters ? `${item.selectedMeters} metres` : null,
                     ].filter(Boolean);
                     return (

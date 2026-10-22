@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router';
 import { CreditCard, ExternalLink, Instagram, Mail, MapPin, MessageCircle, Phone, RefreshCw, Ruler, Truck } from 'lucide-react';
 import { STORE } from '../config/store';
+import { WOMEN_SHOE_SIZE_ROWS } from '../utils/womenShoeSizes';
 
 const pages = {
   '/about-us': {
@@ -13,9 +14,9 @@ const pages = {
     body: 'Keep your product screenshot or order number ready so the team can help quickly.',
   },
   '/size-guide': {
-    eyebrow: 'Find your fit', title: 'Size Guide',
-    intro: `Shoe Style currently offers footwear in sizes ${STORE.availableSizes}.`,
-    body: 'Check the product-specific size options before adding an item to your cart. Contact the store if you need help choosing the right fit.',
+    eyebrow: "Women's footwear", title: "Women's Size Guide",
+    intro: 'Use your foot length to find the closest EU size, then choose that EU size on the product page.',
+    body: 'This conversion guide is designed for women’s footwear. Fit can vary slightly by style, so check the sizes available on each product.',
   },
   '/shipping-delivery': {
     eyebrow: 'Order information', title: 'Shipping & Delivery',
@@ -61,7 +62,39 @@ export function StoreInformation() {
           </div>
         )}
 
-        {pathname === '/size-guide' && <div className="mt-8 flex items-start gap-4 bg-muted/50 p-5"><Ruler className="mt-0.5 size-5 shrink-0" /><p className="text-sm leading-6">Send a photo or product link on WhatsApp with your usual size for product-specific guidance.</p></div>}
+        {pathname === '/size-guide' && (
+          <section className="mt-8" aria-labelledby="women-size-chart-heading">
+            <div className="flex items-start gap-4 bg-muted/50 p-5">
+              <Ruler className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+              <div>
+                <h2 id="women-size-chart-heading" className="font-semibold">How to measure</h2>
+                <p className="mt-1 text-sm leading-6 text-foreground/75">Stand on a sheet of paper and mark from the back of your heel to the longest toe. Measure that distance in centimetres and use the closest foot length below. If you are between sizes, choose the larger size.</p>
+              </div>
+            </div>
+
+            <div className="mt-6 overflow-x-auto border">
+              <table className="w-full min-w-[560px] border-collapse text-left text-sm">
+                <caption className="sr-only">Women’s shoe size conversion chart</caption>
+                <thead className="bg-muted/60">
+                  <tr>
+                    {['EU Size', 'UK Size', 'India Size', 'Foot Length (cm)'].map((heading) => <th key={heading} scope="col" className="border-b px-4 py-3 font-semibold sm:px-6">{heading}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {WOMEN_SHOE_SIZE_ROWS.map(({ eu, uk, india, footLength }) => (
+                    <tr key={eu} className="border-b last:border-b-0">
+                      <th scope="row" className="px-4 py-3 font-semibold sm:px-6">{eu}</th>
+                      <td className="px-4 py-3 sm:px-6">{uk}</td>
+                      <td className="px-4 py-3 sm:px-6">{india}</td>
+                      <td className="px-4 py-3 sm:px-6">{footLength}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-4 text-sm leading-6 text-muted-foreground">Need help? Send the product link and your foot measurement on WhatsApp for sizing guidance.</p>
+          </section>
+        )}
         {pathname === '/shipping-delivery' && <div className="mt-8 flex items-start gap-4 bg-muted/50 p-5"><Truck className="mt-0.5 size-5 shrink-0" /><p className="text-sm leading-6">Delivery details will be added soon. Online payment only; Cash on Delivery is not available. Exchanges are accepted, but returns are not.</p></div>}
       </div>
       <div className="mt-8 flex flex-wrap gap-3">

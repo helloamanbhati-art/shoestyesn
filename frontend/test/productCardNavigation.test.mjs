@@ -10,3 +10,7 @@ test('clicking a product card opens that exact product detail page', () => {
   assert.match(detailSource, /fetch\(`\$\{API_BASE_URL\}\/api\/v1\/products\/\$\{id\}`\)/);
   assert.match(detailSource, /<img src=\{activeMedia\} alt=\{`\$\{product\.name\}/);
 });
+
+test('product cards omit the brand name', () => {
+  assert.doesNotMatch(cardSource, /\{product\.brand\}/);
+});

@@ -6,6 +6,7 @@ import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { ArrowLeft, Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
+import { getEuShoeSize, isFootwearProduct } from '../utils/womenShoeSizes';
 
 const getDisplayValue = (value: unknown) => {
   if (typeof value === 'string') {
@@ -92,7 +93,7 @@ export function Cart() {
                         {/* Show size info if applicable */}
                         {item.selectedSize && (
                           <Badge variant="secondary" className="mt-1 mr-2 text-xs">
-                            Size: {item.selectedSize}
+                            {isFootwearProduct(item) ? `EU Size: ${getEuShoeSize(item.selectedSize)}` : `Size: ${item.selectedSize}`}
                           </Badge>
                         )}
                         {item.selectedComponents?.map((component) => <Badge key={component.componentId} variant="outline">{component.name}: {component.size}</Badge>)}

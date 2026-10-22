@@ -149,16 +149,22 @@ export function useProductFilters(products: Product[], _managedCategories: strin
     });
 
     return Array.from(allSizes).sort().map(size => {
-      const count = products.filter(product => {
+      const matchingProducts = products.filter(product => {
         const matchesPrice = product.price >= filters.priceRange[0] && 
                             product.price <= filters.priceRange[1];
         const matchesBrand = filters.selectedBrands.length === 0 || filters.selectedBrands.includes(product.brand);
         const matchesCategory = filters.selectedCategories.length === 0 || filters.selectedCategories.includes(product.category);
         const hasSize = product.availableSizes?.includes(size);
         return matchesPrice && matchesBrand && matchesCategory && hasSize;
-      }).length;
+      });
 
-      return { size, count };
+      return {
+        size,
+        count: matchingProducts.length,
+        startingPrice: matchingProducts.length > 0
+          ? Math.min(...matchingProducts.map((product) => product.price))
+          : null,
+      };
     });
   }, [products, filters.priceRange, filters.selectedBrands, filters.selectedCategories]);
 
