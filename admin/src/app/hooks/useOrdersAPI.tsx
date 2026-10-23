@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useAdminAuth } from '../contexts/AdminAuthContext';
 import { API_BASE_URL } from '../api/client';
-import { fetchAllAdminOrders } from '../api/adminOrders.mjs';
+import { fetchAdminOrderChanges, fetchAdminOrderSnapshot } from '../api/adminOrders.mjs';
 
 export interface SelectedVariantSnapshot {
   variantId: string;
@@ -143,38 +143,64 @@ export function useOrdersAPI() {
   // Fetch orders on mount
   useEffect(() => {
     let active = true;
-    const fetchOrders = async () => {
+    let refreshInFlight = false;
+    let syncCursor: string | null = null;
+    const fetchOrders = async (forceSnapshot = false) => {
       if (authLoading) return;
       if (!admin) {
         setOrders([]);
         setLoading(false);
         return;
       }
+      if (document.visibilityState !== 'visible' || !navigator.onLine || refreshInFlight) return;
+      refreshInFlight = true;
       try {
-        const allOrders = await fetchAllAdminOrders(fetch, API_BASE_URL, {
-          headers: getAuthHeaders(),
-          credentials: 'include',
-        });
-        if (active) {
-          const normalizedOrders = allOrders.map(normalizeOrder);
-          setOrders(normalizedOrders);
-          setError(null);
+        const requestOptions = { headers: getAuthHeaders(), credentials: 'include' as const };
+        if (forceSnapshot || !syncCursor) {
+          const snapshot = await fetchAdminOrderSnapshot(fetch, API_BASE_URL, requestOptions);
+          syncCursor = snapshot.cursor;
+          if (active) setOrders(snapshot.orders.map(normalizeOrder));
+        } else {
+          const changes = await fetchAdminOrderChanges(fetch, API_BASE_URL, syncCursor, requestOptions);
+          syncCursor = changes.cursor;
+          if (changes.hasMore) {
+            syncCursor = null;
+          } else if (active && changes.orders.length > 0) {
+            const changedOrders = changes.orders.map(normalizeOrder);
+            setOrders((currentOrders) => {
+              const byId = new Map(currentOrders.map((order) => [order.id, order]));
+              for (const order of changedOrders) byId.set(order.id, order);
+              return [...byId.values()].sort(
+                (left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt),
+              );
+            });
+          }
         }
+        if (active) setError(null);
       } catch (err) {
         if (active) {
           setError(err instanceof Error ? err.message : 'Failed to load orders');
         }
       } finally {
+        refreshInFlight = false;
         if (active) setLoading(false);
       }
     };
 
     fetchOrders();
-    const refreshTimer = window.setInterval(fetchOrders, 15_000);
+    const refreshTimer = window.setInterval(() => fetchOrders(), 3_000);
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') fetchOrders();
+    };
+    const refreshWhenOnline = () => fetchOrders(true);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    window.addEventListener('online', refreshWhenOnline);
 
     return () => {
       active = false;
       window.clearInterval(refreshTimer);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+      window.removeEventListener('online', refreshWhenOnline);
     };
   }, [admin, authLoading]);
 

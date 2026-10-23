@@ -238,6 +238,7 @@ orderSchema.index({ customerEmail: 1 });
 orderSchema.index({ guestAccessTokenHash: 1 }, { sparse: true });
 orderSchema.index({ status: 1 });
 orderSchema.index({ createdAt: -1 });
+orderSchema.index({ updatedAt: 1, _id: 1 });
 orderSchema.index({ paymentStatus: 1 });
 orderSchema.index(
   { customer: 1, checkoutIdempotencyKey: 1 },

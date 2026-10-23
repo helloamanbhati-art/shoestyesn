@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fetchAllAdminOrders } from '../src/app/api/adminOrders.mjs';
+import { fetchAdminOrderChanges, fetchAllAdminOrders } from '../src/app/api/adminOrders.mjs';
 
 test('fetchAllAdminOrders loads every page of orders in newest-first order', async () => {
   const requestedUrls = [];
@@ -61,4 +61,30 @@ test('fetchAllAdminOrders supports the production same-origin API base', async (
   await fetchAllAdminOrders(fetchImpl, '', {});
 
   assert.equal(requestedUrl, '/api/v1/admin/orders?page=1&limit=100');
+});
+
+test('fetchAdminOrderChanges requests only records after the sync cursor', async () => {
+  let requestedUrl = '';
+  const fetchImpl = async (url) => {
+    requestedUrl = url;
+    return {
+      ok: true,
+      json: async () => ({
+        data: [{ _id: 'changed-order' }],
+        sync: { cursor: '2026-10-23T08:00:03.000Z' },
+      }),
+    };
+  };
+
+  const result = await fetchAdminOrderChanges(
+    fetchImpl,
+    '',
+    '2026-10-23T08:00:00.000Z',
+    { credentials: 'include' },
+  );
+
+  assert.match(requestedUrl, /\/api\/v1\/admin\/orders\?/);
+  assert.match(requestedUrl, /since=2026-10-23T08%3A00%3A00\.000Z/);
+  assert.equal(result.orders[0]._id, 'changed-order');
+  assert.equal(result.cursor, '2026-10-23T08:00:03.000Z');
 });

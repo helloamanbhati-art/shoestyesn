@@ -21,7 +21,9 @@ function structuredLimiter({ windowMs, max, code, message, ...options }) {
 // General rate limiter
 exports.generalLimiter = structuredLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 300, // limit each IP to 300 requests per windowMs
+  // Route-specific limits still protect expensive/authenticated APIs. This
+  // ceiling leaves room for the admin's lightweight incremental sync.
+  max: 1500,
   code: "API_RATE_LIMITED",
   message: "Too many requests. Please try again later.",
 });

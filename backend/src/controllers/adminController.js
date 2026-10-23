@@ -9,35 +9,46 @@ const Tax = require("../models/Tax");
 const Return = require("../models/Return");
 const mongoose = require("mongoose");
 const inventoryService = require("../services/inventoryService");
+const { buildAdminOrderQuery } = require('../services/adminOrderQuery');
 
 // Get dashboard stats
 exports.getDashboardStats = async (req, res, next) => {
   try {
-    const totalProducts = await Product.countDocuments();
-    const totalOrders = await Order.countDocuments();
-    const totalCustomers = await Customer.countDocuments();
-    const totalRevenue = await Order.aggregate([
-      { $match: { paymentStatus: "paid" } },
-      { $group: { _id: null, total: { $sum: "$total" } } },
+    const [
+      totalProducts,
+      totalOrders,
+      totalCustomers,
+      totalRevenue,
+      recentOrders,
+      topProducts,
+      lowStockProducts,
+    ] = await Promise.all([
+      Product.countDocuments(),
+      Order.countDocuments(),
+      Customer.countDocuments(),
+      Order.aggregate([
+        { $match: { paymentStatus: "paid" } },
+        { $group: { _id: null, total: { $sum: "$total" } } },
+      ]),
+      Order.find()
+        .limit(10)
+        .sort({ createdAt: -1 })
+        .populate("customer", "firstName lastName email")
+        .lean(),
+      Product.find()
+        .limit(5)
+        .sort({ totalSales: -1 })
+        .lean(),
+      Product.find({
+        isActive: true,
+        trackInventory: true,
+        $expr: { $lte: ["$stock.available", "$stock.lowStockThreshold"] },
+      })
+        .select("name sku image stock")
+        .sort({ "stock.available": 1 })
+        .limit(10)
+        .lean(),
     ]);
-
-    const recentOrders = await Order.find()
-      .limit(10)
-      .sort({ createdAt: -1 })
-      .populate("customer", "firstName lastName email");
-
-    const topProducts = await Product.find()
-      .limit(5)
-      .sort({ totalSales: -1 });
-
-    const lowStockProducts = await Product.find({
-      isActive: true,
-      trackInventory: true,
-      $expr: { $lte: ["$stock.available", "$stock.lowStockThreshold"] },
-    })
-      .select("name sku image stock")
-      .sort({ "stock.available": 1 })
-      .limit(10);
 
     res.json({
       success: true,
@@ -236,37 +247,31 @@ exports.bulkUpdateProducts = async (req, res, next) => {
 // Manage orders
 exports.getAllOrders = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, status, search } = req.query;
-    const skip = (page - 1) * limit;
-
-    let query = {};
-    if (status) query.status = status;
-    if (search) {
-      query.$or = [
-        { orderNumber: { $regex: search, $options: "i" } },
-        { customerName: { $regex: search, $options: "i" } },
-        { customerEmail: { $regex: search, $options: "i" } },
-      ];
-    }
-
-    const orders = await Order.find(query)
+    const syncCursor = new Date();
+    const { filter, isIncremental, limit, page, skip, sort } = buildAdminOrderQuery(req.query);
+    const ordersQuery = Order.find(filter)
       .skip(skip)
       .limit(limit)
-      .sort({ createdAt: -1 })
-      .populate("customer")
-      .populate("items.product");
+      .sort(sort)
+      .populate("customer", "firstName lastName email phone")
+      .populate("items.product", "name image sku")
+      .lean();
 
-    const total = await Order.countDocuments(query);
+    const [orders, total] = await Promise.all([
+      ordersQuery,
+      isIncremental ? Promise.resolve(null) : Order.countDocuments(filter),
+    ]);
 
     res.json({
       success: true,
       data: orders,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit),
+        page,
+        limit,
+        total: total ?? orders.length,
+        pages: isIncremental ? 1 : Math.ceil(total / limit),
       },
+      sync: { cursor: syncCursor.toISOString(), hasMore: isIncremental && orders.length === limit },
     });
   } catch (error) {
     next(error);

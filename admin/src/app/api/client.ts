@@ -6,10 +6,21 @@ const API_BASE_URL = (import.meta.env.VITE_API_URL || DEFAULT_API_URL).replace(/
 const LOGIN_MAX_ATTEMPTS = 3;
 const LOGIN_ATTEMPT_TIMEOUT_MS = 60_000;
 const RETRYABLE_LOGIN_STATUSES = new Set([502, 503, 504]);
+const RETRYABLE_REQUEST_STATUSES = new Set([429, 502, 503, 504]);
+const REQUEST_MAX_ATTEMPTS = 3;
+const REQUEST_TIMEOUT_MS = 30_000;
+const inFlightGetRequests = new Map<string, Promise<unknown>>();
+let refreshPromise: Promise<boolean> | null = null;
 
-const waitBeforeRetry = (attempt: number) => new Promise<void>((resolve) => {
-  window.setTimeout(resolve, 500 * (2 ** attempt));
+const waitBeforeRetry = (attempt: number, serverDelayMs = 0) => new Promise<void>((resolve) => {
+  const exponentialDelay = 500 * (2 ** attempt) + Math.floor(Math.random() * 250);
+  window.setTimeout(resolve, Math.min(Math.max(serverDelayMs, exponentialDelay), 5_000));
 });
+
+function getRetryAfterMs(response: Response): number {
+  const seconds = Number(response.headers.get('retry-after'));
+  return Number.isFinite(seconds) && seconds > 0 ? seconds * 1_000 : 0;
+}
 
 export class AdminApiError extends Error {
   constructor(public status: number, message: string) {
@@ -43,12 +54,17 @@ async function fetchWithLoginResilience(
   headers: Headers,
 ): Promise<Response> {
   const isLogin = path === '/api/v1/admin/auth/login';
-  const maxAttempts = isLogin ? LOGIN_MAX_ATTEMPTS : 1;
+  const isRetryableRead = (init.method || 'GET').toUpperCase() === 'GET';
+  const maxAttempts = isLogin ? LOGIN_MAX_ATTEMPTS : (isRetryableRead ? REQUEST_MAX_ATTEMPTS : 1);
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-    const controller = isLogin ? new AbortController() : null;
+    let retryAfterMs = 0;
+    const controller = (isLogin || isRetryableRead) ? new AbortController() : null;
     const timeoutId = controller
-      ? window.setTimeout(() => controller.abort(), LOGIN_ATTEMPT_TIMEOUT_MS)
+      ? window.setTimeout(
+          () => controller.abort(),
+          isLogin ? LOGIN_ATTEMPT_TIMEOUT_MS : REQUEST_TIMEOUT_MS,
+        )
       : null;
     const abortFromCaller = () => controller?.abort();
     init.signal?.addEventListener('abort', abortFromCaller, { once: true });
@@ -60,22 +76,36 @@ async function fetchWithLoginResilience(
         credentials: 'include',
         signal: controller?.signal || init.signal,
       });
-      const shouldRetry = isLogin
-        && RETRYABLE_LOGIN_STATUSES.has(response.status)
+      const retryableStatuses = isLogin ? RETRYABLE_LOGIN_STATUSES : RETRYABLE_REQUEST_STATUSES;
+      const shouldRetry = (isLogin || isRetryableRead)
+        && retryableStatuses.has(response.status)
         && attempt < maxAttempts - 1;
       if (!shouldRetry) return response;
+      retryAfterMs = getRetryAfterMs(response);
       await response.body?.cancel().catch(() => undefined);
     } catch (error) {
-      if (!isLogin || attempt >= maxAttempts - 1 || init.signal?.aborted) throw error;
+      if ((!isLogin && !isRetryableRead) || attempt >= maxAttempts - 1 || init.signal?.aborted) throw error;
     } finally {
       if (timeoutId !== null) window.clearTimeout(timeoutId);
       init.signal?.removeEventListener('abort', abortFromCaller);
     }
-
-    await waitBeforeRetry(attempt);
+    if (retryAfterMs > 0) await waitBeforeRetry(attempt, retryAfterMs);
+    else await waitBeforeRetry(attempt);
   }
 
   throw new Error('Admin login retry loop ended unexpectedly');
+}
+
+function refreshAdminSession(): Promise<boolean> {
+  if (!refreshPromise) {
+    refreshPromise = fetch(`${API_BASE_URL}/api/v1/admin/auth/refresh`, {
+      method: 'POST', credentials: 'include', headers: { Accept: 'application/json' },
+    })
+      .then((response) => response.ok)
+      .catch(() => false)
+      .finally(() => { refreshPromise = null; });
+  }
+  return refreshPromise;
 }
 
 async function request<T>(path: string, init: RequestInit, canRefresh: boolean): Promise<T> {
@@ -93,10 +123,7 @@ async function request<T>(path: string, init: RequestInit, canRefresh: boolean):
   if (response.status === 401 && canRefresh
     && path !== '/api/v1/admin/auth/login'
     && path !== '/api/v1/admin/auth/refresh') {
-    const refreshed = await fetch(`${API_BASE_URL}/api/v1/admin/auth/refresh`, {
-      method: 'POST', credentials: 'include', headers: { Accept: 'application/json' },
-    });
-    if (refreshed.ok) return request(path, init, false);
+    if (await refreshAdminSession()) return request(path, init, false);
   }
   if (response.status === 204) return undefined as T;
   const payload = await response.json().catch(() => ({}));
@@ -107,7 +134,16 @@ async function request<T>(path: string, init: RequestInit, canRefresh: boolean):
 }
 
 export function adminRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
-  return request<T>(path, init, true);
+  const method = (init.method || 'GET').toUpperCase();
+  if (method !== 'GET' || init.signal) return request<T>(path, init, true);
+
+  const existing = inFlightGetRequests.get(path) as Promise<T> | undefined;
+  if (existing) return existing;
+
+  const pending = request<T>(path, init, true)
+    .finally(() => inFlightGetRequests.delete(path));
+  inFlightGetRequests.set(path, pending);
+  return pending;
 }
 
 export { API_BASE_URL };
