@@ -524,9 +524,9 @@ export function ProductDetail() {
                   <div>
                     <h2 className="font-semibold">Washing Instructions</h2>
                     <ul className="mt-2 space-y-1 text-muted-foreground">
-                      <li><strong className="text-foreground">All silk suits:</strong> Dry clean only</li>
+                      <li><strong className="text-foreground">Leather and faux leather:</strong> Wipe clean with a soft, dry cloth</li>
                       <li><strong className="text-foreground">Embroidery suits:</strong> Dry clean only</li>
-                      <li><strong className="text-foreground">Printed cotton:</strong> Gentle dip wash with mild detergent</li>
+                      <li><strong className="text-foreground">Fabric footwear:</strong> Spot clean gently; do not machine wash</li>
                     </ul>
                   </div>
 

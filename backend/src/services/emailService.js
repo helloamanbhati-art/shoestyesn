@@ -32,7 +32,7 @@ const transporter = createTransporter();
 exports.sendEmail = async ({ to, subject, html, text, from }) => {
   try {
     const mailOptions = {
-      from: from || process.env.EMAIL_FROM_ADDRESS || "noreply@gujjusstylehub.com",
+      from: from || process.env.EMAIL_FROM_ADDRESS || "noreply@shoefashion.in",
       to,
       subject,
       html,
@@ -77,7 +77,7 @@ exports.sendOrderConfirmationEmail = async (order, customer) => {
     </p>
     
     <p>You can track your order using order number: <strong>${order.orderNumber}</strong></p>
-    <p>Thank you for shopping at GUJJUS STYLE HUB!</p>
+    <p>Thank you for shopping at Shoe Fashion!</p>
   `;
 
   return exports.sendEmail({
@@ -113,7 +113,7 @@ exports.sendOrderDeliveredEmail = async (order, customer) => {
     <p>Your order ${order.orderNumber} has been delivered!</p>
     <p>We hope you're satisfied with your purchase. If you have any issues, please contact us.</p>
     <p>Please consider leaving a review for the products you purchased.</p>
-    <p>Thank you for shopping at GUJJUS STYLE HUB!</p>
+    <p>Thank you for shopping at Shoe Fashion!</p>
   `;
 
   return exports.sendEmail({
@@ -162,7 +162,7 @@ exports.sendPasswordResetEmail = async (customer, resetToken, resetLink) => {
 // Welcome email
 exports.sendWelcomeEmail = async (customer) => {
   const html = `
-    <h2>Welcome to GUJJUS STYLE HUB!</h2>
+    <h2>Welcome to Shoe Fashion!</h2>
     <p>Dear ${customer.fullName},</p>
     <p>Welcome to our store! We're excited to have you here.</p>
     <p>Browse our collection and enjoy shopping with us.</p>
@@ -171,7 +171,7 @@ exports.sendWelcomeEmail = async (customer) => {
 
   return exports.sendEmail({
     to: customer.email,
-    subject: "Welcome to GUJJUS STYLE HUB",
+    subject: "Welcome to Shoe Fashion",
     html,
   });
 };

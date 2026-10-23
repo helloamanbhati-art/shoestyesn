@@ -34,9 +34,9 @@ test('buy now selection is isolated in session storage and can be cleared', () =
 
 test('invalid or damaged buy now data is ignored', () => {
   const storage = new MemoryStorage();
-  storage.setItem('gujjus:buy-now:v1', '{damaged');
+  storage.setItem('shoe-fashion:buy-now:v1', '{damaged');
   assert.equal(loadBuyNowItem(storage), null);
 
-  storage.setItem('gujjus:buy-now:v1', JSON.stringify({ id: 'product-1', quantity: 0 }));
+  storage.setItem('shoe-fashion:buy-now:v1', JSON.stringify({ id: 'product-1', quantity: 0 }));
   assert.equal(loadBuyNowItem(storage), null);
 });

@@ -10,12 +10,12 @@ async function run() {
     await mongoose.connect(uri);
     console.log('Connected to MongoDB');
 
-    const orders = await Order.find({ 'items.productName': /cotton suit/i }).sort({ createdAt: -1 });
-    console.log(`Found ${orders.length} orders for "cotton suit":`);
+    const orders = await Order.find({ 'items.productName': /shoe/i }).sort({ createdAt: -1 });
+    console.log(`Found ${orders.length} footwear orders:`);
     for (let o of orders) {
       console.log(`Order: ${o.orderNumber} (Created: ${o.createdAt})`);
       for (let item of o.items) {
-        if (item.productName.match(/cotton suit/i)) {
+        if (item.productName.match(/shoe/i)) {
           console.log(`  Color requested: "${item.color}"`);
           console.log(`  productImage stored: "${item.productImage}"`);
         }

@@ -1,6 +1,6 @@
 import type { CartItem } from '../contexts/CartContext';
 
-const BUY_NOW_KEY = 'gujjus:buy-now:v1';
+const BUY_NOW_KEY = 'shoe-fashion:buy-now:v1';
 
 interface StorageLike {
   getItem(key: string): string | null;

@@ -8,6 +8,8 @@ import { Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { API_BASE_URL } from '../../api/client';
 
+const EU_FOOTWEAR_SIZES = ['35', '36', '37', '38', '39', '40', '41'];
+
 function getAuthHeaders() {
   return {
     'Content-Type': 'application/json',
@@ -15,9 +17,8 @@ function getAuthHeaders() {
 }
 
 export function ProductOptionsManagement() {
-  const [sizes, setSizes] = useState<string[]>([]);
+  const [sizes] = useState<string[]>(EU_FOOTWEAR_SIZES);
   const [clothingTypes, setClothingTypes] = useState<string[]>([]);
-  const [newSize, setNewSize] = useState('');
   const [newType, setNewType] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -30,7 +31,6 @@ export function ProductOptionsManagement() {
         });
         if (!res.ok) throw new Error('Failed to load product options');
         const data = await res.json();
-        setSizes(data?.data?.sizes || []);
         setClothingTypes(data?.data?.clothingTypes || []);
       } catch (error) {
         toast.error(error instanceof Error ? error.message : 'Failed to load product options');
@@ -84,7 +84,7 @@ export function ProductOptionsManagement() {
       <div>
         <h1 className="text-3xl font-bold">Product Options</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Create footwear sizes and product types for admin products and customer filters.
+          Manage EU footwear sizes and product types for admin products and customer filters.
         </p>
       </div>
 
@@ -93,28 +93,10 @@ export function ProductOptionsManagement() {
           <CardTitle>Sizes</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Input
-              value={newSize}
-              onChange={(e) => setNewSize(e.target.value)}
-              placeholder="Add size (e.g. 5, 6, 7, 8, Free Size)"
-            />
-            <Button
-              type="button"
-              onClick={() => addUniqueValue(newSize, sizes, setSizes, () => setNewSize(''))}
-            >
-              <Plus className="size-4 mr-1" />
-              Add
-            </Button>
-          </div>
+          <p className="text-sm text-muted-foreground">Only these EU sizes can be assigned to footwear products.</p>
           <div className="flex flex-wrap gap-2">
-            {sizes.map((size, index) => (
-              <Badge key={`${size}-${index}`} variant="secondary" className="gap-1">
-                {size}
-                <button type="button" onClick={() => removeByIndex(index, sizes, setSizes)} aria-label="Remove size">
-                  <X className="size-3" />
-                </button>
-              </Badge>
+            {sizes.map((size) => (
+              <Badge key={size} variant="secondary">EU {size}</Badge>
             ))}
           </div>
         </CardContent>
@@ -122,14 +104,14 @@ export function ProductOptionsManagement() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Product Types</CardTitle>
+          <CardTitle>Footwear Types</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2">
             <Input
               value={newType}
               onChange={(e) => setNewType(e.target.value)}
-              placeholder="Add type (e.g. heels, boots, juttis, bags)"
+              placeholder="Add type (e.g. heels, flats, sneakers)"
             />
             <Button
               type="button"

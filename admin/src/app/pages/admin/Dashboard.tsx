@@ -21,9 +21,9 @@ const salesData = [
 ];
 
 const categoryData = [
-  { name: 'Silk', value: 45000, color: '#8B5CF6' },
-  { name: 'Cotton', value: 38000, color: '#06B6D4' },
-  { name: 'Chiffon', value: 25000, color: '#10B981' },
+  { name: 'Heels', value: 45000, color: '#8B5CF6' },
+  { name: 'Flats', value: 38000, color: '#06B6D4' },
+  { name: 'Sneakers', value: 25000, color: '#10B981' },
 ];
 
 const userGrowthData = [
@@ -49,10 +49,10 @@ const inventoryData = [
 
 const recentOrders = [
   { id: '#ORD-001', customer: 'Priya Sharma', product: 'Classic Block Heels', quantity: 1, amount: 1200, status: 0 },
-  { id: '#ORD-002', customer: 'Anjali Patel', product: 'Cotton Handloom', quantity: 5, amount: 2500, status: 1 },
-  { id: '#ORD-003', customer: 'Neha Kumar', product: 'Chiffon Designer', quantity: 2, amount: 1800, status: 2 },
-  { id: '#ORD-004', customer: 'Kavya Reddy', product: 'Silk Kanjivaram', quantity: 4, amount: 5200, status: 3 },
-  { id: '#ORD-005', customer: 'Isha Gupta', product: 'Georgette Print', quantity: 3, amount: 2100, status: 4 },
+  { id: '#ORD-002', customer: 'Anjali Patel', product: 'Everyday Ballet Flats', quantity: 1, amount: 699, status: 1 },
+  { id: '#ORD-003', customer: 'Neha Kumar', product: 'Street Court Sneakers', quantity: 2, amount: 2198, status: 2 },
+  { id: '#ORD-004', customer: 'Kavya Reddy', product: 'Strappy Evening Sandals', quantity: 1, amount: 999, status: 3 },
+  { id: '#ORD-005', customer: 'Isha Gupta', product: 'Classic Penny Loafers', quantity: 1, amount: 1199, status: 4 },
 ];
 
 const statusConfig = {

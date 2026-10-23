@@ -9,7 +9,7 @@ const logger = winston.createLogger({
     winston.format.splat(),
     winston.format.json()
   ),
-  defaultMeta: { service: "gujjus-style-hub" },
+  defaultMeta: { service: "shoe-fashion" },
   transports: [
     new winston.transports.File({
       filename: "logs/error.log",

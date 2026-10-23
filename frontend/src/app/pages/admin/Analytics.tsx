@@ -55,19 +55,19 @@ export function Analytics() {
 
   // Category-wise sales data - memoized
   const categoryData = useMemo(() => [
-    { id: 'cat-1', name: 'Silk', value: 45, color: '#8b5cf6' },
-    { id: 'cat-2', name: 'Cotton', value: 30, color: '#3b82f6' },
-    { id: 'cat-3', name: 'Chiffon', value: 15, color: '#ec4899' },
-    { id: 'cat-4', name: 'Linen', value: 10, color: '#f59e0b' },
+    { id: 'cat-1', name: 'Heels', value: 45, color: '#8b5cf6' },
+    { id: 'cat-2', name: 'Flats', value: 30, color: '#3b82f6' },
+    { id: 'cat-3', name: 'Sneakers', value: 15, color: '#ec4899' },
+    { id: 'cat-4', name: 'Sandals', value: 10, color: '#f59e0b' },
   ], []);
 
   // Top selling products - memoized
   const topProducts = useMemo(() => [
     { id: 'prod-1', name: 'Classic Block Heels', sales: 145, revenue: 72500 },
-    { id: 'prod-2', name: 'Cotton Voile', sales: 120, revenue: 48000 },
-    { id: 'prod-3', name: 'Designer Chiffon', sales: 98, revenue: 58800 },
-    { id: 'prod-4', name: 'Linen Blend', sales: 87, revenue: 43500 },
-    { id: 'prod-5', name: 'Silk Georgette', sales: 76, revenue: 45600 },
+    { id: 'prod-2', name: 'Everyday Ballet Flats', sales: 120, revenue: 48000 },
+    { id: 'prod-3', name: 'Street Court Sneakers', sales: 98, revenue: 58800 },
+    { id: 'prod-4', name: 'Strappy Evening Sandals', sales: 87, revenue: 43500 },
+    { id: 'prod-5', name: 'Classic Penny Loafers', sales: 76, revenue: 45600 },
   ], []);
 
   // Monthly comparison - memoized

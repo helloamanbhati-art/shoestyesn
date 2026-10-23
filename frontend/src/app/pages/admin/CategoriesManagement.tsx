@@ -100,7 +100,7 @@ export function CategoriesManagement() {
                   id="categoryName"
                   value={categoryName}
                   onChange={(e) => setCategoryName(e.target.value)}
-                  placeholder="e.g., Silk, Cotton, Chiffon"
+                  placeholder="e.g., Heels, Flats, Sneakers"
                   required
                 />
               </div>

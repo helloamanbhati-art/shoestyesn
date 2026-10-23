@@ -5,9 +5,9 @@ const { join } = require('node:path');
 
 const { buildProductSharePage } = require('../src/services/productSharePage');
 
-test('share redirects default to the public GUJJUS storefront domain', () => {
+test('share redirects default to the public Shoe Fashion storefront domain', () => {
   const controllerSource = readFileSync(join(__dirname, '../src/controllers/shareController.js'), 'utf8');
-  assert.match(controllerSource, /https:\/\/gujjusfashion\.in/);
+  assert.match(controllerSource, /https:\/\/shoefashion\.in/);
   assert.doesNotMatch(controllerSource, /amanbhati\.vercel\.app/);
 });
 
@@ -24,7 +24,7 @@ test('product share page includes rich preview metadata and opens the exact prod
     storefrontUrl: 'https://shop.example.com',
   });
 
-  assert.match(html, /property="og:title" content="Green Co-ord Set \| GUJJUS STYLE HUB"/);
+  assert.match(html, /property="og:title" content="Green Co-ord Set \| Shoe Fashion"/);
   assert.match(html, /property="og:image" content="https:\/\/images\.example\.com\/green\.jpg"/);
   assert.match(html, /property="product:price:amount" content="2499"/);
   assert.match(html, /url=https:\/\/shop\.example\.com\/product\/507f1f77bcf86cd799439011/);

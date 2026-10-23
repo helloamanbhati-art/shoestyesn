@@ -223,7 +223,7 @@ export function CategoriesManagement() {
                 className="rounded-none"
                 value={categoryName}
                 onChange={(e) => setCategoryName(e.target.value)}
-                placeholder="e.g., Silk"
+                placeholder="e.g., Heels, Flats, Sneakers"
                 onKeyDown={(e) => e.key === 'Enter' && handleSaveCategory()}
               />
             </div>

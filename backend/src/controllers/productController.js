@@ -76,7 +76,7 @@ exports.getProducts = async (req, res, next) => {
       : rawProducts;
 
     if (isCardView) {
-      res.set("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=86400");
+      res.set("Cache-Control", "no-store, max-age=0");
     }
 
     res.json({

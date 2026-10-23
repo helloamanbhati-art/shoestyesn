@@ -27,6 +27,6 @@ test('public product share links are rendered by the backend before the SPA fall
 });
 
 test('storefront social metadata uses the custom public domain', () => {
-  assert.match(indexHtml, /https:\/\/gujjusfashion\.in/);
+  assert.match(indexHtml, /https:\/\/shoefashion\.in/);
   assert.doesNotMatch(indexHtml, /amanbhati\.vercel\.app/);
 });

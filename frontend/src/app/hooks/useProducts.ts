@@ -36,6 +36,7 @@ const API_BASE_URL = configuredApiUrl || (import.meta.env.DEV ? 'http://localhos
 // Version bumps intentionally invalidate older partial catalogs saved by previous loaders.
 const PRODUCT_CACHE_KEY = 'shoe-style-storefront-products-v3';
 const PRODUCT_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const PRODUCT_REFRESH_INTERVAL_MS = 10_000;
 
 const transformProduct = (product: any): Product => {
   const rawImages: string[] = Array.isArray(product.images) ? product.images : [];
@@ -138,9 +139,10 @@ async function fetchAndCacheProducts(forceRefresh = false): Promise<Product[]> {
   _isFetching = true;
   try {
     const fetchProductPage = async (page: number) => {
-      const response = await fetch(`${API_BASE_URL}/api/v1/products?limit=500&view=card&page=${page}`, {
+      const response = await fetch(`${API_BASE_URL}/api/v1/products?limit=500&view=card&page=${page}&catalogRefresh=${forceRefresh ? Date.now() : 0}`, {
         method: 'GET',
         headers: { Accept: 'application/json' },
+        cache: 'no-store',
       });
 
       if (!response.ok) {
@@ -211,6 +213,37 @@ export function useProducts() {
         setLoading(false);
         console.error('Error fetching products:', message);
       });
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const refreshProducts = () => {
+      fetchAndCacheProducts(true)
+        .then((fresh) => {
+          if (cancelled) return;
+          setProducts(fresh);
+          setError(null);
+        })
+        .catch(() => {
+          // Keep the last known catalog visible during a temporary refresh failure.
+        });
+    };
+
+    const refreshVisibleProducts = () => {
+      if (document.visibilityState === 'visible') refreshProducts();
+    };
+
+    window.addEventListener('focus', refreshProducts);
+    document.addEventListener('visibilitychange', refreshVisibleProducts);
+    const refreshInterval = window.setInterval(refreshProducts, PRODUCT_REFRESH_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', refreshProducts);
+      document.removeEventListener('visibilitychange', refreshVisibleProducts);
+      window.clearInterval(refreshInterval);
+    };
   }, []);
 
   return { products, loading, error };

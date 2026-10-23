@@ -1,8 +1,8 @@
 import type { CartItem } from '../contexts/CartContext';
 
-const CART_KEY = 'gujjus:guest-cart:v1';
-const PROFILE_KEY = 'gujjus:guest-checkout:v1';
-const ORDER_TOKENS_KEY = 'gujjus:guest-order-tokens:v1';
+const CART_KEY = 'shoe-fashion:guest-cart:v1';
+const PROFILE_KEY = 'shoe-fashion:guest-checkout:v1';
+const ORDER_TOKENS_KEY = 'shoe-fashion:guest-order-tokens:v1';
 
 export interface GuestCheckoutProfile {
   firstName: string; lastName: string; email: string; phone: string;

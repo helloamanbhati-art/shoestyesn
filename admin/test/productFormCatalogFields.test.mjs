@@ -7,12 +7,12 @@ const source = readFileSync(
   'utf8',
 );
 
-test('product form matches the clothing fields shown on the storefront', () => {
+test('product form matches the footwear fields shown on the storefront', () => {
   assert.match(source, /Product Name \*/);
   assert.match(source, /Selling Price \(₹\) \*/);
   assert.match(source, /MRP \(₹\)/);
   assert.match(source, /Category \*/);
-  assert.match(source, /Product type/);
+  assert.match(source, /Footwear type/);
   assert.match(source, /Available sizes/);
   assert.match(source, /Product Description/);
   assert.match(source, /Colours, Photos & Videos \*/);
@@ -23,16 +23,14 @@ test('product form omits generic fields that do not apply to this catalog', () =
   assert.doesNotMatch(source, /<Label htmlFor="brand">/);
   assert.doesNotMatch(source, /Additional Charge/);
   assert.match(source, /soldBy: 'piece'/);
-  assert.match(source, /brand: editingProduct\?\.brand \|\| 'GUJJUS STYLE HUB'/);
+  assert.match(source, /brand: editingProduct\?\.brand \|\| 'Shoe Fashion'/);
 });
 
-test('outfit items provide ready-made sizes instead of comma-separated size entry', () => {
-  assert.match(source, /Shirt: \['S', 'M', 'L', 'XL', 'XXL'\]/);
-  assert.match(source, /'Jeans \/ Trousers': \['28', '30', '32', '34', '36', '38'\]/);
-  assert.match(source, /Shoes: \['6', '7', '8', '9', '10'\]/);
-  assert.match(source, /Add full outfit/);
+test('footwear products provide EU sizes 35 through 41', () => {
+  assert.match(source, /FOOTWEAR_SIZES = \['35', '36', '37', '38', '39', '40', '41'\]/);
+  assert.doesNotMatch(source, /FOOTWEAR_SIZES = \['3', '4', '5', '6', '7', '8'\]/);
   assert.match(source, /Select all/);
-  assert.match(source, /component-size-/);
+  assert.doesNotMatch(source, /Add full outfit/);
   assert.doesNotMatch(source, /Separate sizes with commas\./);
   assert.doesNotMatch(source, /New product size/);
   assert.doesNotMatch(source, /Add a size, e\.g\. M\(38\)/);

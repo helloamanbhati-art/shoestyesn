@@ -5,10 +5,10 @@ import { Badge } from '../../components/ui/badge';
 import { Plus, Search, Filter } from 'lucide-react';
 
 const products = [
-  { id: '1', name: 'Baggy Pant & Shirt Set', brand: 'GUJJUS STYLE HUB', price: 899, soldBy: 'piece', stock: 45, category: 'Combo Packs', image: 'https://images.unsplash.com/photo-1617137968427-85924c800a22?w=400' },
-  { id: '2', name: 'Luxury Pant & Shirt Set', brand: 'GUJJUS STYLE HUB', price: 1099, soldBy: 'piece', stock: 30, category: 'Combo Packs', image: 'https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=400' },
-  { id: '3', name: 'Smooth Everyday T-Shirt', brand: 'GUJJUS STYLE HUB', price: 899, soldBy: 'piece', stock: 60, category: 'T-Shirts', image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400' },
-  { id: '4', name: 'Relaxed Fit Lower', brand: 'GUJJUS STYLE HUB', price: 1099, soldBy: 'piece', stock: 35, category: 'Lowers', image: 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=400' },
+  { id: '1', name: 'Classic Block Heels', brand: 'Shoe Fashion', price: 899, soldBy: 'piece', stock: 45, category: 'Heels', image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400' },
+  { id: '2', name: 'Everyday Ballet Flats', brand: 'Shoe Fashion', price: 699, soldBy: 'piece', stock: 30, category: 'Flats', image: 'https://images.unsplash.com/photo-1562273138-f46be4ebdf33?w=400' },
+  { id: '3', name: 'Street Court Sneakers', brand: 'Shoe Fashion', price: 1099, soldBy: 'piece', stock: 60, category: 'Sneakers', image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400' },
+  { id: '4', name: 'Strappy Evening Sandals', brand: 'Shoe Fashion', price: 999, soldBy: 'piece', stock: 35, category: 'Sandals', image: 'https://images.unsplash.com/photo-1562273138-f46be4ebdf33?w=400' },
 ];
 
 export function Products() {

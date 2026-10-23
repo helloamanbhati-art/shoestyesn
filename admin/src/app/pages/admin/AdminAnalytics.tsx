@@ -22,12 +22,12 @@ import { TrendingUp, TrendingDown, IndianRupee, ShoppingBag, BarChart3, PieChart
 type TimeRange = '7D' | '30D' | '90D' | '1Y';
 
 const categoryColors: Record<string, string> = {
-  Silk: '#8b5cf6',
-  Cotton: '#3b82f6',
-  Chiffon: '#ec4899',
-  Linen: '#f59e0b',
-  Georgette: '#10b981',
-  Velvet: '#ef4444',
+  Heels: '#8b5cf6',
+  Flats: '#3b82f6',
+  Sneakers: '#ec4899',
+  Sandals: '#f59e0b',
+  Boots: '#10b981',
+  Loafers: '#ef4444',
   Other: '#6b7280',
 };
 
@@ -104,12 +104,13 @@ export function AdminAnalytics() {
 
     filteredOrders.forEach(order => {
       order.items.forEach(item => {
-        const category = item.productName.includes('Silk') ? 'Silk' :
-                        item.productName.includes('Cotton') ? 'Cotton' :
-                        item.productName.includes('Chiffon') ? 'Chiffon' :
-                        item.productName.includes('Linen') ? 'Linen' :
-                        item.productName.includes('Georgette') ? 'Georgette' :
-                        item.productName.includes('Velvet') ? 'Velvet' : 'Other';
+        const name = item.productName.toLowerCase();
+        const category = name.includes('heel') ? 'Heels' :
+                        name.includes('flat') ? 'Flats' :
+                        name.includes('sneaker') ? 'Sneakers' :
+                        name.includes('sandal') ? 'Sandals' :
+                        name.includes('boot') ? 'Boots' :
+                        name.includes('loafer') ? 'Loafers' : 'Other';
 
         const revenue = item.soldBy === 'meter'
           ? item.price * item.quantity * (item.meters || 1)

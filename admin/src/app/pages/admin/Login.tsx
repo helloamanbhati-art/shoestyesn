@@ -49,11 +49,11 @@ export function AdminLogin() {
 
   return (
     <main className="admin-login">
-      <section className="admin-login-story" aria-label="Gujjus Style Hub administration portal">
+      <section className="admin-login-story" aria-label="Shoe Fashion administration portal">
         <div className="admin-login-story-top">
           <img
-            src="/gujjus-style-hub.svg"
-            alt="Gujjus Style Hub"
+            src="/shoe-style-logo.svg"
+            alt="Shoe Fashion"
             className="admin-login-story-logo"
           />
           <span>Admin workspace</span>
@@ -61,19 +61,19 @@ export function AdminLogin() {
         <div className="admin-login-story-copy">
           <p className="admin-login-kicker">Curated commerce, thoughtfully managed.</p>
           <h1>Everything behind your storefront, in one place.</h1>
-          <p>Manage products, orders, customers, and the details that make Gujjus Style Hub feel unmistakably yours.</p>
+          <p>Manage footwear, sizes, orders, customers, and every detail behind the Shoe Fashion storefront.</p>
         </div>
         <div className="admin-login-story-footer">
-          <span>GUJJUS</span>
-          <span>STYLE</span>
-          <span>HUB</span>
+          <span>SHOE</span>
+          <span>FASHION</span>
+          <span>ADMIN</span>
         </div>
       </section>
 
       <section className="admin-login-panel">
         <div className="admin-login-card">
           <div className="admin-login-mobile-brand">
-            <img src="/gujjus-style-hub.svg" alt="Gujjus Style Hub" />
+            <img src="/shoe-style-logo.svg" alt="Shoe Fashion" />
             <span>Admin workspace</span>
           </div>
 
@@ -91,7 +91,7 @@ export function AdminLogin() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="you@gujjusstylehub.com"
+                  placeholder="you@shoefashion.in"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="email"

@@ -22,7 +22,8 @@ test('buildProductShareUrl preserves a selected product variant', () => {
   );
 });
 
-test('admin share links default to the public GUJJUS storefront domain', () => {
-  assert.match(productsManagementSource, /https:\/\/gujjusfashion\.in/);
+test('admin share links default to the public Shoe Fashion storefront domain', () => {
+  assert.match(productsManagementSource, /https:\/\/shoefashion\.in/);
+  assert.doesNotMatch(productsManagementSource, /gujjus/i);
   assert.doesNotMatch(productsManagementSource, /amanbhati\.vercel\.app/);
 });

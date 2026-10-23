@@ -40,7 +40,7 @@ import {
 } from '../../components/admin/VariantManager';
 import { buildProductShareUrl } from '../../utils/productShareLink.mjs';
 
-const STOREFRONT_URL = (import.meta.env.VITE_STOREFRONT_URL || 'https://gujjusfashion.in').replace(/\/+$/, '');
+const STOREFRONT_URL = (import.meta.env.VITE_STOREFRONT_URL || 'https://shoefashion.in').replace(/\/+$/, '');
 
 interface VariantImage {
   imageUrl: string;
@@ -56,11 +56,7 @@ interface ProductVariant {
 
 interface OutfitComponent { componentId: string; name: string; availableSizes: string[]; }
 
-const OUTFIT_SIZE_PRESETS: Record<string, string[]> = {
-  Shirt: ['S', 'M', 'L', 'XL', 'XXL'],
-  'Jeans / Trousers': ['28', '30', '32', '34', '36', '38'],
-  Shoes: ['6', '7', '8', '9', '10'],
-};
+const FOOTWEAR_SIZES = ['35', '36', '37', '38', '39', '40', '41'];
 
 interface Product {
   id: string;
@@ -322,40 +318,13 @@ useEffect(() => {
     }
   };
 
-  const addOutfitComponents = (names: string[]) => {
-    setFormData((current) => ({
-      ...current,
-      outfitComponents: [
-        ...current.outfitComponents,
-        ...names
-          .filter((name) => !current.outfitComponents.some((component) => component.name === name))
-          .map((name) => ({
-            componentId: `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${crypto.randomUUID()}`,
-            name,
-            availableSizes: [...OUTFIT_SIZE_PRESETS[name]],
-          })),
-      ],
-      availableSizes: [],
-    }));
-  };
-
-  const addOutfitComponent = (name: string) => addOutfitComponents([name]);
-
-  const updateOutfitComponent = (componentId: string, updates: Partial<OutfitComponent>) => {
-    setFormData((current) => ({
-      ...current,
-      outfitComponents: current.outfitComponents.map((component) => component.componentId === componentId ? { ...component, ...updates } : component),
-    }));
-  };
-
   const handleSaveProduct = async () => {
     if (!formData.name.trim() || !formData.category || !formData.price) {
       toast.error('Please fill in all required fields');
       return;
     }
-    const incompleteComponent = formData.outfitComponents.find((component) => !component.name.trim() || component.availableSizes.length === 0);
-    if (incompleteComponent) {
-      toast.error('Every outfit item needs a name and at least one available size');
+    if (formData.availableSizes.length === 0) {
+      toast.error('Select at least one available footwear size');
       return;
     }
 
@@ -419,7 +388,7 @@ useEffect(() => {
       const payload = {
         name: formData.name.trim(),
         description: formData.description.trim() || formData.name.trim(),
-        brand: editingProduct?.brand || 'GUJJUS STYLE HUB',
+        brand: editingProduct?.brand || 'Shoe Fashion',
         category: formData.category,
         price: parseFloat(formData.price),
         soldBy: 'piece',
@@ -929,7 +898,7 @@ useEffect(() => {
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., Royal Lotus Mirrorwork Shirt Set"
+                placeholder="e.g., Classic Block Heel"
               />
             </div>
 
@@ -975,7 +944,7 @@ useEffect(() => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="clothingType">Product type</Label>
+                <Label htmlFor="clothingType">Footwear type</Label>
                 <Select
                   value={formData.clothingType || 'none'}
                   onValueChange={(value) =>
@@ -1001,7 +970,7 @@ useEffect(() => {
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Describe the outfit, material, fit, and what is included."
+                placeholder="Describe the shoe material, fit, heel height, sole, and styling."
                 rows={3}
               />
               <p className="text-xs text-muted-foreground">Shown in the Product details section. If left blank, the product name is used.</p>
@@ -1013,86 +982,48 @@ useEffect(() => {
               <VariantManager variants={variantsDraft} onChange={setVariantsDraft} />
             </div>
 
-            <fieldset className="space-y-4 rounded-md border p-3 sm:p-4">
-              <div>
-                <legend className="text-sm font-medium">Items included in this outfit</legend>
-                <p className="mt-1 text-xs text-muted-foreground">Choose the items in the set, then uncheck only the sizes you do not stock.</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
+            <fieldset className="space-y-3 rounded-md border p-3 sm:p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <legend className="text-sm font-medium">Available sizes *</legend>
+                      <p className="mt-1 text-xs text-muted-foreground">EU footwear sizes saved exactly as shown on the Shoe Fashion storefront.</p>
+                </div>
                 <Button
                   type="button"
+                  variant="ghost"
                   size="sm"
-                  onClick={() => addOutfitComponents(Object.keys(OUTFIT_SIZE_PRESETS))}
-                  disabled={Object.keys(OUTFIT_SIZE_PRESETS).every((name) => formData.outfitComponents.some((component) => component.name === name))}
+                  onClick={() => setFormData((current) => ({
+                    ...current,
+                    availableSizes: current.availableSizes.length === FOOTWEAR_SIZES.length ? [] : [...FOOTWEAR_SIZES],
+                  }))}
                 >
-                  <Plus className="mr-1 size-4" />
-                  Add full outfit
+                  {formData.availableSizes.length === FOOTWEAR_SIZES.length ? 'Clear' : 'Select all'}
                 </Button>
-                {Object.keys(OUTFIT_SIZE_PRESETS).map((name) => {
-                  const isAdded = formData.outfitComponents.some((component) => component.name === name);
+              </div>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-7">
+                {FOOTWEAR_SIZES.map((size) => {
+                  const checked = formData.availableSizes.includes(size);
+                  const inputId = `footwear-size-${size}`;
                   return (
-                    <Button key={name} type="button" variant="outline" size="sm" disabled={isAdded} onClick={() => addOutfitComponent(name)}>
-                      {isAdded ? <Check className="mr-1 size-4" /> : <Plus className="mr-1 size-4" />}
-                      {name}
-                    </Button>
+                    <label key={size} htmlFor={inputId} className={`flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md border px-2 py-2 text-sm transition-colors ${checked ? 'border-primary bg-primary/5 font-medium' : 'hover:bg-muted'}`}>
+                      <Checkbox
+                        id={inputId}
+                        checked={checked}
+                        onCheckedChange={(nextChecked) => setFormData((current) => ({
+                          ...current,
+                          availableSizes: nextChecked
+                            ? [...current.availableSizes, size].sort((a, b) => Number(a) - Number(b))
+                            : current.availableSizes.filter((item) => item !== size),
+                        }))}
+                      />
+                      <span>{size}</span>
+                    </label>
                   );
                 })}
               </div>
-              {formData.outfitComponents.length > 0 ? (
-                <div className="space-y-3">
-                  {formData.outfitComponents.map((component, index) => {
-                    const presetSizes = OUTFIT_SIZE_PRESETS[component.name] || [];
-                    const availableOptions = [...new Set([...presetSizes, ...component.availableSizes])];
-                    return (
-                      <div key={component.componentId} className="rounded-md border bg-muted/20 p-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold text-muted-foreground">ITEM {index + 1}</span>
-                          <span className="font-medium">{component.name}</span>
-                          <Button type="button" variant="ghost" size="sm" className="ml-auto text-destructive" onClick={() => setFormData((current) => ({ ...current, outfitComponents: current.outfitComponents.filter((item) => item.componentId !== component.componentId) }))}>
-                            <Trash2 className="mr-1 size-4" />Remove
-                          </Button>
-                        </div>
-                        <div className="mt-3 flex items-center justify-between gap-3">
-                          <Label>Available sizes</Label>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => updateOutfitComponent(component.componentId, { availableSizes: component.availableSizes.length === availableOptions.length ? [] : availableOptions })}
-                          >
-                            {component.availableSizes.length === availableOptions.length ? 'Clear' : 'Select all'}
-                          </Button>
-                        </div>
-                        <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-5">
-                          {availableOptions.map((size) => {
-                            const checked = component.availableSizes.includes(size);
-                            const inputId = `component-size-${component.componentId}-${size.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
-                            return (
-                              <label key={size} htmlFor={inputId} className={`flex min-h-10 cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${checked ? 'border-primary bg-primary/5 font-medium' : 'hover:bg-muted'}`}>
-                                <Checkbox
-                                  id={inputId}
-                                  checked={checked}
-                                  onCheckedChange={(nextChecked) => updateOutfitComponent(component.componentId, {
-                                    availableSizes: nextChecked
-                                      ? [...component.availableSizes, size]
-                                      : component.availableSizes.filter((item) => item !== size),
-                                  })}
-                                />
-                                <span>{size}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                        <p className="mt-2 text-xs font-medium text-muted-foreground" aria-live="polite">
-                          {component.availableSizes.length} of {availableOptions.length} sizes selected
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">No outfit items added. Use this only for a single independently sized product.</p>
-              )}
+              <p className="text-xs font-medium text-muted-foreground" aria-live="polite">
+                {formData.availableSizes.length} of {FOOTWEAR_SIZES.length} sizes selected
+              </p>
             </fieldset>
 
           </div>

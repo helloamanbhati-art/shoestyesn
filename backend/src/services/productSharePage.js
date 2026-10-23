@@ -29,11 +29,11 @@ function buildProductSharePage({ product, variantId, storefrontUrl }) {
   ]);
   const imageUrl = variantImageUrl
     || firstShareableImage([product.image, ...(product.images || [])])
-    || `${baseUrl}/gujjus-style-hub.svg`;
+    || `${baseUrl}/shoe-style-logo.svg`;
   const query = variantId ? `?${new URLSearchParams({ variant: variantId })}` : '';
   const productUrl = `${baseUrl}/product/${encodeURIComponent(productId)}${query}`;
   const shareUrl = `${baseUrl}/share/product/${encodeURIComponent(productId)}${query}`;
-  const title = `${product.name} | GUJJUS STYLE HUB`;
+  const title = `${product.name} | Shoe Fashion`;
   const details = cleanDescription(product.shortDescription || product.description);
   const description = details || `Shop ${product.name} for ₹${Number(product.price || 0).toLocaleString('en-IN')}.`;
 
@@ -45,7 +45,7 @@ function buildProductSharePage({ product, variantId, storefrontUrl }) {
   <title>${escapeHtml(title)}</title>
   <meta name="description" content="${escapeHtml(description)}">
   <meta property="og:type" content="product">
-  <meta property="og:site_name" content="GUJJUS STYLE HUB">
+  <meta property="og:site_name" content="Shoe Fashion">
   <meta property="og:title" content="${escapeHtml(title)}">
   <meta property="og:description" content="${escapeHtml(description)}">
   <meta property="og:url" content="${escapeHtml(shareUrl)}">

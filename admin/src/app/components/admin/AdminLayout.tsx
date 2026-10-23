@@ -3,7 +3,7 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router';
 import { BarChart3, Boxes, ChevronDown, ChevronRight, CircleUserRound, Layers3, LogOut, Menu, Package, ShoppingBag, Tags, Users, X } from 'lucide-react';
 import { useOrders } from '../../contexts/OrderContext';
 import { cn } from '../ui/utils';
-import gujjusStyleHubLogo from '../../../../../frontend/public/gujjus-style-hub.svg?url';
+import shoeFashionLogo from '../../../../public/shoe-style-logo.svg?url';
 import { useAdminAuth } from '../../contexts/AdminAuthContext';
 
 const primaryItems = [{ icon: BarChart3, label: 'Analytics', path: '/admin/analytics' }];
@@ -43,14 +43,14 @@ export function AdminLayout() {
   };
 
   return <div className="admin-shell min-h-screen bg-[#f7f7f6] text-[#191919]">
-    <header className="admin-mobile-header"><button type="button" onClick={() => setSidebarOpen(true)} aria-label="Open navigation"><Menu /></button><img className="admin-mobile-logo" src={gujjusStyleHubLogo} alt="Gujjus Style Hub" /><span aria-hidden="true" className="w-9" /></header>
+    <header className="admin-mobile-header"><button type="button" onClick={() => setSidebarOpen(true)} aria-label="Open navigation"><Menu /></button><img className="admin-mobile-logo" src={shoeFashionLogo} alt="Shoe Fashion" /><span aria-hidden="true" className="w-9" /></header>
     <aside className={cn('admin-sidebar', sidebarOpen && 'admin-sidebar-open')}>
-      <div className="admin-brand-row"><Link to="/admin" className="admin-brand" aria-label="Gujjus Style Hub admin home"><img className="admin-brand-logo" src={gujjusStyleHubLogo} alt="Gujjus Style Hub" /><span><strong>Gujjus Style Hub</strong><small>E-commerce admin</small></span></Link><button className="admin-close" type="button" onClick={() => setSidebarOpen(false)} aria-label="Close navigation"><X /></button></div>
+      <div className="admin-brand-row"><Link to="/admin" className="admin-brand" aria-label="Shoe Fashion admin home"><img className="admin-brand-logo" src={shoeFashionLogo} alt="Shoe Fashion" /><span><strong>Shoe Fashion</strong><small>Footwear admin</small></span></Link><button className="admin-close" type="button" onClick={() => setSidebarOpen(false)} aria-label="Close navigation"><X /></button></div>
       <div className="admin-profile">{admin.avatar ? <img src={admin.avatar} alt="" /> : <span>{initials}</span>}<div className="min-w-0"><strong className="truncate">{fullName}</strong><small className="capitalize">{role}</small></div><span className="admin-online" title="Online" /></div>
       <nav aria-label="Admin navigation" className="admin-nav"><p className="admin-nav-label">Overview</p>{primaryItems.map(navLink)}<button type="button" className="admin-nav-group" onClick={() => setCommerceOpen((open) => !open)} aria-expanded={commerceOpen}><span>Store management</span>{commerceOpen ? <ChevronDown /> : <ChevronRight />}</button>{commerceOpen && <div className="admin-nav-subtree">{commerceItems.map(navLink)}</div>}</nav>
       <div className="admin-sidebar-footer"><button type="button" className="admin-logout" onClick={handleLogout}><LogOut aria-hidden="true" /><span>Sign out</span></button></div>
     </aside>
     {sidebarOpen && <button className="admin-overlay" aria-label="Close navigation" onClick={() => setSidebarOpen(false)} />}
-    <main className="admin-main"><div className="admin-pagebar"><div><p>Gujjus Style Hub</p><h2>{pageTitles[location.pathname] || 'Admin'}</h2></div><div className="admin-page-account"><CircleUserRound aria-hidden="true" /><span>{fullName}</span></div></div><div className="admin-content"><Outlet /></div></main>
+    <main className="admin-main"><div className="admin-pagebar"><div><p>Shoe Fashion</p><h2>{pageTitles[location.pathname] || 'Admin'}</h2></div><div className="admin-page-account"><CircleUserRound aria-hidden="true" /><span>{fullName}</span></div></div><div className="admin-content"><Outlet /></div></main>
   </div>;
 }

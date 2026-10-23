@@ -173,9 +173,9 @@ export default function Payment() {
         key: RAZORPAY_KEY,
         amount: razorpayOrder.amount,
         currency: razorpayOrder.currency,
-        name: 'GUJJUS STYLE HUB',
-        description: 'Purchase from GUJJUS STYLE HUB',
-        image: `${window.location.origin}/gujjus-style-hub.svg`,
+        name: 'Shoe Fashion',
+        description: 'Purchase from Shoe Fashion',
+        image: `${window.location.origin}/shoe-style-logo.svg`,
         order_id: razorpayOrder.id,
         handler: function (response: RazorpayResponse) {
           handlePaymentSuccess(response, createdOrder._id);

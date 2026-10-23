@@ -69,7 +69,7 @@ function hasCorruptedProductContent(data) {
 async function uploadBufferToCloudinary(fileBuffer) {
   return new Promise((resolve, reject) => {
     cloudinary.uploader
-      .upload_stream({ folder: "gujjus-style-hub/products", resource_type: "auto" }, (error, result) => {
+      .upload_stream({ folder: "shoe-fashion/products", resource_type: "auto" }, (error, result) => {
         if (error) return reject(error);
         resolve(result);
       })
