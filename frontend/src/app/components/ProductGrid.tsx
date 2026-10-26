@@ -22,7 +22,7 @@ export function ProductGrid({ products }: ProductGridProps) {
 
   return (
     <div className="flex-1 p-0 md:p-6">
-      <div className="grid grid-cols-2 gap-0 sm:grid-cols-2 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-x-2 gap-y-5 sm:grid-cols-2 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
         {products.map((product, index) => (
           <ProductCard
             key={`${product.id}-${product.variants?.[0]?.variantId || index}`}

@@ -137,7 +137,7 @@ export function ImageCarousel({
               onClick={(e) => goToSlide(index, e)}
               className={`shrink-0 size-16 md:size-18 rounded-none overflow-hidden border-2 transition-all p-0 m-0 ${
                 index === safeIndex
-                  ? 'border-emerald-600 ring-2 ring-emerald-500/30 scale-105'
+                      ? 'border-black ring-2 ring-black/20 scale-105'
                   : 'border-transparent hover:border-muted-foreground/40 opacity-70 hover:opacity-100'
               }`}
               aria-label={`Go to image ${index + 1}`}

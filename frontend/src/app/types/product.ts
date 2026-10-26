@@ -45,6 +45,7 @@ export interface Product {
   additionalChargeAmount?: number; // Additional charge amount per piece
   isFlatPrice?: boolean; // If true, do not multiply price by selected meters
   compareAtPrice?: number; // Price for 5 meters package
+  inStock?: boolean;
 }
 
 export interface FilterState {

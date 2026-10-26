@@ -7,6 +7,7 @@ const Category = require("../models/Category");
 const Brand = require("../models/Brand");
 const Product = require("../models/Product");
 const ProductOptions = require("../models/ProductOptions");
+const AppSettings = require('../models/AppSettings');
 const { resolveInitialStock } = require("../services/productStockService");
 const {
   clearAdminCookies,
@@ -138,6 +139,22 @@ router.get("/auth/me", authenticateAdmin, (req, res) => res.json({
 // PROTECTED ROUTES - Apply authentication middleware here
 router.use(authenticateAdmin);
 router.use(apiLimiter);
+
+router.get('/storefront-settings', async (_req, res, next) => {
+  try {
+    const settings = await AppSettings.findOne().select('announcementEnabled announcementText').lean();
+    res.json({ success: true, data: { announcementEnabled: settings?.announcementEnabled || false, announcementText: settings?.announcementText || '' } });
+  } catch (error) { next(error); }
+});
+
+router.put('/storefront-settings', async (req, res, next) => {
+  try {
+    const announcementEnabled = Boolean(req.body.announcementEnabled);
+    const announcementText = String(req.body.announcementText || '').trim().slice(0, 180);
+    const settings = await AppSettings.findOneAndUpdate({}, { announcementEnabled, announcementText }, { new: true, upsert: true, setDefaultsOnInsert: true });
+    res.json({ success: true, data: { announcementEnabled: settings.announcementEnabled, announcementText: settings.announcementText || '' } });
+  } catch (error) { next(error); }
+});
 
 
 // Product media upload (images and videos)

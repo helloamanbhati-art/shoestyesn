@@ -4,6 +4,7 @@ import { Layout } from './pages/Layout';
 import { Home } from './pages/Home';
 
 const ProductDetail = lazy(() => import('./pages/ProductDetail').then((module) => ({ default: module.ProductDetail })));
+const CategoryProducts = lazy(() => import('./pages/CategoryProducts').then((module) => ({ default: module.CategoryProducts })));
 const Cart = lazy(() => import('./pages/Cart').then((module) => ({ default: module.Cart })));
 const Checkout = lazy(() => import('./pages/Checkout').then((module) => ({ default: module.Checkout })));
 const Payment = lazy(() => import('./pages/Payment').then((module) => ({ default: module.Payment })));
@@ -13,6 +14,7 @@ const OrderDetail = lazy(() => import('./pages/OrderDetail').then((module) => ({
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy').then((module) => ({ default: module.PrivacyPolicy })));
 const NotFound = lazy(() => import('./pages/NotFound').then((module) => ({ default: module.NotFound })));
 const StoreInformation = lazy(() => import('./pages/StoreInformation').then((module) => ({ default: module.StoreInformation })));
+const Wishlist = lazy(() => import('./pages/Wishlist').then((module) => ({ default: module.Wishlist })));
 
 function deferred(page: ReactNode) {
   return <Suspense fallback={<div className="flex-1 min-h-64" aria-busy="true" aria-label="Loading page" />}>{page}</Suspense>;
@@ -30,6 +32,10 @@ export const router = createBrowserRouter([
       { 
         path: 'product/:id', 
         element: deferred(<ProductDetail />)
+      },
+      {
+        path: 'category/:category',
+        element: deferred(<CategoryProducts />)
       },
       { 
         path: 'cart', 
@@ -74,6 +80,10 @@ export const router = createBrowserRouter([
       {
         path: 'shipping-delivery',
         element: deferred(<StoreInformation />)
+      },
+      {
+        path: 'wishlist',
+        element: deferred(<Wishlist />)
       },
       { 
         path: '*', 

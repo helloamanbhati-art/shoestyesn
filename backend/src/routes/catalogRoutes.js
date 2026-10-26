@@ -1,6 +1,7 @@
 const express = require("express");
 const productController = require("../controllers/productController");
 const { apiLimiter } = require("../middleware/rateLimiter");
+const settingsController = require('../controllers/settingsController');
 
 const router = express.Router();
 
@@ -12,5 +13,6 @@ router.get("/categories", apiLimiter, productController.getCategories);
 
 // Get product options (sizes, clothing types)
 router.get("/product-options", apiLimiter, productController.getProductOptions);
+router.get('/storefront-settings', apiLimiter, settingsController.getPublicStorefrontSettings);
 
 module.exports = router;

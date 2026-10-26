@@ -179,14 +179,14 @@ export function PaymentModal({
             onClick={handleCopyUPI}
             className="shrink-0"
           >
-            {copied ? <Check className="size-4 text-green-600" /> : <Copy className="size-4" />}
+            {copied ? <Check className="size-4 text-black" /> : <Copy className="size-4" />}
           </Button>
         </div>
       </div>
 
       {/* Timer */}
       <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-        <div className="size-2 bg-green-500 rounded-full animate-pulse" />
+        <div className="size-2 bg-black rounded-full animate-pulse" />
         <span>Time remaining: {formatTime(countdown)}</span>
       </div>
 
@@ -315,8 +315,8 @@ export function PaymentModal({
       </div>
 
       <div className="bg-muted/50 p-6 rounded-xl space-y-4">
-        <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-          <Shield className="size-5 text-blue-600" />
+        <div className="flex items-center gap-3 rounded-lg border border-black/20 bg-neutral-50 p-4 dark:border-white/20 dark:bg-neutral-900">
+          <Shield className="size-5 text-black dark:text-white" />
           <p className="text-sm">
             You will be redirected to your bank's secure login page
           </p>
@@ -422,7 +422,7 @@ export function PaymentModal({
                 <p className="font-medium">Wallet Balance</p>
                 <p className="text-sm text-muted-foreground">Sufficient balance available</p>
               </div>
-              <CheckCircle2 className="size-5 text-green-600" />
+              <CheckCircle2 className="size-5 text-black" />
             </div>
             <p className="text-sm text-muted-foreground text-center">
               You'll receive a payment notification on your {walletName} app
@@ -466,8 +466,8 @@ export function PaymentModal({
     if (paymentStatus === 'success') {
       return (
         <div className="text-center py-8 space-y-4">
-          <div className="size-20 mx-auto bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-            <CheckCircle2 className="size-10 text-green-600" />
+          <div className="size-20 mx-auto bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center">
+            <CheckCircle2 className="size-10 text-black dark:text-white" />
           </div>
           <div>
             <h3 className="text-2xl font-bold mb-2">Payment Successful!</h3>
@@ -482,8 +482,8 @@ export function PaymentModal({
     if (paymentStatus === 'failed') {
       return (
         <div className="text-center py-8 space-y-4">
-          <div className="size-20 mx-auto bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
-            <X className="size-10 text-red-600" />
+          <div className="size-20 mx-auto bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center">
+            <X className="size-10 text-black dark:text-white" />
           </div>
           <div>
             <h3 className="text-2xl font-bold mb-2">Payment Failed</h3>

@@ -9,6 +9,7 @@ import { BrandsManagement } from './pages/admin/BrandsManagement';
 import { CategoriesManagement } from './pages/admin/CategoriesManagement';
 import { CustomersManagement } from './pages/admin/CustomersManagement';
 import { ProductOptionsManagement } from './pages/admin/ProductOptionsManagement';
+import { StorefrontSettings } from './pages/admin/StorefrontSettings';
 
 const router = createBrowserRouter([
   { path: '/', element: <Navigate to="/admin" replace /> },
@@ -53,6 +54,10 @@ const router = createBrowserRouter([
       {
         path: 'product-options',
         element: <ProductOptionsManagement />,
+      },
+      {
+        path: 'storefront-settings',
+        element: <StorefrontSettings />,
       },
     ],
   },

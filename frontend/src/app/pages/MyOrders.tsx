@@ -35,7 +35,7 @@ export function MyOrders() {
       <div className="grid gap-4">
         {orders.map((order) => <Link key={order._id} to={`/order/${order._id}`}>
           <Card className="transition-shadow hover:shadow-md"><CardContent className="p-5 flex flex-col md:flex-row md:items-center gap-4">
-            <div className="size-12 rounded-full bg-muted grid place-items-center">{order.status === 'delivered' ? <CheckCircle2 className="size-6 text-green-600" /> : order.status === 'shipped' ? <Truck className="size-6" /> : <Package className="size-6" />}</div>
+            <div className="size-12 rounded-full bg-muted grid place-items-center">{order.status === 'delivered' ? <CheckCircle2 className="size-6 text-black" /> : order.status === 'shipped' ? <Truck className="size-6" /> : <Package className="size-6" />}</div>
             <div className="flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold">{order.orderNumber}</h2><Badge variant="secondary">{statusLabels[order.status] || order.status}</Badge><Badge variant={order.paymentStatus === 'paid' ? 'default' : 'outline'}>{order.paymentStatus}</Badge></div><p className="text-sm text-muted-foreground mt-1">{new Date(order.createdAt).toLocaleDateString('en-IN')} · {order.items.length} item{order.items.length === 1 ? '' : 's'}</p></div>
             <p className="text-xl font-semibold">₹{order.total.toLocaleString('en-IN')}</p>
           </CardContent></Card>

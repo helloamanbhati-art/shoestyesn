@@ -6,9 +6,13 @@ const homeSource = readFileSync(new URL('../src/app/pages/Home.tsx', import.meta
 const sidebarSource = readFileSync(new URL('../src/app/components/FilterSidebar.tsx', import.meta.url), 'utf8');
 const mobileCategoriesSource = readFileSync(new URL('../src/app/components/MobileCategoryNav.tsx', import.meta.url), 'utf8');
 
-test('home and all-products views keep the complete product catalog visible', () => {
-  assert.doesNotMatch(homeSource, /allProductDesigns/);
-  assert.match(homeSource, /const visibleProducts = isSaleView[\s\S]*: filteredProducts;/);
+test('home omits the complete collection catalog section and its controls', () => {
+  assert.doesNotMatch(homeSource, /The complete collection/i);
+  assert.doesNotMatch(homeSource, /ALL FOOTWEAR/);
+  assert.doesNotMatch(homeSource, /<ProductGrid/);
+  assert.doesNotMatch(homeSource, /<FilterSidebar/);
+  assert.doesNotMatch(homeSource, /<MobileCategoryNav/);
+  assert.doesNotMatch(homeSource, /#shop/);
 });
 
 test('category clicks select one complete category and clear competing views', () => {
@@ -16,9 +20,7 @@ test('category clicks select one complete category and clear competing views', (
   assert.match(sidebarSource, /selectedCategories: \[category\]/);
 });
 
-test('mobile shoppers can select a product category above the catalog', () => {
-  assert.match(homeSource, /<MobileCategoryNav/);
-  assert.match(homeSource, /navigate\(`\/\?category=\$\{encodeURIComponent\(category\)\}`\)/);
+test('the reusable mobile category navigation remains accessible', () => {
   assert.match(mobileCategoriesSource, /aria-label="Product categories"/);
   assert.match(mobileCategoriesSource, /aria-pressed=\{isAllSelected\}/);
   assert.match(mobileCategoriesSource, /aria-pressed=\{selectedCategory === category\}/);

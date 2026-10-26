@@ -250,7 +250,7 @@ export function Payment() {
   }
 
   if (order.paymentStatus === 'paid') {
-    return <div className="flex-1 p-8 max-w-xl mx-auto text-center"><CheckCircle2 className="size-16 text-green-600 mx-auto mb-4" /><h1 className="text-2xl mb-2">Payment complete</h1><p className="text-muted-foreground mb-5">Order {order.orderNumber} is confirmed.</p><Button onClick={() => void finish(order)}>View confirmation</Button></div>;
+    return <div className="flex-1 p-8 max-w-xl mx-auto text-center"><CheckCircle2 className="size-16 text-black mx-auto mb-4" /><h1 className="text-2xl mb-2">Payment complete</h1><p className="text-muted-foreground mb-5">Order {order.orderNumber} is confirmed.</p><Button onClick={() => void finish(order)}>View confirmation</Button></div>;
   }
 
   return (
@@ -266,7 +266,7 @@ export function Payment() {
             <Button size="lg" className="w-full" onClick={openPayment} disabled={!configReady || !scriptReady || isProcessing || isPolling}>
               <Shield className="size-4 mr-2" />Pay ₹{order.total.toLocaleString('en-IN')}
             </Button>
-            {mockMode && <p className="text-xs text-amber-700">Development-only mock payment mode is active.</p>}
+            {mockMode && <p className="text-xs font-medium text-black">Development-only mock payment mode is active.</p>}
           </CardContent>
         </Card>
         <Card className="h-fit">

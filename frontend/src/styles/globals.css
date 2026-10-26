@@ -8,15 +8,15 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: #030213;
+  --primary: #000000;
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.95 0.0058 264.53);
-  --secondary-foreground: #030213;
+  --secondary: oklch(0.95 0 0);
+  --secondary-foreground: #000000;
   --muted: #ececf0;
   --muted-foreground: #717182;
   --accent: #e9ebef;
-  --accent-foreground: #030213;
-  --destructive: #d4183d;
+  --accent-foreground: #000000;
+  --destructive: #262626;
   --destructive-foreground: #ffffff;
   --border: rgba(0, 0, 0, 0.1);
   --input: transparent;
@@ -25,15 +25,15 @@
   --font-weight-medium: 500;
   --font-weight-normal: 400;
   --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  --chart-1: oklch(0.2 0 0);
+  --chart-2: oklch(0.35 0 0);
+  --chart-3: oklch(0.5 0 0);
+  --chart-4: oklch(0.65 0 0);
+  --chart-5: oklch(0.8 0 0);
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: #030213;
+  --sidebar-primary: #000000;
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
@@ -56,21 +56,21 @@
   --muted-foreground: oklch(0.708 0 0);
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --destructive: oklch(0.35 0 0);
+  --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.269 0 0);
   --input: oklch(0.269 0 0);
   --ring: oklch(0.439 0 0);
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
+  --chart-1: oklch(0.9 0 0);
+  --chart-2: oklch(0.75 0 0);
+  --chart-3: oklch(0.6 0 0);
+  --chart-4: oklch(0.45 0 0);
+  --chart-5: oklch(0.3 0 0);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary: oklch(0.985 0 0);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
@@ -192,6 +192,77 @@ html {
 html::-webkit-scrollbar,
 body::-webkit-scrollbar {
   display: none;
+}
+
+html { scroll-behavior: smooth; }
+body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #ffffff; }
+.font-display { font-family: Georgia, "Times New Roman", serif; }
+.luxury-container { width: min(100% - 2rem, 100rem); margin-inline: auto; }
+.luxury-section { padding-block: clamp(2.75rem, 8vw, 8rem); }
+.luxury-eyebrow { font-size: 0.625rem; font-weight: 600; letter-spacing: 0.28em; text-transform: uppercase; }
+.luxury-display { font-family: Georgia, "Times New Roman", serif; font-weight: 400; line-height: 0.88; letter-spacing: -0.055em; }
+.bold-display { font-family: "Arial Black", Impact, Haettenschweiler, sans-serif; font-weight: 900; line-height: 0.8; letter-spacing: -0.07em; text-transform: uppercase; }
+.bold-section-title { margin-top: 0.35rem; font-family: "Arial Black", Impact, Haettenschweiler, sans-serif; font-size: clamp(2rem, 7vw, 7.5rem); font-weight: 900; line-height: 0.84; letter-spacing: -0.06em; }
+.luxury-section-title { margin-top: 0.75rem; font-family: Georgia, "Times New Roman", serif; font-size: clamp(2.7rem, 6vw, 6.5rem); font-weight: 400; line-height: 0.9; letter-spacing: -0.05em; }
+.luxury-heading-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
+.luxury-button { display: inline-flex; min-height: 3rem; align-items: center; justify-content: center; gap: 0.75rem; padding-inline: 1.25rem; font-size: 0.625rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; transition: color 250ms ease, background-color 250ms ease, border-color 250ms ease; }
+.luxury-text-link { display: inline-flex; min-height: 2.75rem; align-items: center; gap: 0.5rem; border-bottom: 1px solid currentColor; font-size: 0.625rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; }
+.eyebrow { font-size: 0.7rem; font-weight: 900; letter-spacing: 0.24em; text-transform: uppercase; }
+.section-title { margin-top: 0.4rem; font-family: Georgia, "Times New Roman", serif; font-size: clamp(2.4rem, 5vw, 5.25rem); font-weight: 400; line-height: 0.9; letter-spacing: -0.055em; }
+.nav-link { position: relative; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.nav-link::after { position: absolute; right: 0; bottom: -0.45rem; left: 0; height: 1px; background: currentColor; content: ""; transform: scaleX(0); transition: transform 180ms ease; }
+.nav-link:hover::after { transform: scaleX(1); }
+.nav-icon { display: grid; width: 2rem; height: 2.5rem; flex: 0 0 auto; place-items: center; transition: background-color 160ms ease; }
+.nav-icon:hover { background: #f2f2f2; }
+.footer-heading { margin-bottom: 1rem; font-size: 0.7rem; font-weight: 900; letter-spacing: 0.22em; text-transform: uppercase; }
+.footer-links { display: grid; gap: 0.65rem; }
+.footer-links a { color: rgb(255 255 255 / 0.62); font-size: 0.875rem; transition: color 150ms ease; }
+.footer-links a:hover { color: white; }
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  min-width: 200%;
+  height: 100%;
+  align-items: center;
+  justify-content: space-around;
+  gap: 5rem;
+  animation: marquee-scroll 22s linear infinite;
+}
+
+@keyframes marquee-scroll {
+  to { transform: translateX(-50%); }
+}
+
+.sale-hero::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent 72%, rgb(0 0 0 / 0.08));
+  content: "";
+}
+
+@media (max-width: 767px) {
+  .luxury-container { width: min(100% - 1.5rem, 100rem); }
+  .luxury-eyebrow { font-size: 0.55rem; letter-spacing: 0.2em; }
+  .luxury-button { min-height: 2.5rem; padding-inline: 0.9rem; font-size: 0.55rem; letter-spacing: 0.14em; }
+  .luxury-text-link { min-height: 2rem; font-size: 0.55rem; letter-spacing: 0.12em; }
+  .footer-heading { margin-bottom: 0.65rem; }
+  .footer-links { gap: 0.45rem; }
+  .footer-links a { font-size: 0.75rem; }
+  .sale-hero-models {
+    width: 205%;
+    bottom: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+@media (min-width: 768px) {
+  .nav-icon { width: 2.5rem; height: 2.5rem; }
 }
 
 @keyframes fadeIn {

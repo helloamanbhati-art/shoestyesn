@@ -73,6 +73,8 @@ const appSettingsSchema = new mongoose.Schema(
     bannerUrl: String,
     siteBgColor: String,
     sitePrimaryColor: String,
+    announcementEnabled: { type: Boolean, default: false },
+    announcementText: { type: String, trim: true, maxlength: 180 },
 
     // Maintenance
     isMaintenance: { type: Boolean, default: false },

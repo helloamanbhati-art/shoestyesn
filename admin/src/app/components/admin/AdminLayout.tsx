@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router';
-import { BarChart3, Boxes, ChevronDown, ChevronRight, CircleUserRound, Layers3, LogOut, Menu, Package, ShoppingBag, Tags, Users, X } from 'lucide-react';
+import { BarChart3, Boxes, ChevronDown, ChevronRight, CircleUserRound, Layers3, LogOut, Menu, Package, Settings, ShoppingBag, Tags, Users, X } from 'lucide-react';
 import { useOrders } from '../../contexts/OrderContext';
 import { cn } from '../ui/utils';
 import shoeFashionLogo from '../../../../public/shoe-style-logo.svg?url';
@@ -11,11 +11,13 @@ const commerceItems = [
   { icon: ShoppingBag, label: 'Orders', path: '/admin/orders', count: 'orders' }, { icon: Package, label: 'Products', path: '/admin/products' },
   { icon: Tags, label: 'Brands', path: '/admin/brands' }, { icon: Layers3, label: 'Categories', path: '/admin/categories' },
   { icon: Boxes, label: 'Product Options', path: '/admin/product-options' }, { icon: Users, label: 'Customers', path: '/admin/customers' },
+  { icon: Settings, label: 'Storefront', path: '/admin/storefront-settings' },
 ];
 const pageTitles: Record<string, string> = {
   '/admin': 'Add product', '/admin/analytics': 'Analytics', '/admin/orders': 'Order list', '/admin/products': 'Products',
   '/admin/brands': 'Brands', '/admin/categories': 'Categories', '/admin/product-options': 'Product options',
   '/admin/customers': 'Customers',
+  '/admin/storefront-settings': 'Storefront settings',
 };
 
 export function AdminLayout() {
