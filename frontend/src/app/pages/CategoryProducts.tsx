@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ArrowLeft, Loader2, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Loader2, SlidersHorizontal, X } from 'lucide-react';
 import { Link, useParams } from 'react-router';
 import { ProductGrid } from '../components/ProductGrid';
 import { useProductContext } from '../contexts/ProductContext';
@@ -15,9 +15,11 @@ export function CategoryProducts() {
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [maximumPrice, setMaximumPrice] = useState(Number.POSITIVE_INFINITY);
   const [sort, setSort] = useState<SortOrder>('featured');
-  usePageTitle(category || 'Collection');
+  usePageTitle(category || 'Products');
 
-  const categoryProducts = products.filter((product) => product.category.toLocaleLowerCase() === category.toLocaleLowerCase());
+  const categoryProducts = category
+    ? products.filter((product) => product.category.toLocaleLowerCase() === category.toLocaleLowerCase())
+    : products;
   const sizes = Array.from(new Set(categoryProducts.flatMap((product) => product.availableSizes || [])));
   const highestPrice = Math.max(0, ...categoryProducts.map((product) => product.price));
   const visibleProducts = useMemo(() => {
@@ -27,18 +29,35 @@ export function CategoryProducts() {
 
   return (
     <div className="min-h-[70vh] bg-white text-[#0A0A0A]">
-      <header className="border-b border-black bg-[#F2F2F2] px-4 py-10 md:px-8 md:py-16">
-        <div className="mx-auto max-w-[1600px]">
-          <Link to="/" className="mb-8 inline-flex min-h-11 items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] underline-offset-4 hover:underline"><ArrowLeft size={17} /> Back home</Link>
-          <p className="luxury-eyebrow text-black">The collection</p>
-          <h1 className="bold-section-title break-words">{category || 'Products'}</h1>
-          {!loading && !error && <p className="mt-4 text-sm text-neutral-600">{visibleProducts.length} of {categoryProducts.length} styles</p>}
+      <header className="bg-[#F7F3ED] px-3 py-3 md:px-8 md:py-4">
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-3 md:gap-10">
+          <div className="flex min-w-0 items-center gap-2">
+            <Link to="/" aria-label="Back to collections" className="grid size-8 shrink-0 place-items-center rounded-full transition-colors hover:bg-black/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black">
+              <ArrowLeft size={17} aria-hidden="true" />
+            </Link>
+            <h1 className="font-display break-words text-[1.75rem] leading-none tracking-[-0.04em] text-[#171412] md:text-[2.25rem]">{category || 'Products'}</h1>
+          </div>
+          {!loading && !error && (
+            <p className="inline-flex shrink-0 items-center gap-1.5 text-[11px] text-neutral-600 md:gap-2 md:text-sm">
+              <span className="size-1 rounded-full bg-[#8A5A44] md:size-1.5" aria-hidden="true" />
+              {visibleProducts.length} of {categoryProducts.length} styles
+            </p>
+          )}
         </div>
       </header>
-      <div className="sticky top-[104px] z-20 border-b border-black/15 bg-white px-4 py-3 md:top-[112px] md:px-8">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4">
-          <button type="button" onClick={() => setFiltersOpen(true)} className="luxury-button border border-black"><SlidersHorizontal size={15} /> Filters</button>
-          <label className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.15em]">Sort <select value={sort} onChange={(event) => setSort(event.target.value as SortOrder)} className="min-h-11 border border-black bg-white px-3 text-xs normal-case tracking-normal"><option value="featured">Featured</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="name">Name</option></select></label>
+      <div className="sticky top-[104px] z-20 border-b border-black/10 bg-white/95 px-3 py-2 backdrop-blur md:top-[112px] md:px-8 md:py-3">
+        <div className="mx-auto grid max-w-[1600px] grid-cols-2 gap-2 md:flex md:items-center md:justify-between md:gap-4">
+          <button type="button" onClick={() => setFiltersOpen(true)} className="luxury-button min-h-9 w-full rounded-full bg-[#F3EFE9] text-[#171412] hover:bg-[#E8E0D7] md:min-h-10 md:w-auto">
+            <SlidersHorizontal size={15} aria-hidden="true" /> Filters
+            {(selectedSizes.length > 0 || Number.isFinite(maximumPrice)) && <span className="grid size-5 place-items-center rounded-full bg-black text-[10px] text-white" aria-label="Filters applied">{selectedSizes.length + (Number.isFinite(maximumPrice) ? 1 : 0)}</span>}
+          </button>
+          <label className="relative block min-w-0">
+            <span className="sr-only">Sort products</span>
+            <select aria-label="Sort products" value={sort} onChange={(event) => setSort(event.target.value as SortOrder)} className="min-h-9 w-full appearance-none rounded-full border border-black/15 bg-white px-3 pr-9 text-[11px] font-semibold text-[#171412] outline-none transition-colors hover:border-black/40 focus:border-black md:min-h-10 md:min-w-48 md:px-4 md:pr-10 md:text-xs">
+              <option value="featured">Sort: Featured</option><option value="price-low">Price: Low to high</option><option value="price-high">Price: High to low</option><option value="name">Name: A to Z</option>
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-4 top-1/2 size-3.5 -translate-y-1/2" aria-hidden="true" />
+          </label>
         </div>
       </div>
       <main className="mx-auto max-w-[1600px] py-4 md:py-8">

@@ -14,3 +14,9 @@ test('clicking a product card opens that exact product detail page', () => {
 test('product cards omit the brand name', () => {
   assert.doesNotMatch(cardSource, /\{product\.brand\}/);
 });
+
+test('product detail provides a full-width back-to-products navigation bar', () => {
+  assert.match(detailSource, /<nav aria-label="Product navigation" className="product-detail-back-bar [^"]+">/);
+  assert.match(detailSource, /<Link to="\/" className="product-detail-back-link [^"]+">/);
+  assert.match(detailSource, /<ArrowLeft[^>]*aria-hidden="true"/);
+});

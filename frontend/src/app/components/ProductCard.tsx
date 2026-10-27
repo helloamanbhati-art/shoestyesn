@@ -1,13 +1,11 @@
 import { Link, useNavigate } from 'react-router';
-import { Heart, ShoppingBag } from 'lucide-react';
+import { ShoppingBag } from 'lucide-react';
 import { toast } from 'sonner';
 import { Product } from '../types/product';
 import { isVideoMediaUrl } from '../utils/media';
 import { Badge } from './ui/badge';
 import { Card, CardContent } from './ui/card';
-import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
-import { addWishlistProduct } from '../wishlist/wishlistApi';
 
 interface ProductCardProps {
   product: Product;
@@ -19,7 +17,6 @@ interface ProductCardProps {
 export function ProductCard({ product, priority = false, variant = 'catalog', badge }: ProductCardProps) {
   const navigate = useNavigate();
   const { addToCart } = useCart();
-  const { isAuthenticated, openLogin } = useAuth();
   const variantsCount = product.variants?.length ?? 0;
   const primaryMedia = product.image || product.images?.[0] || '';
   const secondaryMedia = product.images?.find((image) => image && image !== primaryMedia)
@@ -36,12 +33,6 @@ export function ProductCard({ product, priority = false, variant = 'catalog', ba
     if (sizes.length > 1) { navigate(`/product/${product.id}`); return; }
     const added = await addToCart(product, undefined, sizes[0]);
     if (added) toast.success(`${product.name} added to your bag.`);
-  };
-
-  const save = async () => {
-    if (!isAuthenticated) { openLogin(); return; }
-    try { await addWishlistProduct(product.id); toast.success('Saved to your wishlist.'); }
-    catch { toast.error('This style could not be saved.'); }
   };
 
   return (
@@ -102,7 +93,7 @@ export function ProductCard({ product, priority = false, variant = 'catalog', ba
           </div>
 
           <CardContent className={`flex flex-1 flex-col bg-transparent text-left ${isEditorial ? 'px-0 pb-2 pt-2.5 [&:last-child]:pb-2 md:pt-4' : 'px-2 pb-2.5 pt-2 [&:last-child]:pb-2.5 md:px-3 md:pb-3 md:pt-2.5 md:[&:last-child]:pb-3'}`}>
-            <h3 className={isEditorial ? 'line-clamp-2 min-h-8 text-xs font-bold leading-[1.3] tracking-[-0.01em] text-[#171717] md:min-h-11 md:text-lg' : 'line-clamp-2 text-xs font-semibold leading-4 text-foreground sm:min-h-10 sm:text-[15px] sm:font-normal sm:leading-5'}>
+            <h3 className="line-clamp-2 min-h-8 text-xs font-medium uppercase leading-4 tracking-[0.08em] text-[#26314a] md:min-h-10 md:text-sm md:leading-5">
               {product.name}
             </h3>
             {!isEditorial && product.shortDescription && (
@@ -111,27 +102,25 @@ export function ProductCard({ product, priority = false, variant = 'catalog', ba
               </p>
             )}
 
-            <div className={`${isEditorial ? 'mt-1.5' : 'mt-2'} flex flex-wrap items-baseline gap-x-2 gap-y-1`}>
-              <span className={isEditorial ? 'text-xs font-extrabold text-[#171717] md:text-base' : 'text-sm font-bold text-[#0A0A0A] md:text-2xl md:font-semibold'}>
-                <span className="align-top text-[9px] md:text-sm">₹</span>
-                {product.price.toLocaleString('en-IN')}
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="text-sm font-extrabold leading-none text-[#111827] md:text-base">
+                ₹ {product.price.toLocaleString('en-IN')}
               </span>
               {hasDiscount && (
                 <>
-                  <span className={`${isEditorial ? 'text-sm text-neutral-400 md:text-base' : 'text-xs text-muted-foreground'} line-through`}>
+                  <span className="text-[11px] leading-none text-neutral-400 line-through md:text-xs">
                     ₹{product.compareAtPrice.toLocaleString('en-IN')}
                   </span>
-                  {!isEditorial && <span className="text-xs font-medium text-foreground">({discountPercentage}% off)</span>}
+                  <span className="rounded bg-emerald-800 px-1.5 py-0.5 text-[9px] font-bold leading-none text-white md:text-[10px]">
+                    {discountPercentage}% OFF
+                  </span>
                 </>
               )}
             </div>
 
-            {!isEditorial && <p className="mt-1 text-xs text-muted-foreground">Inclusive of all taxes</p>}
-
           </CardContent>
         </Card>
     </Link>
-    <button type="button" onClick={() => void save()} className="absolute right-2 top-2 z-10 grid size-8 place-items-center rounded-full bg-white/95 text-black opacity-100 transition hover:bg-black hover:text-white md:right-3 md:top-3 md:size-10 md:rounded-none md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100" aria-label={`Add ${product.name} to wishlist`}><Heart size={15}/></button>
     <button type="button" onClick={() => void quickAdd()} disabled={!product.inStock} className="absolute bottom-[5.8rem] left-3 right-3 z-10 hidden min-h-11 items-center justify-center gap-2 bg-black px-3 text-[10px] font-black uppercase tracking-[0.16em] text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-400 md:flex md:translate-y-2 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100 md:focus-visible:translate-y-0 md:focus-visible:opacity-100"><ShoppingBag size={15}/>{(product.availableSizes?.length || 0) > 1 ? 'Choose size' : 'Quick add'}</button>
     </div>
   );

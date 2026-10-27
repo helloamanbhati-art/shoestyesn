@@ -1,55 +1,180 @@
-import { useMemo } from 'react';
-import { ArrowRight, Loader2 } from 'lucide-react';
-import { Link } from 'react-router';
+import { FormEvent, Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowRight, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router';
+import { API_BASE_URL, apiRequest } from '../api/client';
 import { ProductCard } from '../components/ProductCard';
+import { CategoryShowcase } from '../components/CategoryShowcase';
 import { useProductContext } from '../contexts/ProductContext';
 import { usePageTitle } from '../hooks/usePageTitle';
 import type { Product } from '../types/product';
 
-type RankedProduct = Product & { salesCount?: number };
+type StorefrontSettings = { bannerUrl: string | null };
+type SearchProduct = Product & { _id?: string };
+type HeroSlide = { category: string; href: string; image: string; alt: string };
 
-const moodDefinitions = [
-  { title: 'THE HIGH LIFE', category: 'Heels' },
-  { title: 'OFF-DUTY ICONS', category: 'Sandals' },
-  { title: 'POWER MOVES', category: 'Boots' },
-];
+const HERO_ROTATION_MS = 5000;
 
-function ProductShelf({ products }: { products: Product[] }) {
-  return <div className="grid grid-cols-2 gap-x-2 gap-y-6 md:grid-cols-4 md:gap-x-5 md:gap-y-10">{products.map((product, index) => <ProductCard key={product.id} product={product} priority={index < 4} variant="editorial" />)}</div>;
+function normalizeProduct(product: SearchProduct): Product {
+  return {
+    ...product,
+    id: product.id || product._id || '',
+    image: product.image || product.images?.[0] || '',
+    images: product.images || (product.image ? [product.image] : []),
+    brand: typeof product.brand === 'object' ? (product.brand as { name?: string }).name || '' : product.brand || '',
+    category: typeof product.category === 'object' ? (product.category as { name?: string }).name || '' : product.category || '',
+    description: product.description || '',
+    soldBy: product.soldBy || 'piece',
+  };
+}
+
+function NewArrivalsRail({ products, loading, error }: { products: Product[]; loading: boolean; error: string | null }) {
+  const railRef = useRef<HTMLDivElement>(null);
+  const moveRail = (direction: -1 | 1) => {
+    railRef.current?.scrollBy({ left: direction * railRef.current.clientWidth * .9, behavior: 'smooth' });
+  };
+
+  return <section className="new-arrivals" aria-labelledby="new-arrivals-title">
+    <div className="new-arrivals-heading">
+      <div><h2 id="new-arrivals-title">{products.length} new styles just in</h2><span>Fresh arrivals, selected from our latest collection</span></div>
+      <div className="new-arrivals-controls" aria-label="New arrival navigation">
+        <button type="button" onClick={() => moveRail(-1)} aria-label="Previous new arrivals"><ChevronLeft/></button>
+        <button type="button" onClick={() => moveRail(1)} aria-label="Next new arrivals"><ChevronRight/></button>
+      </div>
+    </div>
+    {loading && <div className="storefront-status" role="status">Loading the collection...</div>}
+    {error && <div className="storefront-status" role="alert">The collection is taking a moment to load.</div>}
+    {!loading && !error && products.length === 0 && <div className="storefront-status" role="status">The new collection will appear here soon.</div>}
+    {products.length > 0 && <div ref={railRef} className="new-arrivals-rail">{products.map((product, index) => <Fragment key={product.id}>
+      {index === 2 && <Link className="new-arrivals-mobile-view-all" to="/products">View all products <ArrowRight size={15}/></Link>}
+      <div className={`new-arrivals-card ${index % 3 === 2 ? 'is-wide' : ''}`}><ProductCard product={product} priority={index < 2} variant="editorial" badge="New"/></div>
+    </Fragment>)}</div>}
+    {products.length > 0 && <Link className="new-arrivals-view-all new-arrivals-desktop-view-all" to="/products">View all products <ArrowRight size={15}/></Link>}
+  </section>;
 }
 
 export function Home() {
   usePageTitle();
-  const { products, loading, error } = useProductContext();
-  const latestDrops = products.slice(0, 8);
-  const mostLoved = useMemo(() => (products as RankedProduct[]).filter((product) => Number(product.salesCount) > 0).sort((a, b) => Number(b.salesCount) - Number(a.salesCount)).slice(0, 4), [products]);
-  const trendingProducts = mostLoved.length > 0 ? mostLoved : products.slice(4, 8);
-  const everydayIcons = products.filter((product) => ['flats', 'pumps', 'sandals'].includes(product.category.toLocaleLowerCase())).slice(0, 4);
-  const moodCards = moodDefinitions.map((mood, index) => ({ ...mood, product: products.find((product) => product.category.toLocaleLowerCase() === mood.category.toLocaleLowerCase()) || products[index] }));
-  const campaignImages = products.map((product) => product.image || product.images?.[0]).filter(Boolean).slice(0, 5);
+  const { products, categories, loading, error } = useProductContext();
+  const [params, setParams] = useSearchParams();
+  const initialQuery = params.get('search') || '';
+  const [query, setQuery] = useState(initialQuery);
+  const [results, setResults] = useState<Product[]>([]);
+  const [searchState, setSearchState] = useState<'idle' | 'loading' | 'ready' | 'error'>(initialQuery ? 'loading' : 'idle');
+  const [searchAttempt, setSearchAttempt] = useState(0);
+  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
+  const [activeHeroIndex, setActiveHeroIndex] = useState(0);
 
-  return <div className="storefront bg-white text-[#0A0A0A]">
-    <section aria-labelledby="campaign-heading" className="relative min-h-[62svh] overflow-hidden bg-[#d8d2c8] md:min-h-[calc(100svh-112px)]">
-      <img className="absolute inset-0 h-full w-full object-cover object-center" src="/shoe-style-sale-hero.png" alt="Women wearing heels, trainers and boots in the Shoe Style campaign" fetchPriority="high" />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(20,16,13,.62)_0%,rgba(20,16,13,.12)_56%,rgba(20,16,13,.08)_100%)]" />
-      <div className="relative z-10 mx-auto flex min-h-[62svh] max-w-[1720px] items-end px-4 pb-7 text-white md:min-h-[calc(100svh-112px)] md:items-center md:px-12 md:pb-0">
-        <div className="max-w-5xl"><p className="luxury-eyebrow">Shoe Style — Not just shoes. A statement.</p><h1 id="campaign-heading" className="bold-display mt-3 text-[clamp(3.35rem,16vw,13rem)] md:mt-5">WALK LOUD.</h1><p className="mt-2 text-sm font-black uppercase tracking-[-0.02em] md:mt-3 md:text-4xl">YOUR STYLE. YOUR RULES.</p><div className="mt-5 flex flex-wrap gap-2 md:mt-8 md:gap-3"><a href="#latest-drops" className="luxury-button bg-black text-white hover:bg-white hover:text-black">Shop now <ArrowRight size={17}/></a><a href="#latest-drops" className="luxury-button border border-white text-white hover:bg-white hover:text-black">Explore new arrivals</a></div></div>
-      </div>
-    </section>
-    <div className="border-y border-white/20 bg-black px-3 py-2 text-center text-[8px] font-black uppercase tracking-[0.16em] text-white md:px-4 md:py-2.5 md:text-[10px] md:tracking-[0.2em]">Easy returns · Secure checkout · Shipping pan India</div>
+  useEffect(() => {
+    apiRequest<StorefrontSettings>('/api/v1/catalog/storefront-settings')
+      .then((settings) => setBannerUrl(settings.bannerUrl))
+      .catch(() => setBannerUrl(null));
+  }, []);
 
-    <section id="latest-drops" aria-labelledby="latest-drops-title" className="luxury-section bg-white"><div className="luxury-container"><div className="luxury-heading-row"><div><p className="luxury-eyebrow text-black">New in</p><h2 id="latest-drops-title" className="bold-section-title">LATEST DROPS</h2></div></div>{loading ? <div className="grid min-h-80 place-items-center"><Loader2 className="animate-spin"/></div> : error ? <p className="py-20 text-center text-sm text-neutral-600">The collection is taking a moment to load.</p> : <ProductShelf products={latestDrops}/>}</div></section>
+  useEffect(() => {
+    const nextQuery = params.get('search') || '';
+    if (nextQuery !== query) setQuery(nextQuery);
+  }, [params]);
 
-    <section aria-labelledby="for-her-title" className="relative min-h-[54svh] overflow-hidden bg-black md:min-h-[72svh]"><img src="/shoe-style-sale-hero.png" alt="Shoe Style women's footwear campaign" loading="lazy" className="absolute inset-0 h-full w-full object-cover object-[70%_center]"/><div className="absolute inset-0 bg-black/45"/><div className="relative z-10 mx-auto flex min-h-[54svh] max-w-[1720px] items-end px-4 py-8 text-white md:min-h-[72svh] md:px-12 md:py-16"><div><p className="luxury-eyebrow text-white">Every mood. Every moment. Every step.</p><h2 id="for-her-title" className="bold-display mt-3 max-w-5xl text-[clamp(3.75rem,16vw,13rem)] md:mt-4">FOR HER.</h2><Link to="/category/Heels" className="luxury-button mt-5 border border-white text-white hover:bg-white hover:text-black md:mt-8">Shop the edit <ArrowRight size={17}/></Link></div></div></section>
+  useEffect(() => {
+    const term = query.trim();
+    if (!term) {
+      setResults([]);
+      setSearchState('idle');
+      return;
+    }
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setSearchState('loading');
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/products/search?q=${encodeURIComponent(term)}&limit=12`, {
+          signal: controller.signal,
+          headers: { Accept: 'application/json' },
+          credentials: 'include',
+        });
+        if (!response.ok) throw new Error('Search failed');
+        const payload = await response.json();
+        const records = payload.data || payload.products || [];
+        setResults(records.map(normalizeProduct));
+        setSearchState('ready');
+      } catch (requestError) {
+        if ((requestError as Error).name !== 'AbortError') setSearchState('error');
+      }
+    }, 350);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [query, searchAttempt]);
 
-    <section aria-labelledby="statement-title" className="luxury-section bg-[#F2F2F2]"><div className="luxury-container"><p className="luxury-eyebrow text-black">Choose your statement</p><h2 id="statement-title" className="bold-section-title">MAKE YOUR MOVE</h2><div className="mt-10 grid gap-4 md:grid-cols-3">{moodCards.map((mood) => { const image = mood.product?.image || mood.product?.images?.[0] || '/shoe-style-sale-hero.png'; return <Link key={mood.title} to={`/category/${encodeURIComponent(mood.category)}`} className="group relative aspect-[4/5] overflow-hidden bg-neutral-200"><img src={image} alt="" loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.035]"/><span className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"/><span className="absolute bottom-6 left-6 right-6 text-white"><span className="bold-display block text-4xl md:text-5xl">{mood.title}</span><span className="mt-3 inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.22em]">Shop {mood.category} <ArrowRight size={14}/></span></span></Link>; })}</div></div></section>
+  const heroSlides = useMemo(() => categories.map((category, index) => {
+    const product = products.find((item) => item.category.toLocaleLowerCase() === category.toLocaleLowerCase());
+    const image = (index === 0 ? bannerUrl : '') || product?.image || product?.images?.[0] || '';
+    return image ? {
+      category,
+      href: `/category/${encodeURIComponent(category)}`,
+      image,
+      alt: product ? `${product.name} from the ${category} collection` : `Shop the ${category} collection`,
+    } : null;
+  }).filter((slide): slide is HeroSlide => Boolean(slide)), [bannerUrl, categories, products]);
+  const activeHero = heroSlides[activeHeroIndex] || heroSlides[0];
+  const collection = useMemo(() => products.slice(0, 8), [products]);
 
-    {trendingProducts.length > 0 && <section aria-labelledby="trending-title" className="luxury-section bg-white"><div className="luxury-container"><p className="luxury-eyebrow text-black">{mostLoved.length ? 'Ranked by real sales' : 'Featured by Shoe Style'}</p><h2 id="trending-title" className="bold-section-title">TRENDING RIGHT NOW</h2><div className="mt-10"><ProductShelf products={trendingProducts}/></div></div></section>}
+  useEffect(() => {
+    if (activeHeroIndex >= heroSlides.length) setActiveHeroIndex(0);
+  }, [activeHeroIndex, heroSlides.length]);
 
-    <section aria-labelledby="energy-title" className="relative min-h-[70svh] overflow-hidden bg-[#0A0A0A] text-white"><img src="/shoe-style-sale-hero.png" alt="Bold Shoe Style footwear campaign" loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-50"/><div className="relative z-10 mx-auto flex min-h-[70svh] max-w-[1720px] items-center justify-center px-5 text-center"><div><h2 id="energy-title" className="bold-display text-[clamp(4rem,11vw,11rem)]">GOOD SHOES.<br/><span className="text-white">BIG ENERGY.</span></h2><a href="#latest-drops" className="luxury-button mt-8 bg-white text-black hover:bg-neutral-200">Shop the collection <ArrowRight size={17}/></a></div></div></section>
+  useEffect(() => {
+    if (heroSlides.length < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const timer = window.setInterval(() => {
+      setActiveHeroIndex((index) => (index + 1) % heroSlides.length);
+    }, HERO_ROTATION_MS);
+    return () => window.clearInterval(timer);
+  }, [heroSlides.length]);
 
-    {everydayIcons.length > 0 && <section aria-labelledby="icons-title" className="luxury-section bg-[#F2F2F2]"><div className="luxury-container"><p className="luxury-eyebrow text-black">Made for every day</p><h2 id="icons-title" className="bold-section-title">EVERYDAY ICONS</h2><div className="mt-10"><ProductShelf products={everydayIcons}/></div></div></section>}
+  const submitSearch = (event: FormEvent) => {
+    event.preventDefault();
+    const term = query.trim();
+    setParams(term ? { search: term } : {});
+  };
 
-    {campaignImages.length > 0 && <section aria-labelledby="studies-title" className="overflow-hidden bg-white py-16 md:py-24"><div className="luxury-container mb-9"><p className="luxury-eyebrow text-black">Shoe Style community</p><h2 id="studies-title" className="bold-section-title">CAMPAIGN STUDIES</h2><p className="mt-4 max-w-xl text-sm leading-6 text-neutral-600">Approved brand and product media, ready for future social integration.</p></div><div className="flex snap-x gap-2 overflow-x-auto px-4 pb-3 md:px-8">{campaignImages.map((image, index) => <div key={`${image}-${index}`} className="w-[72vw] shrink-0 snap-start overflow-hidden bg-[#F2F2F2] sm:w-[44vw] lg:w-[27vw]"><img src={image} alt="Shoe Style community campaign" loading="lazy" className="aspect-[4/5] w-full object-cover transition duration-500 hover:scale-[1.03]"/></div>)}</div></section>}
+  return <div className="storefront bg-white text-[#171717]">
+    <form className="storefront-search" role="search" onSubmit={submitSearch}>
+      <label htmlFor="product-search" className="sr-only">Search products</label>
+      <div className="storefront-search-field"><Search aria-hidden="true" size={20}/><input id="product-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder='Search for "Block Heels"' autoComplete="off"/></div>
+      <button type="submit" className="storefront-search-submit">Search</button>
+    </form>
+
+    {query.trim() ? <section className="storefront-results" aria-labelledby="search-results-title">
+      <div className="storefront-section-heading"><p>Search</p><h1 id="search-results-title">Results for “{query.trim()}”</h1></div>
+      {searchState === 'loading' && <div className="storefront-status" role="status" aria-live="polite">Searching the collection…</div>}
+      {searchState === 'error' && <div className="storefront-status" role="alert">We couldn’t search the collection. <button type="button" onClick={() => setSearchAttempt((attempt) => attempt + 1)}>Try again</button></div>}
+      {searchState === 'ready' && results.length === 0 && <div className="storefront-status" role="status">No products match this search. Try a category or another style.</div>}
+      {searchState === 'ready' && results.length > 0 && <div className="storefront-product-grid">{results.map((product, index) => <ProductCard key={product.id} product={product} priority={index < 4} variant="editorial"/>)}</div>}
+    </section> : <>
+      <section className="storefront-hero" aria-labelledby="hero-title">
+        <h1 id="hero-title" className="sr-only">Shoe Style featured collection</h1>
+        {activeHero ? <>
+          <Link to={activeHero.href} className="storefront-hero-link" aria-label={`Shop ${activeHero.category}`}>
+            <img key={activeHero.image} src={activeHero.image} alt={activeHero.alt} fetchPriority={activeHeroIndex === 0 ? 'high' : 'auto'}/>
+          </Link>
+          <Link key={activeHero.category} to={activeHero.href} className="storefront-hero-cta" aria-label={`Shop ${activeHero.category}`}>{activeHero.category}</Link>
+          {heroSlides.length > 1 && <div className="storefront-hero-dots" aria-label="Choose a featured category">
+            {heroSlides.map((slide, index) => <button key={slide.category} type="button" className={index === activeHeroIndex ? 'is-active' : ''} onClick={() => setActiveHeroIndex(index)} aria-label={`Show ${slide.category} banner`} aria-current={index === activeHeroIndex ? 'true' : undefined}/>) }
+          </div>}
+        </> : <div className="storefront-hero-skeleton" role="status" aria-label="Loading featured collection"/>}
+      </section>
+      <section className="storefront-benefits" aria-label="Shopping benefits">
+        <div className="storefront-benefits-track">
+          <div><strong>Free pan-India delivery</strong><span>Delivered with tracked shipping</span></div>
+          <div><strong>Easy size exchange</strong><span>Wrong size? We will help fix it</span></div>
+          <div><strong>Secure checkout</strong><span>Protected online payments</span></div>
+          <div aria-hidden="true"><strong>Free pan-India delivery</strong><span>Delivered with tracked shipping</span></div>
+          <div aria-hidden="true"><strong>Easy size exchange</strong><span>Wrong size? We will help fix it</span></div>
+          <div aria-hidden="true"><strong>Secure checkout</strong><span>Protected online payments</span></div>
+        </div>
+      </section>
+      <CategoryShowcase products={products} loading={loading} error={error}/>
+      <NewArrivalsRail products={collection} loading={loading} error={error}/>
+    </>}
   </div>;
 }

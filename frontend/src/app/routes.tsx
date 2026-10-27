@@ -14,7 +14,6 @@ const OrderDetail = lazy(() => import('./pages/OrderDetail').then((module) => ({
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy').then((module) => ({ default: module.PrivacyPolicy })));
 const NotFound = lazy(() => import('./pages/NotFound').then((module) => ({ default: module.NotFound })));
 const StoreInformation = lazy(() => import('./pages/StoreInformation').then((module) => ({ default: module.StoreInformation })));
-const Wishlist = lazy(() => import('./pages/Wishlist').then((module) => ({ default: module.Wishlist })));
 
 function deferred(page: ReactNode) {
   return <Suspense fallback={<div className="flex-1 min-h-64" aria-busy="true" aria-label="Loading page" />}>{page}</Suspense>;
@@ -35,6 +34,10 @@ export const router = createBrowserRouter([
       },
       {
         path: 'category/:category',
+        element: deferred(<CategoryProducts />)
+      },
+      {
+        path: 'products',
         element: deferred(<CategoryProducts />)
       },
       { 
@@ -80,10 +83,6 @@ export const router = createBrowserRouter([
       {
         path: 'shipping-delivery',
         element: deferred(<StoreInformation />)
-      },
-      {
-        path: 'wishlist',
-        element: deferred(<Wishlist />)
       },
       { 
         path: '*', 

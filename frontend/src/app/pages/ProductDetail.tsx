@@ -1,7 +1,7 @@
 import { useParams, Link, useLocation, useNavigate } from "react-router";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import { ArrowLeft, ShoppingBag, ShoppingCart, Minus, Plus, Loader, Check, ChevronDown, ChevronLeft, ChevronRight, Share2, Heart } from "lucide-react";
+import { ArrowLeft, ShoppingBag, ShoppingCart, Minus, Plus, Loader, Check, ChevronDown, ChevronLeft, ChevronRight, Share2 } from "lucide-react";
 import { useCart } from "../contexts/CartContext";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -13,8 +13,6 @@ import { isVideoMediaUrl } from "../utils/media";
 import { saveBuyNowItem } from "../checkout/buyNowStorage";
 import { WomenSizeGuideDialog } from "../components/WomenSizeGuideDialog";
 import { getEuShoeSize, isFootwearProduct } from "../utils/womenShoeSizes";
-import { useAuth } from "../contexts/AuthContext";
-import { addWishlistProduct, fetchWishlistIds, removeWishlistProduct } from "../wishlist/wishlistApi";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -50,9 +48,6 @@ export function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { addToCart } = useCart();
-  const { isAuthenticated, openLogin } = useAuth();
-  const [wishlisted, setWishlisted] = useState(false);
-  const [wishlistBusy, setWishlistBusy] = useState(false);
   const [added, setAdded] = useState(false);
   const [showAnimation, setShowAnimation] = useState(false);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
@@ -72,25 +67,6 @@ export function ProductDetail() {
   });
   const buttonRef = useRef<HTMLDivElement>(null);
   const { cartIconElement } = useCartIcon();
-
-  useEffect(() => {
-    if (!isAuthenticated || !id) { setWishlisted(false); return; }
-    fetchWishlistIds().then((ids) => setWishlisted(ids.includes(id))).catch(() => setWishlisted(false));
-  }, [id, isAuthenticated]);
-
-  const handleWishlist = async () => {
-    if (!product) return;
-    if (!isAuthenticated) { openLogin(); return; }
-    setWishlistBusy(true);
-    try {
-      if (wishlisted) await removeWishlistProduct(product.id);
-      else await addWishlistProduct(product.id);
-      setWishlisted((saved) => !saved);
-      toast.success(wishlisted ? 'Removed from wishlist.' : 'Saved to wishlist.');
-    } catch {
-      toast.error('Wishlist could not be updated. Please try again.');
-    } finally { setWishlistBusy(false); }
-  };
 
   // Fetch product from API
   useEffect(() => {
@@ -420,10 +396,14 @@ export function ProductDetail() {
   const usesEuShoeSizes = isFootwearProduct(product);
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] px-4 py-4 sm:px-6 lg:px-8">
-      <Link to="/" className="mb-3 inline-flex items-center gap-2 rounded-md px-1 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <ArrowLeft className="size-4" /> Back to products
-      </Link>
+    <>
+      <nav aria-label="Product navigation" className="product-detail-back-bar flex h-14 w-full items-center border-y border-[#ececef] border-l-4 border-l-[#79b7ad] bg-white">
+        <Link to="/" className="product-detail-back-link inline-flex h-full items-center gap-2.5 px-5 text-sm font-medium text-[#626783] transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-6">
+          <ArrowLeft className="size-4" aria-hidden="true" />
+          <span>Back to products</span>
+        </Link>
+      </nav>
+      <main className="mx-auto w-full max-w-[1440px] px-4 py-4 sm:px-6 lg:px-8">
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.12fr)_minmax(390px,0.88fr)] lg:gap-8">
         <section aria-label="Product images" className="grid min-w-0 gap-3 sm:grid-cols-[72px_minmax(0,1fr)]">
           {carouselImages.length > 1 && (
@@ -451,7 +431,7 @@ export function ProductDetail() {
 
         <section aria-labelledby="product-title" className="px-1 py-2 sm:px-2 lg:sticky lg:top-[88px] lg:max-h-[calc(100dvh-105px)] lg:self-start lg:overflow-y-auto lg:px-4">
           <div className="flex flex-wrap items-center gap-2"><Badge variant="secondary">{product.brand || product.category || 'Shoe Style'}</Badge><Badge variant={product.inStock ? 'outline' : 'destructive'} className={product.inStock ? 'border-black/20 bg-white text-black' : ''}>{product.inStock ? 'In stock' : 'Out of stock'}</Badge></div>
-          <div className="mt-3 flex items-start justify-between gap-4"><h1 id="product-title" className="text-xl font-semibold leading-tight tracking-tight sm:text-2xl">{product.name}</h1><button type="button" onClick={handleWishlist} disabled={wishlistBusy} className="grid size-11 shrink-0 place-items-center border border-black/20 transition-colors hover:border-black hover:bg-black hover:text-white disabled:opacity-50" aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'} aria-pressed={wishlisted}><Heart className="size-5" fill={wishlisted ? 'currentColor' : 'none'}/></button></div>
+          <div className="mt-3"><h1 id="product-title" className="text-xl font-semibold leading-tight tracking-tight sm:text-2xl">{product.name}</h1></div>
           <div className="mt-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b pb-4"><div><div className="flex flex-wrap items-baseline gap-2"><p className="text-2xl font-bold text-black">₹{(product.soldBy === 'meter' && selectedMeters === 5 ? product.price + (product.compareAtPrice || 0) : product.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>{product.soldBy !== 'meter' && product.compareAtPrice && product.compareAtPrice > product.price && <><p className="text-sm text-muted-foreground line-through" aria-label={`Original price ₹${product.compareAtPrice.toLocaleString('en-IN')}`}>₹{product.compareAtPrice.toLocaleString('en-IN')}</p><Badge className="bg-black text-white hover:bg-neutral-800">Save ₹{(product.compareAtPrice - product.price).toLocaleString('en-IN')}</Badge></>}</div><p className="mt-0.5 text-xs text-muted-foreground">MRP inclusive of all taxes</p></div><p className="text-xs text-muted-foreground">Product code: {productLookupCode}</p></div>
 
           {variants.length > 1 && <fieldset className="border-b py-3"><legend className="mb-2 text-sm font-semibold">Style <span className="font-normal text-muted-foreground">— {selectedVariant?.variantName}</span></legend><div className="flex flex-wrap gap-2">{variants.map((variant) => { const image = variant.images?.[0]?.imageUrl; const selected = selectedVariant?.variantId === variant.variantId; return <button key={variant.variantId} type="button" onClick={() => handleVariantSelect(variant)} className={`relative size-16 overflow-hidden rounded-md border-2 bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${selected ? 'border-primary' : 'border-transparent hover:border-muted-foreground/40'}`} aria-label={`Select ${variant.variantName}`} aria-pressed={selected} title={variant.variantName}>{image ? <img src={image} alt="" className="h-full w-full object-cover" /> : <span className="grid h-full place-items-center px-1 text-xs">{variant.variantName}</span>}{selected && <span className="absolute right-1 top-1 grid size-5 place-items-center rounded-full bg-primary text-primary-foreground"><Check className="size-3" /></span>}</button>; })}</div></fieldset>}
@@ -567,6 +547,7 @@ export function ProductDetail() {
         </section>
       </div>
       {showAnimation && <AddToCartAnimation show={showAnimation} startPosition={animationPositions.start} endPosition={animationPositions.end} productImage={primaryImageForAnimation} onComplete={handleAnimationComplete} />}
-    </main>
+      </main>
+    </>
   );
 }
