@@ -27,7 +27,10 @@ export function CategoryShowcase({ products, loading, error }: CategoryShowcaseP
   });
 
   return (
-    <section aria-label="Product categories" className="category-showcase">
+    <section
+      aria-label="Product categories"
+      className={`category-showcase${categoryProducts.length > 0 && categoryProducts.length <= 4 ? ' is-single-row' : ''}`}
+    >
       <div>
         {loading ? (
           <div className="flex min-h-72 items-center justify-center" role="status" aria-label="Loading categories">

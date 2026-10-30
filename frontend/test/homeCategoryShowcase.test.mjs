@@ -52,6 +52,21 @@ test('categories wrap and expand the section without leaving a fixed empty gap',
   assert.doesNotMatch(stylesSource, /\.category-showcase-rail\s*\{[^}]*overflow-x:\s*auto/);
 });
 
+test('mobile category cards display four items per row', () => {
+  assert.match(
+    stylesSource,
+    /@media[^}]*max-width:\s*767px[\s\S]*?\.category-showcase-rail\s*\{[^}]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/,
+  );
+});
+
+test('a single mobile category row does not leave a large gap before new arrivals', () => {
+  assert.match(showcaseSource, /categoryProducts\.length <= 4 \? ' is-single-row' : ''/);
+  assert.match(
+    stylesSource,
+    /\.category-showcase\.is-single-row\s*\+\s*\.new-arrivals\s*\{[^}]*padding-top:\s*8px/,
+  );
+});
+
 test('category cards open a dedicated product-listing route', () => {
   assert.match(routesSource, /path: 'category\/:category'/);
   assert.match(categoryPageSource, /useParams/);

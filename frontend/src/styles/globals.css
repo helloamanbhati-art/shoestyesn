@@ -491,8 +491,10 @@ body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSyst
   .new-arrivals-desktop-view-all { display: none; }
   .new-arrivals-view-all { margin-top: 24px; min-height: 46px; }
   .category-showcase { padding: 0 8px 20px; }
+  .category-showcase.is-single-row { padding-bottom: 0; }
+  .category-showcase.is-single-row + .new-arrivals { padding-top: 8px; }
   .category-showcase > div { padding-top: 20px; }
-  .category-showcase-rail { grid-template-columns: repeat(auto-fill, minmax(72px, 88px)); justify-content: start; gap: 10px; }
+  .category-showcase-rail { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
   .category-showcase-card > div { aspect-ratio: 1 / 1; border-radius: 13px; }
   .category-showcase-card h3 { margin-top: 8px; font-size: 12px; }
   .storefront-footer-inner { width: min(100% - 40px, 540px); grid-template-columns: 1fr; gap: 38px; padding: 52px 0 92px; }
