@@ -3,6 +3,11 @@ const Brand = require("../models/Brand");
 const Category = require("../models/Category");
 const ProductOptions = require("../models/ProductOptions");
 const { v2: cloudinary } = require("cloudinary");
+const {
+  buildCategorySearchFilter,
+  buildProductSearchFilter,
+  normalizeProductSearchRequest,
+} = require("../services/productSearchQuery");
 
 const CARD_PRODUCT_FIELDS = [
   "name",
@@ -152,21 +157,24 @@ exports.getFeaturedProducts = async (req, res, next) => {
 // Search products
 exports.searchProducts = async (req, res, next) => {
   try {
-    const { q, limit = 10 } = req.query;
-
-    if (!q) {
+    let search;
+    try {
+      search = normalizeProductSearchRequest(req.query);
+    } catch (error) {
       return res.status(400).json({
         success: false,
-        message: "Search query required",
+        message: error.message,
       });
     }
 
-    const products = await Product.find(
-      { $text: { $search: q } },
-      { score: { $meta: "textScore" } }
-    )
-      .sort({ score: { $meta: "textScore" } })
-      .limit(limit)
+    const matchingCategories = await Category.find(buildCategorySearchFilter(search.term))
+      .select("_id")
+      .lean();
+    const categoryIds = matchingCategories.map((category) => category._id);
+
+    const products = await Product.find(buildProductSearchFilter(search.term, categoryIds))
+      .sort({ createdAt: -1 })
+      .limit(search.limit)
       .populate("brand")
       .populate("category");
 

@@ -147,6 +147,32 @@ exports.getAnalytics = async (req, res, next) => {
 };
 
 // Admin product management
+exports.getAllProducts = async (req, res, next) => {
+  try {
+    const page = Math.max(Number.parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 100, 1), 500);
+    const [products, total] = await Promise.all([
+      Product.find({})
+        .populate("brand", "name")
+        .populate("category", "name")
+        .sort({ updatedAt: -1, createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      Product.countDocuments({}),
+    ]);
+
+    res.set("Cache-Control", "no-store, max-age=0");
+    return res.json({
+      success: true,
+      data: products,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 exports.createProduct = async (req, res, next) => {
   try {
     const productData = req.body;

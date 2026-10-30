@@ -8,6 +8,8 @@ const Brand = require("../models/Brand");
 const Product = require("../models/Product");
 const ProductOptions = require("../models/ProductOptions");
 const AppSettings = require('../models/AppSettings');
+const DailyVisitor = require('../models/DailyVisitor');
+const { getVisitorSummary } = require('../services/visitorAnalyticsService');
 const { resolveInitialStock } = require("../services/productStockService");
 const {
   clearAdminCookies,
@@ -140,6 +142,15 @@ router.get("/auth/me", authenticateAdmin, (req, res) => res.json({
 router.use(authenticateAdmin);
 router.use(apiLimiter);
 
+router.get('/analytics/visitors', async (_req, res, next) => {
+  try {
+    const summary = await getVisitorSummary(DailyVisitor);
+    return res.json({ success: true, data: summary });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 router.get('/storefront-settings', async (_req, res, next) => {
   try {
     const settings = await AppSettings.findOne().select('announcementEnabled announcementText').lean();
@@ -204,6 +215,7 @@ router.get("/analytics", adminController.getAnalytics);
 
 // Product management
 // NEW — resolve brand and category names to ObjectIds before saving
+router.get("/products", adminController.getAllProducts);
 router.post('/products', async (req, res) => {
   try {
     const data = req.body;

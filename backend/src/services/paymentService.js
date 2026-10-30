@@ -7,6 +7,46 @@ const { AppError } = require("../middleware/errorHandler");
 const mockPaymentsEnabled = () =>
   process.env.RAZORPAY_MOCK_MODE === "true" && process.env.NODE_ENV !== "production";
 
+exports.validateRazorpayConfiguration = ({
+  nodeEnv = process.env.NODE_ENV,
+  keyId = process.env.RAZORPAY_KEY_ID,
+  keySecret = process.env.RAZORPAY_KEY_SECRET,
+  mockMode = process.env.RAZORPAY_MOCK_MODE,
+} = {}) => {
+  const isProduction = nodeEnv === "production";
+  const isMockMode = mockMode === "true";
+
+  if (isProduction && isMockMode) {
+    throw new Error("Razorpay mock mode is not allowed in production.");
+  }
+
+  if (isMockMode) {
+    return { mode: "mock", configured: true, mockMode: true };
+  }
+
+  if (Boolean(keyId) !== Boolean(keySecret)) {
+    throw new Error("Razorpay key id and key secret must both be configured.");
+  }
+
+  if (!keyId || !keySecret) {
+    return { mode: "unconfigured", configured: false, mockMode: false };
+  }
+
+  if (isProduction && !keyId.startsWith("rzp_live_")) {
+    throw new Error("Test Razorpay keys are not allowed in production.");
+  }
+
+  if (!isProduction && !keyId.startsWith("rzp_test_")) {
+    throw new Error("Live Razorpay keys are not allowed outside production.");
+  }
+
+  return {
+    mode: isProduction ? "live" : "test",
+    configured: true,
+    mockMode: false,
+  };
+};
+
 exports.getPublicPaymentConfig = () => ({
   keyId: process.env.RAZORPAY_KEY_ID || "",
   mockMode: mockPaymentsEnabled(),
@@ -26,8 +66,24 @@ exports.verifyRazorpayWebhookSignature = (rawBody, signature, secret) => {
     && crypto.timingSafeEqual(receivedBuffer, expectedBuffer);
 };
 
+exports.assertVerifiedPaymentReady = (payment, { orderId, amountPaise }) => {
+  if (payment.order_id !== orderId) {
+    throw new AppError("Payment verification failed.", 400, "PAYMENT_ORDER_MISMATCH");
+  }
+  if (payment.amount !== amountPaise) {
+    throw new AppError("Payment verification failed.", 400, "PAYMENT_AMOUNT_MISMATCH");
+  }
+  if (payment.currency !== "INR") {
+    throw new AppError("Payment verification failed.", 400, "PAYMENT_CURRENCY_MISMATCH");
+  }
+  if (payment.status !== "captured" || payment.captured !== true) {
+    throw new AppError("Payment is still pending confirmation.", 409, "PAYMENT_PENDING");
+  }
+};
+
 const getRazorpayClient = () => {
-  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+  const configuration = exports.validateRazorpayConfiguration();
+  if (!configuration.configured || configuration.mockMode) {
     return null;
   }
 
@@ -176,17 +232,6 @@ exports.verifyPayment = async (paymentData) => {
     // Fetch payment details from Razorpay after signature verification
     let payment = await razorpay.payments.fetch(razorpay_payment_id);
 
-    if (payment.order_id !== razorpay_order_id) {
-      throw new AppError("Payment verification failed.", 400, "PAYMENT_ORDER_MISMATCH");
-    }
-
-    if (
-      typeof expectedAmount === "number" &&
-      payment.amount !== Math.round(expectedAmount * 100)
-    ) {
-      throw new AppError("Payment verification failed.", 400, "PAYMENT_AMOUNT_MISMATCH");
-    }
-
     if (payment.status === "failed") {
       throw new AppError("Payment was not successful.", 400, "PAYMENT_FAILED");
     }
@@ -209,9 +254,10 @@ exports.verifyPayment = async (paymentData) => {
       );
     }
 
-    if (!["captured", "authorized"].includes(payment.status)) {
-      throw new AppError("Payment is still pending confirmation.", 409, "PAYMENT_PENDING");
-    }
+    exports.assertVerifiedPaymentReady(payment, {
+      orderId: razorpay_order_id,
+      amountPaise: Math.round(expectedAmount * 100),
+    });
 
     return {
       isValid: true,

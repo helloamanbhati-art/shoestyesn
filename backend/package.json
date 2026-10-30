@@ -7,6 +7,7 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "test": "node --test",
+    "razorpay:test": "node scripts/razorpay-test-preflight.js",
     "catalog:october:dry-run": "node scripts/import-october-2026-catalog.js",
     "catalog:october:apply": "node scripts/import-october-2026-catalog.js --apply",
     "catalog:sneakers:dry-run": "node scripts/import-october-11-sneakers.js",

@@ -29,7 +29,7 @@ function buildProductSharePage({ product, variantId, storefrontUrl }) {
   ]);
   const imageUrl = variantImageUrl
     || firstShareableImage([product.image, ...(product.images || [])])
-    || `${baseUrl}/shoe-style-logo.svg`;
+    || `${baseUrl}/shoe-style-logo.png`;
   const query = variantId ? `?${new URLSearchParams({ variant: variantId })}` : '';
   const productUrl = `${baseUrl}/product/${encodeURIComponent(productId)}${query}`;
   const shareUrl = `${baseUrl}/share/product/${encodeURIComponent(productId)}${query}`;

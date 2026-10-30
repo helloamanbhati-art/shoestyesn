@@ -23,6 +23,7 @@ const reviewRoutes = require("./routes/reviewRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const cartRoutes = require("./routes/cartRoutes");
+const analyticsRoutes = require('./routes/analyticsRoutes');
 const shareController = require('./controllers/shareController');
 
 // Models - Import from separate files
@@ -90,6 +91,7 @@ app.use("/api/v1/reviews", reviewRoutes);
 app.use("/api/v1/payments", paymentRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/cart", cartRoutes);
+app.use('/api/v1/analytics', analyticsRoutes);
 
 // 404 Handler
 app.use(notFoundHandler);

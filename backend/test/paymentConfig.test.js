@@ -57,6 +57,69 @@ test('operational payment errors expose a stable safe contract', () => {
   assert.equal(error.message.includes('Authentication failed'), false);
 });
 
+test('Razorpay configuration accepts test keys only outside production', () => {
+  assert.deepEqual(paymentService.validateRazorpayConfiguration({
+    nodeEnv: 'development',
+    keyId: 'rzp_test_public',
+    keySecret: 'server-secret',
+    mockMode: 'false',
+  }), { mode: 'test', configured: true, mockMode: false });
+
+  assert.throws(() => paymentService.validateRazorpayConfiguration({
+    nodeEnv: 'development',
+    keyId: 'rzp_live_public',
+    keySecret: 'server-secret',
+    mockMode: 'false',
+  }), /live Razorpay keys are not allowed outside production/i);
+});
+
+test('Razorpay configuration rejects test keys and mock mode in production', () => {
+  assert.throws(() => paymentService.validateRazorpayConfiguration({
+    nodeEnv: 'production',
+    keyId: 'rzp_test_public',
+    keySecret: 'server-secret',
+    mockMode: 'false',
+  }), /test Razorpay keys are not allowed in production/i);
+
+  assert.throws(() => paymentService.validateRazorpayConfiguration({
+    nodeEnv: 'production',
+    keyId: 'rzp_live_public',
+    keySecret: 'server-secret',
+    mockMode: 'true',
+  }), /mock mode is not allowed in production/i);
+});
+
+test('Razorpay configuration requires both halves of the API credential pair', () => {
+  assert.throws(() => paymentService.validateRazorpayConfiguration({
+    nodeEnv: 'development',
+    keyId: 'rzp_test_public',
+    keySecret: '',
+    mockMode: 'false',
+  }), /key id and key secret must both be configured/i);
+});
+
+test('verified payments must be captured and match order, amount, and currency', () => {
+  assert.doesNotThrow(() => paymentService.assertVerifiedPaymentReady({
+    order_id: 'order_1',
+    amount: 12500,
+    currency: 'INR',
+    status: 'captured',
+    captured: true,
+  }, { orderId: 'order_1', amountPaise: 12500 }));
+
+  for (const payment of [
+    { order_id: 'order_other', amount: 12500, currency: 'INR', status: 'captured', captured: true },
+    { order_id: 'order_1', amount: 12499, currency: 'INR', status: 'captured', captured: true },
+    { order_id: 'order_1', amount: 12500, currency: 'USD', status: 'captured', captured: true },
+    { order_id: 'order_1', amount: 12500, currency: 'INR', status: 'authorized', captured: false },
+  ]) {
+    assert.throws(
+      () => paymentService.assertVerifiedPaymentReady(payment, { orderId: 'order_1', amountPaise: 12500 }),
+      (error) => error instanceof AppError && [400, 409].includes(error.statusCode),
+    );
+  }
+});
+
 function setOrDelete(name, value) {
   if (value === undefined) delete process.env[name];
   else process.env[name] = value;
