@@ -71,7 +71,7 @@ function AdminLayoutContent() {
             {/* Mobile Logo */}
             <div className="md:hidden flex items-center gap-2">
               <img
-                src="/shoe-style-logo.png"
+                src="/shoe-style-logo.svg"
                 alt="Shoe Style"
                 className="h-8 w-auto object-contain"
               />

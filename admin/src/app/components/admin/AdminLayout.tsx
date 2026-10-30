@@ -3,7 +3,7 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router';
 import { BarChart3, Boxes, ChevronDown, ChevronRight, CircleUserRound, Layers3, LogOut, Menu, Package, Settings, ShoppingBag, Tags, Users, X } from 'lucide-react';
 import { useOrders } from '../../contexts/OrderContext';
 import { cn } from '../ui/utils';
-import shoeFashionLogo from '../../../../public/shoe-style-logo.png?url';
+import shoeFashionLogo from '../../../../public/shoe-style-logo.svg?url';
 import { useAdminAuth } from '../../contexts/AdminAuthContext';
 
 const primaryItems = [{ icon: BarChart3, label: 'Analytics', path: '/admin/analytics' }];

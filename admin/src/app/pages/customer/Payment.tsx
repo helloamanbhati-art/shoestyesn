@@ -175,7 +175,7 @@ export default function Payment() {
         currency: razorpayOrder.currency,
         name: 'Shoe Fashion',
         description: 'Purchase from Shoe Fashion',
-        image: `${window.location.origin}/shoe-style-logo.png`,
+        image: `${window.location.origin}/shoe-style-logo.svg`,
         order_id: razorpayOrder.id,
         handler: function (response: RazorpayResponse) {
           handlePaymentSuccess(response, createdOrder._id);

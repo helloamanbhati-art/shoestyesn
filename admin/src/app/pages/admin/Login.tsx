@@ -52,7 +52,7 @@ export function AdminLogin() {
       <section className="admin-login-story" aria-label="Shoe Fashion administration portal">
         <div className="admin-login-story-top">
           <img
-            src="/shoe-style-logo.png"
+            src="/shoe-style-logo.svg"
             alt="Shoe Fashion"
             className="admin-login-story-logo"
           />
@@ -73,7 +73,7 @@ export function AdminLogin() {
       <section className="admin-login-panel">
         <div className="admin-login-card">
           <div className="admin-login-mobile-brand">
-            <img src="/shoe-style-logo.png" alt="Shoe Style" />
+            <img src="/shoe-style-logo.svg" alt="Shoe Style" />
             <span>Admin workspace</span>
           </div>
 
