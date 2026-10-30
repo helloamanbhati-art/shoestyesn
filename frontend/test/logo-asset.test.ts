@@ -22,11 +22,11 @@ test('storefront deploys the supplied Jai Mata Di PNG without Git LFS', () => {
   assert.match(gitAttributes, /admin\/public\/shoe-style-logo\.png -filter -diff -merge -text/);
   assert.match(logoComponent, /\/shoe-style-logo\.png/);
   assert.match(indexHtml, /rel="icon" type="image\/png" href="\/shoe-style-logo\.png"/);
-  assert.match(indexHtml, /property="og:image" content="https:\/\/shoefashion\.in\/shoe-style-logo\.png\?v=6"/);
+  assert.match(indexHtml, /property="og:image" content="https:\/\/shoefashion\.in\/shoe-style-logo\.png\?v=7"/);
   assert.match(indexHtml, /property="og:image:type" content="image\/png"/);
-  assert.match(indexHtml, /property="og:image:width" content="1760"/);
-  assert.match(indexHtml, /property="og:image:height" content="880"/);
-  assert.match(indexHtml, /name="twitter:image" content="https:\/\/shoefashion\.in\/shoe-style-logo\.png\?v=6"/);
+  assert.match(indexHtml, /property="og:image:width" content="1672"/);
+  assert.match(indexHtml, /property="og:image:height" content="941"/);
+  assert.match(indexHtml, /name="twitter:image" content="https:\/\/shoefashion\.in\/shoe-style-logo\.png\?v=7"/);
   assert.match(paymentPage, /\/shoe-style-logo\.png/);
 });
 

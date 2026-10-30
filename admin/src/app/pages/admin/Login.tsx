@@ -53,7 +53,7 @@ export function AdminLogin() {
         <div className="admin-login-story-top">
           <img
             src="/shoe-style-logo.png"
-            alt="Shoe Fashion"
+            alt="Jai Mata Di Shoe Style"
             className="admin-login-story-logo"
           />
           <span>Admin workspace</span>
@@ -73,7 +73,7 @@ export function AdminLogin() {
       <section className="admin-login-panel">
         <div className="admin-login-card">
           <div className="admin-login-mobile-brand">
-            <img src="/shoe-style-logo.png" alt="Shoe Style" />
+            <img src="/shoe-style-logo.png" alt="Jai Mata Di Shoe Style" />
             <span>Admin workspace</span>
           </div>
 
