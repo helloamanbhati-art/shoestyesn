@@ -14,6 +14,11 @@ const REQUEST_MAX_ATTEMPTS = 3;
 const REQUEST_TIMEOUT_MS = 30_000;
 const inFlightGetRequests = new Map<string, Promise<unknown>>();
 let refreshPromise: Promise<boolean> | null = null;
+let unauthorizedHandler: (() => void) | null = null;
+
+export function setAdminUnauthorizedHandler(handler: (() => void) | null) {
+  unauthorizedHandler = handler;
+}
 
 const waitBeforeRetry = (attempt: number, serverDelayMs = 0) => new Promise<void>((resolve) => {
   const exponentialDelay = 500 * (2 ** attempt) + Math.floor(Math.random() * 250);
@@ -119,12 +124,14 @@ export async function adminFetch(path: string, init: RequestInit = {}): Promise<
   if (init.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
-  const response = await fetchWithLoginResilience(path, init, headers);
-  if (response.status === 401
-    && path !== '/api/v1/admin/auth/login'
-    && path !== '/api/v1/admin/auth/refresh'
-    && await refreshAdminSession()) {
-    return fetchWithLoginResilience(path, init, headers);
+  let response = await fetchWithLoginResilience(path, init, headers);
+  const isAuthenticatedRequest = path !== '/api/v1/admin/auth/login'
+    && path !== '/api/v1/admin/auth/refresh';
+  if (response.status === 401 && isAuthenticatedRequest) {
+    if (await refreshAdminSession()) {
+      response = await fetchWithLoginResilience(path, init, headers);
+    }
+    if (response.status === 401) unauthorizedHandler?.();
   }
   return response;
 }

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { adminRequest } from '../api/client';
+import { adminRequest, setAdminUnauthorizedHandler } from '../api/client';
 
 export interface AdminUser {
   id: string;
@@ -24,17 +24,20 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setAdminUnauthorizedHandler(() => setAdmin(null));
     void adminRequest<{ admin: AdminUser }>('/api/v1/admin/auth/me')
       .then((result) => setAdmin(result.admin))
       .catch(() => setAdmin(null))
       .finally(() => setLoading(false));
+    return () => setAdminUnauthorizedHandler(null);
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const result = await adminRequest<{ admin: AdminUser }>('/api/v1/admin/auth/login', {
+    await adminRequest<{ admin: AdminUser }>('/api/v1/admin/auth/login', {
       method: 'POST', body: JSON.stringify({ email, password }),
     });
-    setAdmin(result.admin);
+    const verified = await adminRequest<{ admin: AdminUser }>('/api/v1/admin/auth/me');
+    setAdmin(verified.admin);
   }, []);
 
   const logout = useCallback(async () => {
