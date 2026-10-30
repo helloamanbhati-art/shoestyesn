@@ -19,7 +19,9 @@ test('promotional posters provide two accessible collection links', () => {
   assert.match(postersSource, /Clearance Sale/);
   assert.match(postersSource, /Shop new collection/);
   assert.match(postersSource, /Shop clearance sale/);
-  assert.match(postersSource, /<img/);
+  assert.match(postersSource, /className="promotional-poster-image"/);
+  assert.match(postersSource, /backgroundImage:/);
+  assert.doesNotMatch(postersSource, /<img/);
 });
 
 test('promotional posters use a responsive two-column layout', () => {

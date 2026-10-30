@@ -373,16 +373,16 @@ body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSyst
 .trending-styles-card:hover img, .trending-styles-card:hover video { transform: scale(1.025); }
 .promotional-posters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; padding: 12px max(4%, 24px) 72px; background: #fff; }
 .promotional-poster { position: relative; display: block; min-height: 300px; aspect-ratio: 1.58 / 1; overflow: hidden; background: #d8d3cf; color: #fff; }
-.promotional-poster img { width: 100%; height: 100%; object-fit: cover; transition: transform 500ms ease; }
-.promotional-poster.is-new img { object-position: 38% center; }
-.promotional-poster.is-sale img { object-position: 70% center; }
+.promotional-poster-image { position: absolute; inset: 0; background-position: center; background-repeat: no-repeat; background-size: cover; transition: transform 500ms ease; }
+.promotional-poster.is-new .promotional-poster-image { background-position: 38% center; }
+.promotional-poster.is-sale .promotional-poster-image { background-position: 70% center; }
 .promotional-poster-shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgb(0 0 0 / .38), rgb(0 0 0 / .08) 65%); }
 .promotional-poster.is-sale .promotional-poster-shade { background: linear-gradient(0deg, rgb(0 0 0 / .36), rgb(0 0 0 / .04) 70%); }
 .promotional-poster-copy { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: clamp(24px, 4vw, 52px); }
 .promotional-poster.is-sale .promotional-poster-copy { align-items: center; text-align: center; }
 .promotional-poster-copy strong { font-family: Georgia, "Times New Roman", serif; font-size: clamp(1.65rem, 2.4vw, 2.7rem); font-weight: 400; letter-spacing: -.02em; text-transform: uppercase; }
 .promotional-poster-copy > span { margin-top: 13px; border-bottom: 1px solid currentColor; padding-bottom: 4px; font-size: 10px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; }
-.promotional-poster:hover img { transform: scale(1.025); }
+.promotional-poster:hover .promotional-poster-image { transform: scale(1.025); }
 .promotional-poster:focus-visible { outline: 3px solid #171717; outline-offset: 3px; }
 .category-showcase { background: #fff; padding: 0 max(4%, 24px) 24px; color: #171717; }
 .category-showcase > div { border-top: 1px solid #e9e5e1; padding-top: 40px; }

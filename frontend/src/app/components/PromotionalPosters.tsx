@@ -16,14 +16,12 @@ export function PromotionalPosters({ products }: PromotionalPostersProps) {
       title: 'New Collection',
       label: 'Shop new collection',
       image: firstProduct?.image || firstProduct?.images?.[0] || fallbackImage,
-      alt: firstProduct ? `${firstProduct.name} from the new collection` : 'Shoe Style new collection campaign',
       className: 'is-new',
     },
     {
       title: 'Clearance Sale',
       label: 'Shop clearance sale',
       image: secondProduct?.image || secondProduct?.images?.[0] || fallbackImage,
-      alt: secondProduct ? `${secondProduct.name} featured in the clearance sale` : 'Shoe Style clearance sale campaign',
       className: 'is-sale',
     },
   ];
@@ -32,7 +30,11 @@ export function PromotionalPosters({ products }: PromotionalPostersProps) {
     <section className="promotional-posters" aria-label="Featured promotions">
       {posters.map((poster) => (
         <Link key={poster.title} to="/products" className={`promotional-poster ${poster.className}`} aria-label={poster.label}>
-          <img src={poster.image} alt={poster.alt} loading="lazy" />
+          <span
+            className="promotional-poster-image"
+            style={{ backgroundImage: `url("${poster.image.replace(/"/g, '\\"')}")` }}
+            aria-hidden="true"
+          />
           <span className="promotional-poster-shade" aria-hidden="true" />
           <span className="promotional-poster-copy">
             <strong>{poster.title}</strong>
