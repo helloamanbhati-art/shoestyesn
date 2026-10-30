@@ -79,7 +79,7 @@ function AdminLayoutContent() {
 
             <div className="md:hidden flex items-center gap-2">
               <img
-                src="/shoe-style-logo.svg"
+                src="/shoe-style-logo.png"
                 alt="Shoe Style"
                 className="h-8 w-auto object-contain"
               />

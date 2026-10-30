@@ -12,20 +12,22 @@ const paymentPage = readFileSync(
   'utf8',
 );
 const logoAsset = readFileSync(
-  new URL('../public/shoe-style-logo.svg', import.meta.url),
-  'utf8',
+  new URL('../public/shoe-style-logo.png', import.meta.url),
 );
+const gitAttributes = readFileSync(new URL('../../.gitattributes', import.meta.url), 'utf8');
 
-test('storefront uses the deploy-safe SVG everywhere the primary logo appears', () => {
-  assert.match(logoAsset, /^<svg\b/);
-  assert.match(logoComponent, /\/shoe-style-logo\.svg/);
-  assert.match(indexHtml, /rel="icon" type="image\/svg\+xml" href="\/shoe-style-logo\.svg"/);
-  assert.match(indexHtml, /property="og:image" content="https:\/\/shoefashion\.in\/shoe-style-logo\.svg\?v=5"/);
-  assert.match(indexHtml, /property="og:image:type" content="image\/svg\+xml"/);
-  assert.match(indexHtml, /property="og:image:width" content="854"/);
-  assert.match(indexHtml, /property="og:image:height" content="190"/);
-  assert.match(indexHtml, /name="twitter:image" content="https:\/\/shoefashion\.in\/shoe-style-logo\.svg\?v=5"/);
-  assert.match(paymentPage, /\/shoe-style-logo\.svg/);
+test('storefront deploys the supplied Jai Mata Di PNG without Git LFS', () => {
+  assert.deepEqual([...logoAsset.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+  assert.match(gitAttributes, /frontend\/public\/shoe-style-logo\.png -filter -diff -merge -text/);
+  assert.match(gitAttributes, /admin\/public\/shoe-style-logo\.png -filter -diff -merge -text/);
+  assert.match(logoComponent, /\/shoe-style-logo\.png/);
+  assert.match(indexHtml, /rel="icon" type="image\/png" href="\/shoe-style-logo\.png"/);
+  assert.match(indexHtml, /property="og:image" content="https:\/\/shoefashion\.in\/shoe-style-logo\.png\?v=6"/);
+  assert.match(indexHtml, /property="og:image:type" content="image\/png"/);
+  assert.match(indexHtml, /property="og:image:width" content="1760"/);
+  assert.match(indexHtml, /property="og:image:height" content="880"/);
+  assert.match(indexHtml, /name="twitter:image" content="https:\/\/shoefashion\.in\/shoe-style-logo\.png\?v=6"/);
+  assert.match(paymentPage, /\/shoe-style-logo\.png/);
 });
 
 test('storefront links expose title, description, and canonical URL', () => {
