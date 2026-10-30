@@ -19,10 +19,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../components/ui/select';
-import { Search, Eye, ShoppingBag, Truck, CreditCard, MapPin, Copy, X } from 'lucide-react';
+import { Search, Eye, ShoppingBag, Truck, CreditCard, MapPin, Copy, Printer, X } from 'lucide-react';
 import { useOrders } from '../../contexts/OrderContext';
 import { toast } from 'sonner';
 import { formatOrderDateTime, sortOrdersNewestFirst } from '../../utils/orderPresentation.mjs';
+import { createInvoiceHtml } from '../../utils/invoicePresentation.mjs';
 
 const statusConfig = {
   0: { label: 'Order Placed', color: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300' },
@@ -169,6 +170,20 @@ export function OrdersManagement() {
     setDialogOpen(true);
   };
 
+  const handlePrintInvoice = (order: typeof orders[0]) => {
+    const invoiceWindow = window.open('', '_blank', 'width=960,height=760');
+    if (!invoiceWindow) {
+      toast.error('Allow pop-ups to open and print the invoice.');
+      return;
+    }
+
+    invoiceWindow.opener = null;
+    invoiceWindow.document.open();
+    invoiceWindow.document.write(createInvoiceHtml(order));
+    invoiceWindow.document.close();
+    invoiceWindow.focus();
+  };
+
   useEffect(() => {
     const requestedOrderId = searchParams.get('order');
     if (!requestedOrderId || orders.length === 0) return;
@@ -310,14 +325,16 @@ export function OrdersManagement() {
                           <time dateTime={order.createdAt}>{formatOrderDateTime(order.createdAt)}</time>
                         </td>
                         <td className="py-3 px-4">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleViewOrder(order)}
-                          >
-                            <Eye className="size-4" />
-                            View
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="sm" onClick={() => handleViewOrder(order)}>
+                              <Eye className="size-4" />
+                              View
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handlePrintInvoice(order)}>
+                              <Printer className="size-4" />
+                              Print invoice
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -351,9 +368,15 @@ export function OrdersManagement() {
                       Ordered {formatOrderDateTime(selectedOrder.createdAt)}
                     </p>
                   </div>
-                  <Badge className={`${statusConfig[selectedOrder.status as OrderStatus]?.color || 'bg-gray-100 text-gray-700'} shrink-0`}>
-                    {statusConfig[selectedOrder.status as OrderStatus]?.label || formatOrderStatus(selectedOrder.status)}
-                  </Badge>
+                  <div className="flex shrink-0 items-center gap-2 pr-1 sm:pr-12">
+                    <Button variant="outline" size="sm" onClick={() => handlePrintInvoice(selectedOrder)}>
+                      <Printer className="size-4" />
+                      Print invoice
+                    </Button>
+                    <Badge className={statusConfig[selectedOrder.status as OrderStatus]?.color || 'bg-gray-100 text-gray-700'}>
+                      {statusConfig[selectedOrder.status as OrderStatus]?.label || formatOrderStatus(selectedOrder.status)}
+                    </Badge>
+                  </div>
                 </DialogTitle>
               </DialogHeader>
 

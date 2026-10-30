@@ -96,7 +96,7 @@ export function AdminDashboard() {
             </p>
           </div>
           {loading && <p role="status" className="py-8 text-center text-sm text-gray-500">Loading orders…</p>}
-          {!loading && error && <p role="alert" className="py-8 text-center text-sm text-red-600">Orders could not be loaded.</p>}
+          {!loading && error && <p role="status" className="mb-4 bg-amber-50 px-4 py-3 text-center text-sm text-amber-800">Orders are reconnecting automatically. Existing data remains available.</p>}
           {!loading && !error && recentOrders.length === 0 && (
             <div className="py-10 text-center text-gray-500">
               <ShoppingBag className="mx-auto mb-3 size-10 opacity-50" aria-hidden="true" />
@@ -104,7 +104,7 @@ export function AdminDashboard() {
               <p className="mt-1 text-sm">Choose another day filter to see more orders.</p>
             </div>
           )}
-          {!loading && !error && recentOrders.length > 0 && (
+          {!loading && recentOrders.length > 0 && (
             <div className="space-y-4">
               {recentOrders.map((order) => {
                 const orderId = order.id || order._id;

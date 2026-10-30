@@ -28,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../components/ui/select';
-import { Plus, Search, Pencil, Trash2, Package, Loader2, Images, Link, Check, SlidersHorizontal, X } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Package, Loader2, Images, Link, Check, SlidersHorizontal, X, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useBrands } from '../../contexts/BrandContext';
@@ -98,6 +98,9 @@ export function ProductsManagement() {
   const { categories } = useCategories();
   const [products, setProducts] = useState<Product[]>([]);
   const [clothingTypeOptions, setClothingTypeOptions] = useState<string[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [productsLoadError, setProductsLoadError] = useState<string | null>(null);
+  const [productRefreshKey, setProductRefreshKey] = useState(0);
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [popoverProductId, setPopoverProductId] = useState<string | null>(null);
@@ -108,16 +111,17 @@ const getAuthHeaders = () => {
 
 // Load products from API on mount
 useEffect(() => {
+  let active = true;
   const fetchProducts = async () => {
     try {
-      console.log('[fetchProducts] Starting...');
-      const res = await fetch(`${API_BASE_URL}/api/v1/products?limit=500`, {
+      setIsLoadingProducts(true);
+      const res = await fetch(`${API_BASE_URL}/api/v1/admin/products?limit=500`, {
         headers: getAuthHeaders(),
         credentials: 'include',
+        cache: 'no-store',
       });
-      console.log('[fetchProducts] Response status:', res.status);
+      if (!res.ok) throw new Error(`Product catalog returned ${res.status}`);
       const data = await res.json();
-      console.log('[fetchProducts] Data received:', data);
       const mapped = (data.data || []).map((p: any) => {
         // Handle brand - could be string, object, or missing
         let brandName = '';
@@ -164,14 +168,30 @@ useEffect(() => {
           compareAtPrice: p.compareAtPrice || 0,
         };
       });
-      console.log('[fetchProducts] Mapped products:', mapped.length);
-      setProducts(mapped);
+      if (active) {
+        setProducts(mapped);
+        setProductsLoadError(null);
+      }
     } catch (err) {
-      console.error('[fetchProducts] Exception:', err);
-      toast.error('Failed to load products');
+      if (active) setProductsLoadError(err instanceof Error ? err.message : 'Failed to load products');
+    } finally {
+      if (active) setIsLoadingProducts(false);
     }
   };
-  fetchProducts();
+  void fetchProducts();
+  return () => { active = false; };
+}, [productRefreshKey]);
+
+useEffect(() => {
+  const timer = window.setInterval(() => setProductRefreshKey((key) => key + 1), 30_000);
+  const refreshWhenVisible = () => {
+    if (document.visibilityState === 'visible') setProductRefreshKey((key) => key + 1);
+  };
+  document.addEventListener('visibilitychange', refreshWhenVisible);
+  return () => {
+    window.clearInterval(timer);
+    document.removeEventListener('visibilitychange', refreshWhenVisible);
+  };
 }, []);
 
 useEffect(() => {
@@ -542,13 +562,19 @@ useEffect(() => {
             Add products, update pricing and control what customers can buy.
           </p>
         </div>
-        <Button
-          onClick={() => handleOpenDialog()}
-          className="h-12 w-full cursor-pointer bg-green-600 px-5 font-bold text-white shadow-md hover:bg-green-700 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 sm:h-11 sm:w-auto"
-        >
-          <Plus className="size-5" />
-          <span>Add Product</span>
-        </Button>
+        <div className="flex w-full gap-2 sm:w-auto">
+          <Button type="button" variant="outline" onClick={() => setProductRefreshKey((key) => key + 1)} disabled={isLoadingProducts} aria-label="Refresh products" className="h-12 flex-1 sm:h-11 sm:flex-none">
+            <RefreshCw className={`size-4 ${isLoadingProducts ? 'animate-spin' : ''}`} aria-hidden="true" />
+            Refresh
+          </Button>
+          <Button
+            onClick={() => handleOpenDialog()}
+            className="h-12 flex-1 cursor-pointer bg-green-600 px-5 font-bold text-white shadow-md hover:bg-green-700 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 sm:h-11 sm:flex-none"
+          >
+            <Plus className="size-5" />
+            <span>Add Product</span>
+          </Button>
+        </div>
       </div>
 
       {/* Search & Filters */}
@@ -639,7 +665,11 @@ useEffect(() => {
       </div>
 
       {/* Products Grid/Table */}
-      {filteredProducts.length === 0 ? (
+      {isLoadingProducts && products.length === 0 ? (
+        <Card><CardContent className="flex items-center justify-center gap-2 py-16 text-gray-500" role="status" aria-live="polite"><Loader2 className="size-5 animate-spin" aria-hidden="true" />Loading products…</CardContent></Card>
+      ) : productsLoadError && products.length === 0 ? (
+        <Card><CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center" role="alert"><Package className="size-12 text-gray-400" aria-hidden="true" /><p className="font-medium">Products could not be loaded</p><p className="text-sm text-gray-500">{productsLoadError}</p><Button type="button" variant="outline" onClick={() => setProductRefreshKey((key) => key + 1)}>Try again</Button></CardContent></Card>
+      ) : filteredProducts.length === 0 ? (
         <Card>
           <CardContent className="py-16">
             <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">

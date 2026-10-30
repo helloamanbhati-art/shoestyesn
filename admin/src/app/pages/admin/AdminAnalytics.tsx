@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { useOrders } from '../../contexts/OrderContext';
@@ -17,9 +17,19 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import { TrendingUp, TrendingDown, IndianRupee, ShoppingBag, BarChart3, PieChartIcon } from 'lucide-react';
+import { TrendingUp, TrendingDown, IndianRupee, ShoppingBag, BarChart3, PieChartIcon, Radio, Users } from 'lucide-react';
+import { adminRequest } from '../../api/client';
 
 type TimeRange = '7D' | '30D' | '90D' | '1Y';
+
+type VisitorSummary = {
+  live: number;
+  today: number;
+  yesterday: number;
+  changePercent: number | null;
+  trend: Array<{ dayKey: string; visitors: number }>;
+  generatedAt: string;
+};
 
 const categoryColors: Record<string, string> = {
   Heels: '#8b5cf6',
@@ -34,6 +44,29 @@ const categoryColors: Record<string, string> = {
 export function AdminAnalytics() {
   const { orders } = useOrders();
   const [timeRange, setTimeRange] = useState<TimeRange>('30D');
+  const [visitors, setVisitors] = useState<VisitorSummary | null>(null);
+  const [visitorError, setVisitorError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const loadVisitors = async () => {
+      try {
+        const summary = await adminRequest<VisitorSummary>('/api/v1/admin/analytics/visitors');
+        if (active) {
+          setVisitors(summary);
+          setVisitorError(false);
+        }
+      } catch {
+        if (active) setVisitorError(true);
+      }
+    };
+    void loadVisitors();
+    const refresh = window.setInterval(loadVisitors, 30_000);
+    return () => {
+      active = false;
+      window.clearInterval(refresh);
+    };
+  }, []);
 
   // Calculate date range
   const getDateRange = () => {
@@ -205,6 +238,50 @@ export function AdminAnalytics() {
           ))}
         </div>
       </div>
+
+      <section aria-labelledby="visitor-activity-title" className="border border-gray-200 bg-white">
+        <div className="flex flex-col gap-1 border-b border-gray-200 p-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 id="visitor-activity-title" className="text-lg font-bold text-gray-950">Website visitors</h2>
+            <p className="text-sm text-gray-500">Anonymous visitor counts, refreshed every 30 seconds</p>
+          </div>
+          {visitors && <p className="text-xs text-gray-500" aria-live="polite">Updated {new Date(visitors.generatedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>}
+        </div>
+
+        {visitorError && !visitors ? (
+          <p role="alert" className="p-6 text-sm text-red-700">Visitor data could not be loaded. The sales analytics below are still available.</p>
+        ) : !visitors ? (
+          <p role="status" className="p-6 text-sm text-gray-500">Loading visitor activity…</p>
+        ) : (
+          <div className="grid lg:grid-cols-[minmax(0,1fr)_2fr]">
+            <div className="grid grid-cols-2 border-b border-gray-200 lg:border-b-0 lg:border-r">
+              <div className="border-r border-gray-200 p-4 sm:p-6">
+                <div className="flex items-center gap-2 text-sm font-semibold text-gray-600"><Radio className="size-4 text-green-600" aria-hidden="true" />Live now</div>
+                <p className="mt-3 text-4xl font-bold text-gray-950">{visitors.live.toLocaleString('en-IN')}</p>
+                <p className="mt-1 text-xs text-gray-500">Active in the last minute</p>
+              </div>
+              <div className="p-4 sm:p-6">
+                <div className="flex items-center gap-2 text-sm font-semibold text-gray-600"><Users className="size-4 text-green-700" aria-hidden="true" />Today</div>
+                <p className="mt-3 text-4xl font-bold text-gray-950">{visitors.today.toLocaleString('en-IN')}</p>
+                <p className="mt-1 text-xs text-gray-500">Unique browser sessions</p>
+                {visitors.changePercent !== null && <p className={`mt-2 text-xs font-semibold ${visitors.changePercent >= 0 ? 'text-green-700' : 'text-red-700'}`}>{visitors.changePercent >= 0 ? '+' : ''}{visitors.changePercent}% vs yesterday</p>}
+              </div>
+            </div>
+            <div className="p-4 sm:p-6">
+              <div className="mb-4 flex items-end justify-between"><div><h3 className="font-semibold text-gray-900">Last 7 days</h3><p className="text-xs text-gray-500">Daily unique sessions</p></div><p className="text-sm text-gray-500">Yesterday: <strong className="text-gray-900">{visitors.yesterday.toLocaleString('en-IN')}</strong></p></div>
+              <ResponsiveContainer width="100%" height={170}>
+                <BarChart data={visitors.trend} margin={{ top: 4, right: 4, bottom: 0, left: -24 }}>
+                  <CartesianGrid vertical={false} stroke="#e5e7eb" />
+                  <XAxis dataKey="dayKey" tickFormatter={(value) => new Date(`${value}T00:00:00`).toLocaleDateString('en-IN', { weekday: 'short' })} tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <Tooltip labelFormatter={(value) => new Date(`${value}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} formatter={(value: number) => [value, 'Visitors']} />
+                  <Bar dataKey="visitors" fill="#15803d" radius={[2, 2, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+      </section>
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 border border-gray-200 bg-white lg:grid-cols-4" aria-label="Analytics summary">

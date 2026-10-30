@@ -9,7 +9,7 @@
   .admin-login-story::after { position: absolute; right: 3rem; bottom: 3rem; width: 11rem; height: 11rem; border: 1px solid rgb(255 255 255 / .1); border-radius: 50%; content: ""; }
   .admin-login-story-top { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; }
   .admin-login-story-top span, .admin-login-mobile-brand span { font-size: .68rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
-  .admin-login-story-logo { width: 8.5rem; height: 3.5rem; object-fit: contain; filter: invert(1); }
+  .admin-login-story-logo { width: 13rem; height: 6.5rem; object-fit: contain; }
   .admin-login-story-copy { position: relative; z-index: 1; max-width: 34rem; }
   .admin-login-story-copy .admin-login-kicker { margin-bottom: 1.25rem; color: #a9d8be; font-size: .72rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
   .admin-login-story-copy h1 { max-width: 31rem; font-family: Georgia, "Times New Roman", serif; font-size: clamp(2.75rem, 4.5vw, 5.25rem); font-weight: 400; letter-spacing: -.045em; line-height: .98; }
@@ -67,7 +67,7 @@
   .admin-sidebar-open { transform: translateX(0); }
   .admin-brand-row { display: flex; align-items: center; justify-content: space-between; min-height: 3rem; }
   .admin-brand { display: flex; align-items: center; gap: .75rem; color: #171717; text-decoration: none; }
-  .admin-brand-logo { width: 2.75rem; height: 2.75rem; flex: 0 0 auto; object-fit: contain; filter: grayscale(1) brightness(0); background: transparent; }
+  .admin-brand-logo { width: 7.5rem; height: 3.75rem; flex: 0 0 auto; object-fit: contain; background: transparent; }
   .admin-brand strong, .admin-profile strong { display: block; font-size: .9rem; font-weight: 700; line-height: 1.25; }
   .admin-brand small, .admin-profile small { display: block; margin-top: .2rem; color: #7a7d82; font-size: .72rem; line-height: 1.2; }
   .admin-close { display: grid; width: 2.25rem; height: 2.25rem; place-items: center; border-radius: .5rem; color: #64686d; }
@@ -92,7 +92,7 @@
   .admin-mobile-header { position: sticky; top: 0; z-index: 30; display: flex; height: 3.75rem; align-items: center; justify-content: space-between; border-bottom: 1px solid #e6e6e3; background: rgb(255 255 255 / .95); padding: 0 1rem; backdrop-filter: blur(10px); }
   .admin-mobile-header button { display: grid; width: 2.25rem; height: 2.25rem; place-items: center; }
   .admin-mobile-header svg { width: 1.2rem; }
-  .admin-mobile-logo { width: 7.5rem; height: 2.5rem; object-fit: contain; filter: grayscale(1) brightness(0); background: transparent; }
+  .admin-mobile-logo { width: 7.5rem; height: 3.75rem; object-fit: contain; background: transparent; }
   .admin-main { min-width: 0; }
   .admin-pagebar { display: none; height: 5rem; align-items: center; justify-content: space-between; border-bottom: 1px solid #e8e8e5; background: #fff; padding: 0 2rem; }
   .admin-pagebar p { color: #8a8d91; font-size: .68rem; line-height: 1; }

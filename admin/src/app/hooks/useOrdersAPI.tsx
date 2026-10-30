@@ -145,6 +145,7 @@ export function useOrdersAPI() {
     let active = true;
     let refreshInFlight = false;
     let syncCursor: string | null = null;
+    let hasLoadedSnapshot = false;
     const fetchOrders = async (forceSnapshot = false) => {
       if (authLoading) return;
       if (!admin) {
@@ -159,6 +160,7 @@ export function useOrdersAPI() {
         if (forceSnapshot || !syncCursor) {
           const snapshot = await fetchAdminOrderSnapshot(fetch, API_BASE_URL, requestOptions);
           syncCursor = snapshot.cursor;
+          hasLoadedSnapshot = true;
           if (active) setOrders(snapshot.orders.map(normalizeOrder));
         } else {
           const changes = await fetchAdminOrderChanges(fetch, API_BASE_URL, syncCursor, requestOptions);
@@ -179,7 +181,7 @@ export function useOrdersAPI() {
         if (active) setError(null);
       } catch (err) {
         if (active) {
-          setError(err instanceof Error ? err.message : 'Failed to load orders');
+          if (!hasLoadedSnapshot) setError(err instanceof Error ? err.message : 'Failed to load orders');
         }
       } finally {
         refreshInFlight = false;

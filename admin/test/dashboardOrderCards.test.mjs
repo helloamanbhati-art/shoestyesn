@@ -44,3 +44,10 @@ test('dashboard order status is a clear non-interactive label in the top row', (
   assert.match(source, /<div className="flex items-start justify-between gap-3">/);
   assert.doesNotMatch(source, /<button[^>]*>[\s\S]*statusLabel/);
 });
+
+test('dashboard keeps cached orders visible while background synchronization recovers', () => {
+  assert.doesNotMatch(source, /Orders could not be loaded\./);
+  assert.match(source, /Orders are reconnecting automatically/);
+  assert.match(source, /!loading && recentOrders\.length > 0/);
+  assert.doesNotMatch(source, /!loading && !error && recentOrders\.length > 0/);
+});

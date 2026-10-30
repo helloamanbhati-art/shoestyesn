@@ -7,6 +7,6 @@ const source = readFileSync(
   'utf8',
 );
 
-test('admin product management requests the complete supported active catalog', () => {
-  assert.match(source, /\/api\/v1\/products\?limit=500/);
+test('admin product management requests the complete protected catalog', () => {
+  assert.match(source, /\/api\/v1\/admin\/products\?limit=500/);
 });

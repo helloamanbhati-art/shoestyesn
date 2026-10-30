@@ -24,3 +24,9 @@ test('order polling uses incremental database synchronization after its initial 
   assert.match(ordersHook, /syncCursor/);
   assert.match(ordersHook, /3_000/);
 });
+
+test('a transient order refresh failure preserves the last successful snapshot', () => {
+  assert.match(ordersHook, /let hasLoadedSnapshot = false/);
+  assert.match(ordersHook, /hasLoadedSnapshot = true/);
+  assert.match(ordersHook, /if \(!hasLoadedSnapshot\) setError/);
+});
