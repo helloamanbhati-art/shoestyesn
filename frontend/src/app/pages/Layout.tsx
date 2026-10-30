@@ -12,7 +12,7 @@ function LayoutContent() {
     <div className="flex min-h-screen flex-col bg-white">
       <VisitorTracker />
       <Navbar onCartIconReady={setCartIconElement} />
-      <main className="flex-1 pt-[72px] md:pt-[102px]"><Outlet /></main>
+      <main className="flex-1 pt-[72px] md:pt-[82px]"><Outlet /></main>
       <footer className="storefront-footer">
         <div className="storefront-footer-inner">
           <div className="storefront-footer-brand-block">

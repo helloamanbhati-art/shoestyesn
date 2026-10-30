@@ -283,23 +283,26 @@ body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSyst
 /* Premium storefront shell */
 .storefront-header { position: fixed; inset: 0 0 auto; z-index: 50; background: #fff; color: #171717; }
 .storefront-accent { height: 4px; background: #9edbd2; }
-.storefront-brand-row { position: relative; display: grid; height: 98px; grid-template-columns: minmax(150px, 1fr) auto minmax(150px, 1fr); align-items: center; border-bottom: 1px solid #eee; padding: 0 3%; }
+.storefront-brand-row { position: relative; display: grid; height: 78px; grid-template-columns: minmax(150px, .7fr) minmax(560px, 2fr) minmax(220px, .8fr) auto; align-items: center; gap: clamp(.75rem, 1.25vw, 1.5rem); border-bottom: 1px solid #eee; padding: 0 3%; }
 .storefront-header-search { display: none; height: 66px; align-items: center; padding: 6px 12px; border-bottom: 1px solid #eee; background: #fff; }
+.storefront-header-search-inline { display: none; min-width: 0; height: 42px; align-items: center; gap: 10px; border: 1px solid #b8b8b8; border-radius: 10px; padding: 0 13px; }
+.storefront-header-search-inline:focus-within { border-color: #171717; box-shadow: 0 0 0 1px #171717; }
+.storefront-header-search-inline svg { flex: 0 0 auto; }
+.storefront-header-search-inline input { width: 100%; min-width: 0; outline: none; color: #171717; font-size: 13px; }
+.storefront-header-search-inline input::placeholder { color: #777; opacity: 1; }
 .storefront-header-search-field { display: flex; width: 100%; height: 54px; align-items: center; gap: 14px; border: 1px solid #171717; border-radius: 12px; padding: 0 20px; }
 .storefront-header-search-field input { width: 100%; outline: none; color: #171717; font-size: 16px; }
 .storefront-header-search-field input::placeholder { color: #171717; opacity: 1; }
-.storefront-header.is-searching .storefront-brand-row { display: none; }
-.storefront-header.is-searching .storefront-header-search { display: flex; }
 .storefront-logo { grid-column: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; justify-self: start; }
-.storefront-logo img { width: auto; height: 72px; max-width: 180px; object-fit: contain; }
-.storefront-actions { grid-column: 3; display: flex; justify-self: end; gap: .35rem; }
+.storefront-logo img { width: auto; height: 58px; max-width: 165px; object-fit: contain; }
+.storefront-actions { grid-column: 4; display: flex; justify-self: end; gap: .15rem; }
 .storefront-icon { display: grid; width: 42px; height: 42px; place-items: center; background: transparent; transition: background 150ms ease; }
 .storefront-icon:hover { background: #f6f1eb; }
 .storefront-icon svg { width: 25px; height: 25px; stroke-width: 1.6; }
 .storefront-count { position: absolute; top: -6px; right: -8px; display: grid; min-width: 17px; height: 17px; place-items: center; border-radius: 50%; background: #762b38; padding: 0 4px; color: #fff; font-size: 9px; }
 .storefront-menu-button { display: none; }
-.storefront-nav { grid-column: 2; grid-row: 1; display: flex; align-items: center; justify-content: center; gap: clamp(1.25rem, 2.2vw, 2.8rem); white-space: nowrap; }
-.storefront-nav a { font-size: 13px; font-weight: 400; letter-spacing: .06em; text-transform: uppercase; }
+.storefront-nav { grid-column: 2; grid-row: 1; display: flex; align-items: center; justify-content: center; gap: clamp(.75rem, 1.2vw, 1.5rem); white-space: nowrap; }
+.storefront-nav a { font-size: 12px; font-weight: 400; letter-spacing: .045em; text-transform: uppercase; }
 .storefront-nav a:hover, .storefront-nav .is-accent { color: #9a392f; }
 .storefront-account-menu { position: absolute; right: 0; top: 46px; width: 220px; border: 1px solid #ded7cf; background: #fff; padding: 1rem; font-size: 12px; box-shadow: 0 10px 25px rgb(0 0 0 / .08); }
 .storefront-account-menu span { display: block; overflow: hidden; text-overflow: ellipsis; }
@@ -327,12 +330,12 @@ body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSyst
 .storefront-hero-link { display: block; width: 100%; height: 100%; }
 .storefront-hero-link > img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; animation: hero-fade .45s ease-out; }
 .storefront-hero-skeleton { height: 100%; animation: pulse 1.6s ease-in-out infinite; background: #e9e2da; }
-.storefront-hero-cta { position: absolute; bottom: 7%; left: 50%; display: inline-flex; width: min(94%, 1100px); transform: translateX(-50%); align-items: center; justify-content: center; background: transparent; color: #fff; font-family: Georgia, serif; font-size: clamp(3.5rem, 10vw, 9rem); font-weight: 400; line-height: .82; letter-spacing: -.045em; text-align: center; text-shadow: 0 2px 18px rgb(0 0 0 / .42); text-transform: uppercase; animation: hero-cta-reveal .3s ease-out .45s both; }
+.storefront-hero-cta { position: absolute; top: 50%; bottom: auto; left: 50%; display: inline-flex; width: min(94%, 1400px); transform: translate(-50%, -50%); align-items: center; justify-content: center; background: transparent; color: #fff; font-family: Georgia, serif; font-size: clamp(5rem, 12vw, 12rem); font-weight: 400; line-height: .82; letter-spacing: -.045em; text-align: center; text-shadow: 0 2px 18px rgb(0 0 0 / .42); text-transform: uppercase; animation: hero-cta-reveal .3s ease-out .45s both; }
 .storefront-hero-dots { position: absolute; bottom: 72px; left: 50%; display: flex; transform: translateX(-50%); gap: 8px; }
 .storefront-hero-dots button { width: 9px; height: 9px; border: 1px solid #fff; border-radius: 50%; background: rgb(23 23 23 / .35); box-shadow: 0 1px 4px rgb(0 0 0 / .2); }
 .storefront-hero-dots button.is-active { background: #fff; }
 @keyframes hero-fade { from { opacity: .55; } to { opacity: 1; } }
-@keyframes hero-cta-reveal { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translateX(-50%); } }
+@keyframes hero-cta-reveal { from { opacity: 0; transform: translate(-50%, calc(-50% + 8px)); } to { opacity: 1; transform: translate(-50%, -50%); } }
 .storefront-collection, .storefront-results { padding: 72px max(4%, 24px) 96px; }
 .storefront-results { padding-top: 24px; }
 .storefront-section-heading { margin-bottom: 32px; text-align: center; }
@@ -415,13 +418,26 @@ body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSyst
 .storefront-support svg { width: 19px; }
 .storefront-mobile-menu, .storefront-menu-backdrop { display: none; }
 
-@media (max-width: 1100px) {
-  .storefront-brand-row { grid-template-columns: 1fr auto 1fr; }
-  .storefront-logo { grid-column: 2; justify-self: center; }
+@media (min-width: 768px) {
+  .storefront-header-search-inline { display: flex; grid-column: 3; }
+  .storefront-search { display: none; }
+  .storefront-hero { width: min(calc(100% - 48px), 1760px); margin-inline: auto; border-radius: 16px; }
+}
+
+@media (min-width: 768px) and (max-width: 1279px) {
+  .storefront-brand-row { grid-template-columns: auto auto minmax(180px, 1fr) auto; gap: clamp(.5rem, 1.4vw, 1rem); padding-inline: 2%; }
+  .storefront-logo { grid-column: 2; justify-self: start; }
+  .storefront-logo img { height: 54px; max-width: 135px; }
   .storefront-nav { display: none; }
   .storefront-menu-button { display: grid; grid-column: 1; grid-row: 1; width: 42px; height: 42px; place-items: center; justify-self: start; }
+  .storefront-header-search-inline { grid-column: 3; }
+  .storefront-actions { grid-column: 4; }
   .storefront-footer-inner { grid-template-columns: minmax(240px, 1fr) minmax(300px, 1fr); }
   .storefront-footer-contact { grid-column: 1 / -1; border-top: 1px solid #343434; border-left: 0; padding-top: 28px; padding-left: 0; }
+}
+
+@media (min-width: 1280px) {
+  .storefront-nav { gap: clamp(.75rem, 1.2vw, 1.5rem); }
 }
 
 @media (max-width: 767px) {
@@ -429,11 +445,17 @@ body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSyst
   .promotional-posters { grid-template-columns: 1fr; gap: 10px; padding: 10px 8px 36px; }
   .promotional-poster { min-height: 220px; aspect-ratio: 1.35 / 1; }
   .promotional-poster-copy { padding: 24px; }
-  .storefront-brand-row { height: 68px; padding: 0 10px; }
+  .storefront-brand-row { height: 68px; grid-template-columns: 1fr auto 1fr; gap: 0; padding: 0 10px; }
+  .storefront-header.is-searching .storefront-brand-row { display: none; }
+  .storefront-header.is-searching .storefront-header-search { display: flex; }
+  .storefront-header-search-inline { display: none; }
   .storefront-header-search { height: 64px; padding: 6px 10px; }
   .storefront-header-search-field { height: 50px; padding: 0 13px; }
   .storefront-header-search-field input { font-size: 14px; }
   .storefront-logo img { height: 48px; max-width: 120px; }
+  .storefront-logo { grid-column: 2; justify-self: center; }
+  .storefront-actions { grid-column: 3; }
+  .storefront-menu-button { display: grid; grid-column: 1; grid-row: 1; width: 42px; height: 42px; place-items: center; justify-self: start; }
   .storefront-menu-button svg, .storefront-icon svg { width: 21px; height: 21px; }
   .storefront-icon { width: 34px; }
   .storefront-nav { display: none; }
@@ -448,7 +470,7 @@ body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSyst
   .storefront-search { padding: 6px 10px; }
   .storefront-search-field { min-height: 48px; padding: 0 13px; }
   .storefront-search input { font-size: 14px; }
-  .storefront-hero { height: auto; aspect-ratio: 395 / 366; min-height: 0; }
+  .storefront-hero { width: 100%; height: auto; aspect-ratio: 395 / 366; min-height: 0; border-radius: 0; }
   .storefront-hero-link > img { object-position: center; }
   .storefront-hero-cta { top: 43%; bottom: auto; width: 94%; font-size: clamp(2.75rem, 15vw, 5rem); }
   .storefront-hero-dots { bottom: 16px; }

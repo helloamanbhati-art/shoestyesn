@@ -68,8 +68,14 @@ export function Navbar({ onCartIconReady }: NavbarProps) {
     <div className="storefront-accent"/>
     <div className="storefront-brand-row">
       <button type="button" className="storefront-menu-button" onClick={() => setMenuOpen((open) => !open)} aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} aria-controls="mobile-menu">{menuOpen ? <X/> : <Menu/>}</button>
-      <Link to="/" className="storefront-logo" aria-label="Shoe Style home"><ShoeStyleLogo alt="Shoe Style"/></Link>
+      <Link to="/" className="storefront-logo" aria-label="Jai Mata Di Shoe Style home"><ShoeStyleLogo/></Link>
       <nav className="storefront-nav" aria-label="Main navigation">{fixedLinks.map((link) => <Link key={link.label} to={link.href} className={link.accent ? 'is-accent' : ''}>{link.label}</Link>)}</nav>
+      <form className="storefront-header-search-inline" role="search" onSubmit={submitSearch}>
+        <label htmlFor="header-product-search-inline" className="sr-only">Search products</label>
+        <Search aria-hidden="true" size={18}/>
+        <input id="header-product-search-inline" type="search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search products" aria-label="Search products" autoComplete="off" maxLength={100}/>
+        <button type="submit" className="storefront-search-submit">Search</button>
+      </form>
       <div className="storefront-actions">
         <Link to="/my-orders" className="storefront-icon" aria-label="View your orders"><PackageSearch/></Link>
         {status === 'loading' ? <span className="storefront-icon"><UserRound/></span> : isAuthenticated && customer ? <div className="relative"><button type="button" className="storefront-icon" aria-label="Open account menu" aria-expanded={accountOpen} onClick={() => setAccountOpen((open) => !open)}><UserRound/></button>{accountOpen && <div className="storefront-account-menu"><span>{customer.email || customer.phone || 'Your account'}</span><button type="button" onClick={() => void handleLogout()}><LogOut size={15}/> Sign out</button></div>}</div> : <button type="button" className="storefront-icon" onClick={openLogin} aria-label="Sign in"><UserRound/></button>}
@@ -77,10 +83,10 @@ export function Navbar({ onCartIconReady }: NavbarProps) {
       </div>
     </div>
     <form className="storefront-header-search" role="search" onSubmit={submitSearch}>
-      <label htmlFor="header-product-search" className="sr-only">Search products</label>
+      <label htmlFor="header-product-search-mobile" className="sr-only">Search products</label>
       <div className="storefront-header-search-field">
         <Search aria-hidden="true" size={22}/>
-        <input id="header-product-search" type="search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder='Search for "Block Heels"' aria-label="Search products" autoComplete="off"/>
+        <input id="header-product-search-mobile" type="search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder='Search for "Block Heels"' aria-label="Search products" autoComplete="off" maxLength={100}/>
       </div>
       <button type="submit" className="storefront-search-submit">Search</button>
     </form>
