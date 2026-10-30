@@ -162,6 +162,12 @@ const productSchema = new mongoose.Schema(
     // Metadata
     createdBy: mongoose.Schema.Types.ObjectId,
     updatedBy: mongoose.Schema.Types.ObjectId,
+    adminCreationKey: {
+      type: String,
+      unique: true,
+      sparse: true,
+      select: false,
+    },
   },
   { timestamps: true }
 );

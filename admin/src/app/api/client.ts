@@ -1,8 +1,11 @@
-const DEFAULT_API_URL = import.meta.env.DEV
-  ? 'http://localhost:3000'
-  : '';
+import { resolveAdminApiBaseUrl } from './apiBaseUrl.mjs';
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL || DEFAULT_API_URL).replace(/\/+$/, '');
+// Production must stay same-origin so Safari and other privacy-focused browsers
+// treat the HttpOnly admin session as a first-party cookie. Vercel proxies /api.
+const API_BASE_URL = resolveAdminApiBaseUrl({
+  dev: import.meta.env.DEV,
+  configuredUrl: import.meta.env.VITE_API_URL,
+});
 const LOGIN_MAX_ATTEMPTS = 3;
 const LOGIN_ATTEMPT_TIMEOUT_MS = 60_000;
 const RETRYABLE_LOGIN_STATUSES = new Set([502, 503, 504]);
@@ -55,17 +58,17 @@ async function fetchWithLoginResilience(
 ): Promise<Response> {
   const isLogin = path === '/api/v1/admin/auth/login';
   const isRetryableRead = (init.method || 'GET').toUpperCase() === 'GET';
-  const maxAttempts = isLogin ? LOGIN_MAX_ATTEMPTS : (isRetryableRead ? REQUEST_MAX_ATTEMPTS : 1);
+  const isIdempotentWrite = headers.has('Idempotency-Key');
+  const isRetryableRequest = isLogin || isRetryableRead || isIdempotentWrite;
+  const maxAttempts = isLogin ? LOGIN_MAX_ATTEMPTS : (isRetryableRequest ? REQUEST_MAX_ATTEMPTS : 1);
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     let retryAfterMs = 0;
-    const controller = (isLogin || isRetryableRead) ? new AbortController() : null;
-    const timeoutId = controller
-      ? window.setTimeout(
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(
           () => controller.abort(),
           isLogin ? LOGIN_ATTEMPT_TIMEOUT_MS : REQUEST_TIMEOUT_MS,
-        )
-      : null;
+        );
     const abortFromCaller = () => controller?.abort();
     init.signal?.addEventListener('abort', abortFromCaller, { once: true });
 
@@ -74,19 +77,19 @@ async function fetchWithLoginResilience(
         ...init,
         headers,
         credentials: 'include',
-        signal: controller?.signal || init.signal,
+        signal: controller.signal,
       });
       const retryableStatuses = isLogin ? RETRYABLE_LOGIN_STATUSES : RETRYABLE_REQUEST_STATUSES;
-      const shouldRetry = (isLogin || isRetryableRead)
+      const shouldRetry = isRetryableRequest
         && retryableStatuses.has(response.status)
         && attempt < maxAttempts - 1;
       if (!shouldRetry) return response;
       retryAfterMs = getRetryAfterMs(response);
       await response.body?.cancel().catch(() => undefined);
     } catch (error) {
-      if ((!isLogin && !isRetryableRead) || attempt >= maxAttempts - 1 || init.signal?.aborted) throw error;
+      if (!isRetryableRequest || attempt >= maxAttempts - 1 || init.signal?.aborted) throw error;
     } finally {
-      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      window.clearTimeout(timeoutId);
       init.signal?.removeEventListener('abort', abortFromCaller);
     }
     if (retryAfterMs > 0) await waitBeforeRetry(attempt, retryAfterMs);
@@ -98,9 +101,11 @@ async function fetchWithLoginResilience(
 
 function refreshAdminSession(): Promise<boolean> {
   if (!refreshPromise) {
-    refreshPromise = fetch(`${API_BASE_URL}/api/v1/admin/auth/refresh`, {
-      method: 'POST', credentials: 'include', headers: { Accept: 'application/json' },
-    })
+    refreshPromise = fetchWithLoginResilience(
+      '/api/v1/admin/auth/refresh',
+      { method: 'POST' },
+      new Headers({ Accept: 'application/json' }),
+    )
       .then((response) => response.ok)
       .catch(() => false)
       .finally(() => { refreshPromise = null; });
@@ -108,7 +113,23 @@ function refreshAdminSession(): Promise<boolean> {
   return refreshPromise;
 }
 
-async function request<T>(path: string, init: RequestInit, canRefresh: boolean): Promise<T> {
+export async function adminFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(init.headers);
+  headers.set('Accept', 'application/json');
+  if (init.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+  const response = await fetchWithLoginResilience(path, init, headers);
+  if (response.status === 401
+    && path !== '/api/v1/admin/auth/login'
+    && path !== '/api/v1/admin/auth/refresh'
+    && await refreshAdminSession()) {
+    return fetchWithLoginResilience(path, init, headers);
+  }
+  return response;
+}
+
+async function request<T>(path: string, init: RequestInit): Promise<T> {
   const headers = new Headers(init.headers);
   headers.set('Accept', 'application/json');
   if (init.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) {
@@ -116,14 +137,9 @@ async function request<T>(path: string, init: RequestInit, canRefresh: boolean):
   }
   let response: Response;
   try {
-    response = await fetchWithLoginResilience(path, init, headers);
+    response = await adminFetch(path, { ...init, headers });
   } catch {
     throw new AdminApiError(0, 'Unable to reach the server');
-  }
-  if (response.status === 401 && canRefresh
-    && path !== '/api/v1/admin/auth/login'
-    && path !== '/api/v1/admin/auth/refresh') {
-    if (await refreshAdminSession()) return request(path, init, false);
   }
   if (response.status === 204) return undefined as T;
   const payload = await response.json().catch(() => ({}));
@@ -135,12 +151,12 @@ async function request<T>(path: string, init: RequestInit, canRefresh: boolean):
 
 export function adminRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   const method = (init.method || 'GET').toUpperCase();
-  if (method !== 'GET' || init.signal) return request<T>(path, init, true);
+  if (method !== 'GET' || init.signal) return request<T>(path, init);
 
   const existing = inFlightGetRequests.get(path) as Promise<T> | undefined;
   if (existing) return existing;
 
-  const pending = request<T>(path, init, true)
+  const pending = request<T>(path, init)
     .finally(() => inFlightGetRequests.delete(path));
   inFlightGetRequests.set(path, pending);
   return pending;

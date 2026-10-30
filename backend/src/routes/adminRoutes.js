@@ -217,8 +217,24 @@ router.get("/analytics", adminController.getAnalytics);
 // NEW — resolve brand and category names to ObjectIds before saving
 router.get("/products", adminController.getAllProducts);
 router.post('/products', async (req, res) => {
+  let creationKey = '';
   try {
     const data = req.body;
+    creationKey = String(req.get('Idempotency-Key') || '').trim();
+    if (creationKey && !/^[A-Za-z0-9_-]{16,100}$/.test(creationKey)) {
+      return res.status(400).json({ success: false, message: 'Invalid Idempotency-Key' });
+    }
+    if (creationKey) {
+      const existingProduct = await Product.findOne({ adminCreationKey: creationKey })
+        .populate('brand category');
+      if (existingProduct) {
+        return res.json({
+          success: true,
+          message: 'Product already created',
+          data: existingProduct,
+        });
+      }
+    }
     console.log('[POST /products] Request body:', data);
     console.log('[POST /products] Admin:', req.admin?._id);
 
@@ -263,7 +279,6 @@ router.post('/products', async (req, res) => {
       console.log('[POST /products] Category ID:', categoryId);
     }
 
-    const Product = require('../models/Product');
     const variants = Array.isArray(data.variants)
       ? data.variants.map((v, index) => {
           const variantImages = Array.isArray(v.images)
@@ -324,6 +339,7 @@ router.post('/products', async (req, res) => {
       createdBy: req.admin?._id,
       sku: data.sku || `SKU-${Date.now()}`,
       compareAtPrice: Number(data.compareAtPrice) || 0,
+      ...(creationKey && { adminCreationKey: creationKey }),
     };
 
     console.log('[POST /products] Creating product with data:', productData);
@@ -338,6 +354,17 @@ router.post('/products', async (req, res) => {
 
     res.status(201).json({ success: true, message: 'Product created', data: populatedProduct });
   } catch (error) {
+    if (creationKey && error?.code === 11000) {
+      const existingProduct = await Product.findOne({ adminCreationKey: creationKey })
+        .populate('brand category');
+      if (existingProduct) {
+        return res.json({
+          success: true,
+          message: 'Product already created',
+          data: existingProduct,
+        });
+      }
+    }
     console.error('[POST /products] Error:', error);
     res.status(500).json({ success: false, message: error.message });
   }

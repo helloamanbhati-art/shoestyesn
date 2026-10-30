@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useAdminAuth } from '../contexts/AdminAuthContext';
-import { API_BASE_URL } from '../api/client';
+import { adminFetch } from '../api/client';
 import { fetchAdminOrderChanges, fetchAdminOrderSnapshot } from '../api/adminOrders.mjs';
 
 export interface SelectedVariantSnapshot {
@@ -158,12 +158,12 @@ export function useOrdersAPI() {
       try {
         const requestOptions = { headers: getAuthHeaders(), credentials: 'include' as const };
         if (forceSnapshot || !syncCursor) {
-          const snapshot = await fetchAdminOrderSnapshot(fetch, API_BASE_URL, requestOptions);
+          const snapshot = await fetchAdminOrderSnapshot(adminFetch, '', requestOptions);
           syncCursor = snapshot.cursor;
           hasLoadedSnapshot = true;
           if (active) setOrders(snapshot.orders.map(normalizeOrder));
         } else {
-          const changes = await fetchAdminOrderChanges(fetch, API_BASE_URL, syncCursor, requestOptions);
+          const changes = await fetchAdminOrderChanges(adminFetch, '', syncCursor, requestOptions);
           syncCursor = changes.cursor;
           if (changes.hasMore) {
             syncCursor = null;
@@ -208,7 +208,7 @@ export function useOrdersAPI() {
 
   const addOrder = async (newOrder: Order) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/orders`, {
+      const response = await adminFetch('/api/v1/orders', {
         method: 'POST',
         headers: getAuthHeaders(),
         credentials: 'include',
@@ -245,8 +245,8 @@ export function useOrdersAPI() {
     };
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/v1/admin/orders/${orderId}/status`,
+      const response = await adminFetch(
+        `/api/v1/admin/orders/${orderId}/status`,
         {
           method: 'PUT',
           headers: getAuthHeaders(),

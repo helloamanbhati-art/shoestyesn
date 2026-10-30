@@ -7,12 +7,16 @@ const source = readFileSync(
   new URL('../src/app/api/client.ts', import.meta.url),
   'utf8',
 );
+const apiBaseUrlSource = readFileSync(
+  new URL('../src/app/api/apiBaseUrl.mjs', import.meta.url),
+  'utf8',
+);
 
 const vercel = JSON.parse(readFileSync(new URL('../vercel.json', import.meta.url), 'utf8'));
 
 test('deployed admin uses a same-origin API proxy for reliable session cookies', () => {
   assert.match(source, /import\.meta\.env\.DEV/);
-  assert.match(source, /:\s*''/);
+  assert.match(apiBaseUrlSource, /if \(!dev\) return ''/);
   assert.doesNotMatch(source, /VITE_API_URL \|\| 'http:\/\/localhost:3000'/);
   assert.deepEqual(vercel.rewrites[0], {
     source: '/api/:path*',

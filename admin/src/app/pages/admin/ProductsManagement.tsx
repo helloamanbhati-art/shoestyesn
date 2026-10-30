@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { API_BASE_URL } from '../../api/client';
+import { adminFetch, adminRequest } from '../../api/client';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -94,6 +94,7 @@ export function ProductsManagement() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const returnToDashboardRef = useRef(false);
+  const productCreationKeyRef = useRef<string | null>(null);
   const { brands } = useBrands();
   const { categories } = useCategories();
   const [products, setProducts] = useState<Product[]>([]);
@@ -115,14 +116,8 @@ useEffect(() => {
   const fetchProducts = async () => {
     try {
       setIsLoadingProducts(true);
-      const res = await fetch(`${API_BASE_URL}/api/v1/admin/products?limit=500`, {
-        headers: getAuthHeaders(),
-        credentials: 'include',
-        cache: 'no-store',
-      });
-      if (!res.ok) throw new Error(`Product catalog returned ${res.status}`);
-      const data = await res.json();
-      const mapped = (data.data || []).map((p: any) => {
+      const data = await adminRequest<any[]>('/api/v1/admin/products?limit=500', { cache: 'no-store' });
+      const mapped = (data || []).map((p: any) => {
         // Handle brand - could be string, object, or missing
         let brandName = '';
         if (typeof p.brand === 'string') {
@@ -197,13 +192,8 @@ useEffect(() => {
 useEffect(() => {
   const fetchProductOptions = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/admin/product-options`, {
-        headers: getAuthHeaders(),
-        credentials: 'include',
-      });
-      if (!res.ok) throw new Error('Failed to load product options');
-      const data = await res.json();
-      setClothingTypeOptions(data?.data?.clothingTypes || []);
+      const data = await adminRequest<{ clothingTypes?: string[] }>('/api/v1/admin/product-options');
+      setClothingTypeOptions(data?.clothingTypes || []);
     } catch (err) {
       console.error('[fetchProductOptions] Exception:', err);
       toast.error('Failed to load size and product type options');
@@ -305,6 +295,7 @@ useEffect(() => {
         ]);
       }
     } else {
+      productCreationKeyRef.current = `admin_product_${crypto.randomUUID().replaceAll('-', '')}`;
       setEditingProduct(null);
       setFormData({
         name: '',
@@ -367,7 +358,7 @@ useEffect(() => {
           const imagesForm = new FormData();
           filesToUpload.forEach((img) => imagesForm.append('images', img.file!));
           
-          const uploadRes = await fetch(`${API_BASE_URL}/api/v1/admin/products/upload-images`, {
+          const uploadRes = await adminFetch('/api/v1/admin/products/upload-images', {
             method: 'POST',
             headers: getAuthHeaders(),
             credentials: 'include',
@@ -422,7 +413,7 @@ useEffect(() => {
       };
 
   if (editingProduct) {
-    const res = await fetch(`${API_BASE_URL}/api/v1/admin/products/${editingProduct.id}`, {
+    const res = await adminFetch(`/api/v1/admin/products/${editingProduct.id}`, {
       method: 'PUT',
       headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -451,9 +442,16 @@ useEffect(() => {
     setProducts(prev => prev.map(p => p.id === editingProduct.id ? updatedProduct : p));
     toast.success('Product updated successfully');
   } else {
-    const res = await fetch(`${API_BASE_URL}/api/v1/admin/products`, {
+    const creationKey = productCreationKeyRef.current
+      || `admin_product_${crypto.randomUUID().replaceAll('-', '')}`;
+    productCreationKeyRef.current = creationKey;
+    const res = await adminFetch('/api/v1/admin/products', {
       method: 'POST',
-      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json',
+        'Idempotency-Key': creationKey,
+      },
       credentials: 'include',
       body: JSON.stringify(payload),
     });
@@ -478,6 +476,7 @@ useEffect(() => {
       compareAtPrice: data.data.compareAtPrice || 0,
     };
     setProducts(prev => [newProduct, ...prev]);
+    productCreationKeyRef.current = null;
     toast.success('Product added successfully');
   }
 
@@ -503,7 +502,7 @@ useEffect(() => {
   const handleDeleteProduct = async (product: Product) => {
     if (!window.confirm(`Are you sure you want to delete "${product.name}"?`)) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/admin/products/${product.id}`, {
+      const res = await adminFetch(`/api/v1/admin/products/${product.id}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
         credentials: 'include',
@@ -525,7 +524,7 @@ useEffect(() => {
     );
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/admin/products/${product.id}`, {
+      const res = await adminFetch(`/api/v1/admin/products/${product.id}`, {
         method: 'PUT',
         credentials: 'include',
         headers: {

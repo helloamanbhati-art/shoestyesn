@@ -6,15 +6,9 @@ import { Badge } from '../../components/ui/badge';
 import { Label } from '../../components/ui/label';
 import { Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { API_BASE_URL } from '../../api/client';
+import { adminRequest } from '../../api/client';
 
 const EU_FOOTWEAR_SIZES = ['35', '36', '37', '38', '39', '40', '41'];
-
-function getAuthHeaders() {
-  return {
-    'Content-Type': 'application/json',
-  };
-}
 
 export function ProductOptionsManagement() {
   const [sizes] = useState<string[]>(EU_FOOTWEAR_SIZES);
@@ -25,13 +19,8 @@ export function ProductOptionsManagement() {
   useEffect(() => {
     const fetchOptions = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/v1/admin/product-options`, {
-          headers: getAuthHeaders(),
-          credentials: 'include',
-        });
-        if (!res.ok) throw new Error('Failed to load product options');
-        const data = await res.json();
-        setClothingTypes(data?.data?.clothingTypes || []);
+        const data = await adminRequest<{ clothingTypes?: string[] }>('/api/v1/admin/product-options');
+        setClothingTypes(data?.clothingTypes || []);
       } catch (error) {
         toast.error(error instanceof Error ? error.message : 'Failed to load product options');
       }
@@ -64,13 +53,10 @@ export function ProductOptionsManagement() {
   const handleSave = async () => {
     try {
       setSaving(true);
-      const res = await fetch(`${API_BASE_URL}/api/v1/admin/product-options`, {
+      await adminRequest('/api/v1/admin/product-options', {
         method: 'PUT',
-        headers: getAuthHeaders(),
-        credentials: 'include',
         body: JSON.stringify({ sizes, clothingTypes }),
       });
-      if (!res.ok) throw new Error('Failed to save product options');
       toast.success('Product options saved');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to save');

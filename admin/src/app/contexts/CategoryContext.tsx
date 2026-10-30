@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useAdminAuth } from './AdminAuthContext';
-import { API_BASE_URL } from '../api/client';
+import { adminRequest } from '../api/client';
 
 export interface Category {
   id: string;
@@ -20,12 +20,6 @@ interface CategoryContextType {
 
 const CategoryContext = createContext<CategoryContextType | undefined>(undefined);
 
-function getAuthHeaders() {
-  return {
-    'Content-Type': 'application/json',
-  };
-}
-
 export function CategoryProvider({ children }: { children: ReactNode }) {
   const { admin, loading: authLoading } = useAdminAuth();
   const [categories, setCategories] = useState<Category[]>([]);
@@ -43,28 +37,13 @@ export function CategoryProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       setError(null);
       try {
-        console.log('[fetchCategories] Starting...');
-        const response = await fetch(`${API_BASE_URL}/api/v1/admin/categories`, {
-          headers: getAuthHeaders(),
-          credentials: 'include',
-        });
-        console.log('[fetchCategories] Response status:', response.status);
-
-        if (response.ok) {
-          const data = await response.json();
-          console.log('[fetchCategories] Data received:', data);
-          const mapped = (data.categories || []).map((c: any) => ({
-            id: c._id || c.id,
-            name: c.name,
-            productCount: c.productCount || 0,
-          }));
-          setCategories(mapped);
-        } else {
-          const errorData = await response.json();
-          const message = errorData?.message || 'Failed to fetch categories';
-          console.error('[fetchCategories] Error:', errorData);
-          setError(message);
-        }
+        const data = await adminRequest<{ categories: any[] }>('/api/v1/admin/categories');
+        const mapped = (data.categories || []).map((c: any) => ({
+          id: c._id || c.id,
+          name: c.name,
+          productCount: c.productCount || 0,
+        }));
+        setCategories(mapped);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'An unexpected error occurred';
         console.error('[fetchCategories] Exception:', error);
@@ -79,30 +58,16 @@ export function CategoryProvider({ children }: { children: ReactNode }) {
 
   const addCategory = async (category: Category): Promise<boolean> => {
     try {
-      console.log('[addCategory] Sending request to:', `${API_BASE_URL}/api/v1/admin/categories`);
-      console.log('[addCategory] Payload:', { name: category.name });
-
-      const response = await fetch(`${API_BASE_URL}/api/v1/admin/categories`, {
+      const data = await adminRequest<{ category: any }>('/api/v1/admin/categories', {
         method: 'POST',
-        headers: getAuthHeaders(),
-        credentials: 'include',
         body: JSON.stringify({ name: category.name }),
       });
-      console.log('[addCategory] Response status:', response.status);
-      if (response.ok) {
-        const data = await response.json();
-        console.log('[addCategory] Success:', data);
-        setCategories(prev => [...prev, {
-          id: data.category._id || data.category.id,
-          name: data.category.name,
-          productCount: 0,
-        }]);
-        return true;
-      } else {
-        const errorData = await response.json();
-        console.error('[addCategory] Error response:', errorData);
-        return false;
-      }
+      setCategories(prev => [...prev, {
+        id: data.category._id || data.category.id,
+        name: data.category.name,
+        productCount: 0,
+      }]);
+      return true;
     } catch (error) {
       console.error('[addCategory] Exception:', error);
       return false;
@@ -111,20 +76,12 @@ export function CategoryProvider({ children }: { children: ReactNode }) {
 
   const updateCategory = async (id: string, category: Category): Promise<boolean> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/admin/categories/${id}`, {
+      await adminRequest(`/api/v1/admin/categories/${id}`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
-        credentials: 'include',
         body: JSON.stringify({ name: category.name }),
       });
-      if (response.ok) {
-        setCategories(prev => prev.map(c => c.id === id ? { ...c, name: category.name } : c));
-        return true;
-      } else {
-        const errorData = await response.json();
-        console.error('Error updating category:', errorData);
-        return false;
-      }
+      setCategories(prev => prev.map(c => c.id === id ? { ...c, name: category.name } : c));
+      return true;
     } catch (error) {
       console.error('Error updating category:', error);
       return false;
@@ -133,19 +90,11 @@ export function CategoryProvider({ children }: { children: ReactNode }) {
 
   const deleteCategory = async (id: string): Promise<boolean> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/admin/categories/${id}`, {
+      await adminRequest(`/api/v1/admin/categories/${id}`, {
         method: 'DELETE',
-        headers: getAuthHeaders(),
-        credentials: 'include',
       });
-      if (response.ok) {
-        setCategories(prev => prev.filter(c => c.id !== id));
-        return true;
-      } else {
-        const errorData = await response.json();
-        console.error('Error deleting category:', errorData);
-        return false;
-      }
+      setCategories(prev => prev.filter(c => c.id !== id));
+      return true;
     } catch (error) {
       console.error('Error deleting category:', error);
       return false;
