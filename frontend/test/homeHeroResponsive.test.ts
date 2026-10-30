@@ -24,21 +24,33 @@ test('search is URL-synchronised and uses the real search API', () => {
 });
 
 test('homepage search matches the compact block-heel reference treatment', () => {
-  assert.match(home, /placeholder='Search for "Block Heels"'/);
+  assert.match(home, /placeholder="Search by name, colour, category or type"/);
   assert.match(home, /className="storefront-search-submit"/);
   assert.match(styles, /\.storefront-search-submit\s*\{[^}]*position:\s*absolute;[^}]*width:\s*1px;/s);
 });
 
 test('responsive navigation and support affordances remain available', () => {
   assert.match(nav, /aria-controls="mobile-menu"/);
+  assert.match(nav, /<Link to="\/my-orders" className="storefront-icon" aria-label="View your orders">/);
+  assert.match(nav, /PackageSearch/);
   assert.match(layout, /STORE\.whatsappNumbers/);
   assert.match(layout, /Customer support/);
 });
 
 test('desktop header keeps the logo left and navigation centered in one bar', () => {
   assert.match(nav, /storefront-brand-row[\s\S]*storefront-logo[\s\S]*storefront-nav[\s\S]*storefront-actions/);
-  assert.match(nav, /fixedLinks[\s\S]*Shop[\s\S]*Sale[\s\S]*Style Guide/);
+  assert.match(nav, /fixedLinks[\s\S]*Shop[\s\S]*Sale[\s\S]*Size Guide/);
   assert.match(nav, /storefront-nav[\s\S]*fixedLinks\.map/);
+});
+
+test('a compact product search replaces the navigation after a small scroll', () => {
+  assert.match(nav, /window\.scrollY\s*>\s*72/);
+  assert.match(nav, /className={`storefront-header\s+\$\{isScrolled \? 'is-searching' : ''\}`}/);
+  assert.match(nav, /className="storefront-header-search"/);
+  assert.match(nav, /aria-label="Search products"/);
+  assert.match(nav, /\/\?search=\$\{encodeURIComponent\(term\)\}/);
+  assert.match(styles, /\.storefront-header\.is-searching\s+\.storefront-brand-row\s*\{[^}]*display:\s*none;/s);
+  assert.match(styles, /\.storefront-header\.is-searching\s+\.storefront-header-search\s*\{[^}]*display:\s*flex;/s);
 });
 
 test('hero rotates through every live category and each banner opens that category', () => {

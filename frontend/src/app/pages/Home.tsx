@@ -4,6 +4,8 @@ import { Link, useSearchParams } from 'react-router';
 import { API_BASE_URL, apiRequest } from '../api/client';
 import { ProductCard } from '../components/ProductCard';
 import { CategoryShowcase } from '../components/CategoryShowcase';
+import { TrendingStyles } from '../components/TrendingStyles';
+import { PromotionalPosters } from '../components/PromotionalPosters';
 import { useProductContext } from '../contexts/ProductContext';
 import { usePageTitle } from '../hooks/usePageTitle';
 import type { Product } from '../types/product';
@@ -140,7 +142,7 @@ export function Home() {
   return <div className="storefront bg-white text-[#171717]">
     <form className="storefront-search" role="search" onSubmit={submitSearch}>
       <label htmlFor="product-search" className="sr-only">Search products</label>
-      <div className="storefront-search-field"><Search aria-hidden="true" size={20}/><input id="product-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder='Search for "Block Heels"' autoComplete="off"/></div>
+      <div className="storefront-search-field"><Search aria-hidden="true" size={20}/><input id="product-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by name, colour, category or type" autoComplete="off" maxLength={100}/></div>
       <button type="submit" className="storefront-search-submit">Search</button>
     </form>
 
@@ -175,6 +177,8 @@ export function Home() {
       </section>
       <CategoryShowcase products={products} loading={loading} error={error}/>
       <NewArrivalsRail products={collection} loading={loading} error={error}/>
+      <TrendingStyles products={products}/>
+      <PromotionalPosters products={products}/>
     </>}
   </div>;
 }

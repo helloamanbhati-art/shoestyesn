@@ -12,16 +12,14 @@ test('product cards do not render a zero when the original price is zero', () =>
   assert.match(cardSource, /\{hasDiscount && \(/);
   assert.doesNotMatch(cardSource, /\{product\.compareAtPrice && product\.compareAtPrice > product\.price && \(/);
 });
-
 test('a valid original price is shown with a strikethrough', () => {
   assert.match(cardSource, /line-through/);
   assert.match(cardSource, /product\.compareAtPrice\.toLocaleString\('en-IN'\)/);
 });
-
-test('product details use the compact sale format from the catalog reference', () => {
+test('product cards automatically show a green negative percentage discount', () => {
   assert.match(cardSource, /uppercase/);
   assert.match(cardSource, /line-clamp-2/);
   assert.match(cardSource, /bg-emerald-800/);
-  assert.match(cardSource, /\{discountPercentage\}% OFF/);
+  assert.match(cardSource, /-\{discountPercentage\}% OFF/);
   assert.doesNotMatch(cardSource, /\(\{discountPercentage\}% off\)/);
 });

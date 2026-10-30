@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { ShoppingBag } from 'lucide-react';
 import { toast } from 'sonner';
@@ -6,6 +7,7 @@ import { isVideoMediaUrl } from '../utils/media';
 import { Badge } from './ui/badge';
 import { Card, CardContent } from './ui/card';
 import { useCart } from '../contexts/CartContext';
+import { getProductCardMedia } from './productCardGallery';
 
 interface ProductCardProps {
   product: Product;
@@ -18,14 +20,80 @@ export function ProductCard({ product, priority = false, variant = 'catalog', ba
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const variantsCount = product.variants?.length ?? 0;
-  const primaryMedia = product.image || product.images?.[0] || '';
-  const secondaryMedia = product.images?.find((image) => image && image !== primaryMedia)
-    || product.variants?.flatMap((variant) => variant.images || []).map((image) => image.imageUrl).find((image) => image && image !== primaryMedia);
+  const galleryMedia = getProductCardMedia(product);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const mobileViewportRef = useRef<HTMLDivElement>(null);
+  const autoplayTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasDiscount = (product.compareAtPrice ?? 0) > product.price;
   const discountPercentage = hasDiscount
     ? Math.round((1 - product.price / product.compareAtPrice) * 100)
     : 0;
   const isEditorial = variant === 'editorial';
+
+  const stopGalleryAutoplay = () => {
+    if (autoplayTimer.current) {
+      clearInterval(autoplayTimer.current);
+      autoplayTimer.current = null;
+    }
+  };
+
+  const advanceGallery = () => {
+    setActiveImageIndex((current) => {
+      const next = (current + 1) % galleryMedia.length;
+      const viewport = mobileViewportRef.current;
+      if (viewport?.clientWidth) {
+        viewport.scrollTo({ left: next * viewport.clientWidth, behavior: 'smooth' });
+      }
+      return next;
+    });
+  };
+
+  const startGalleryAutoplay = () => {
+    if (
+      galleryMedia.length < 2
+      || !window.matchMedia('(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)').matches
+    ) return;
+
+    if (autoplayTimer.current) clearInterval(autoplayTimer.current);
+    autoplayTimer.current = setInterval(advanceGallery, 1100);
+  };
+
+  const startMobileGalleryAutoplay = () => {
+    if (
+      galleryMedia.length < 2
+      || window.matchMedia('(min-width: 768px)').matches
+      || window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) return;
+
+    if (autoplayTimer.current) clearInterval(autoplayTimer.current);
+    autoplayTimer.current = setInterval(advanceGallery, 2500);
+  };
+
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card || galleryMedia.length < 2) return undefined;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) startMobileGalleryAutoplay();
+      else stopGalleryAutoplay();
+    }, { threshold: 0.55 });
+
+    observer.observe(card);
+    return () => {
+      observer.disconnect();
+      stopGalleryAutoplay();
+    };
+  }, [galleryMedia.length]);
+
+  const handleMobileScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    const viewport = event.currentTarget;
+    if (!viewport.clientWidth) return;
+    setActiveImageIndex(Math.min(
+      galleryMedia.length - 1,
+      Math.max(0, Math.round(viewport.scrollLeft / viewport.clientWidth)),
+    ));
+  };
 
   const quickAdd = async () => {
     if (!product.inStock) return;
@@ -36,38 +104,43 @@ export function ProductCard({ product, priority = false, variant = 'catalog', ba
   };
 
   return (
-    <div className="group relative h-full" style={{ contentVisibility: 'auto', containIntrinsicSize: '420px' }}>
+    <div ref={cardRef} className="group relative h-full" style={{ contentVisibility: 'auto', containIntrinsicSize: '420px' }}>
     <Link
       to={`/product/${product.id}`}
       aria-label={`View ${product.name} and choose options`}
       className="block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-4"
     >
         <Card className={`h-full cursor-pointer gap-0 overflow-hidden rounded-none bg-card p-0 shadow-none ${isEditorial ? 'border-0' : 'border border-border/70 transition-colors duration-200 group-hover:border-foreground/25'}`}>
-          <div className="relative aspect-[4/5] overflow-hidden bg-muted">
-            {isVideoMediaUrl(primaryMedia) ? (
-              <video
-                src={primaryMedia}
-                aria-label={`${product.name} product video`}
-                muted
-                loop
-                autoPlay
-                playsInline
-                preload="metadata"
-                className={`h-full w-full select-none object-cover ${isEditorial ? 'transition-transform duration-500 ease-out group-hover:scale-[1.025]' : ''}`}
-              />
-            ) : (
-              <img
-                src={primaryMedia}
-                alt={product.name}
-                loading={priority ? 'eager' : 'lazy'}
-                fetchPriority={priority ? 'high' : 'auto'}
-                decoding="async"
-                className={`h-full w-full select-none object-cover transition duration-500 ${secondaryMedia ? 'group-hover:opacity-0' : isEditorial ? 'group-hover:scale-[1.025]' : ''}`}
-              />
-            )}
+          <div className="relative aspect-[4/5] overflow-hidden bg-muted" onMouseEnter={startGalleryAutoplay} onMouseLeave={stopGalleryAutoplay}>
+            <div
+              ref={mobileViewportRef}
+              className="flex h-full w-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain md:hidden"
+              onScroll={handleMobileScroll}
+              onTouchStart={stopGalleryAutoplay}
+              onTouchEnd={startMobileGalleryAutoplay}
+              aria-label={`${product.name} image gallery. Swipe to view more images.`}
+            >
+              {galleryMedia.map((media, index) => isVideoMediaUrl(media) ? (
+                <video key={media} src={media} aria-label={`Image ${index + 1} of ${galleryMedia.length}`} muted loop autoPlay playsInline preload="metadata" className="h-full w-full shrink-0 snap-center select-none object-cover" />
+              ) : (
+                <img key={media} src={media} alt={index === 0 ? product.name : `${product.name}, view ${index + 1}`} aria-label={`Image ${index + 1} of ${galleryMedia.length}`} loading={priority && index === 0 ? 'eager' : 'lazy'} fetchPriority={priority && index === 0 ? 'high' : 'auto'} decoding="async" draggable={false} className="h-full w-full shrink-0 snap-center select-none object-cover" />
+              ))}
+            </div>
 
-            {secondaryMedia && !isVideoMediaUrl(secondaryMedia) && (
-              <img src={secondaryMedia} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full select-none object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+            <div className="relative hidden h-full w-full md:block" aria-live="off">
+              {galleryMedia.map((media, index) => isVideoMediaUrl(media) ? (
+                <video key={media} src={media} aria-label={`${product.name} product video ${index + 1}`} muted loop autoPlay playsInline preload="metadata" className={`absolute inset-0 h-full w-full select-none object-cover transition-opacity duration-300 ${index === activeImageIndex ? 'opacity-100' : 'opacity-0'}`} />
+              ) : (
+                <img key={media} src={media} alt={index === 0 ? product.name : ''} loading={priority && index === 0 ? 'eager' : 'lazy'} fetchPriority={priority && index === 0 ? 'high' : 'auto'} decoding="async" className={`absolute inset-0 h-full w-full select-none object-cover transition duration-300 ${index === activeImageIndex ? 'opacity-100' : 'opacity-0'} ${isEditorial && galleryMedia.length === 1 ? 'group-hover:scale-[1.025]' : ''}`} />
+              ))}
+            </div>
+
+            {galleryMedia.length > 1 && (
+              <div className="absolute bottom-2 left-1/2 z-10 flex -translate-x-1/2 gap-1.5 rounded-full bg-black/45 px-2 py-1.5 backdrop-blur-sm md:bottom-3" role="img" aria-label={`Product image position ${activeImageIndex + 1} of ${galleryMedia.length}`}>
+                {galleryMedia.map((media, index) => (
+                  <span key={media} className={`size-1.5 rounded-full transition-colors ${index === activeImageIndex ? 'bg-white' : 'bg-white/45'}`} aria-hidden="true" />
+                ))}
+              </div>
             )}
 
             {badge && (
@@ -112,7 +185,7 @@ export function ProductCard({ product, priority = false, variant = 'catalog', ba
                     ₹{product.compareAtPrice.toLocaleString('en-IN')}
                   </span>
                   <span className="rounded bg-emerald-800 px-1.5 py-0.5 text-[9px] font-bold leading-none text-white md:text-[10px]">
-                    {discountPercentage}% OFF
+                    -{discountPercentage}% OFF
                   </span>
                 </>
               )}

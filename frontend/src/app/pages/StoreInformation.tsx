@@ -5,8 +5,9 @@ import { WOMEN_SHOE_SIZE_ROWS } from '../utils/womenShoeSizes';
 
 const pages = {
   '/about-us': {
-    eyebrow: 'Our store', title: `About ${STORE.name}`, intro: STORE.tagline,
-    body: 'Visit Shoe Style at Shop No. 14 in Sarojini Nagar Market. We offer footwear in sizes 35 to 41, with new categories, product details, photos, prices, delivery information, and offers coming soon.',
+    eyebrow: 'Our story', title: 'Where Fashion Meets Footwear',
+    intro: "Delhi's footwear destination for 40 years. Now bringing our handpicked styles to women across India.",
+    body: "Shoe Style began in Delhi with a simple belief: good shoes should look exceptional, feel right, and remain within reach. Four decades later, that belief still guides every pair we choose.",
   },
   '/contact-us': {
     eyebrow: 'We are here to help', title: `Contact ${STORE.name}`,
@@ -39,7 +40,12 @@ export function StoreInformation() {
 
         {pathname === '/about-us' && (
           <section className="mt-8" aria-labelledby="store-details-heading">
-            <h2 id="store-details-heading" className="text-xl font-semibold">Store details</h2>
+            <div className="max-w-3xl space-y-5 text-base leading-7 text-foreground/75">
+              <p>We are not a marketplace filled with thousands of random shoes. We are a family with 40 years of footwear experience, and we personally select every style you see at Shoe Style.</p>
+              <p>Our collection is made for every version of you: wedding-ready, Monday-ready, last-minute-plan-ready, and everything in between. From timeless everyday pairs to styles with real personality, each one is chosen to help you step out feeling like yourself.</p>
+              <p className="font-semibold text-foreground">Womenâ€™s footwear in sizes {STORE.availableSizes}. Curated in Delhi. Delivered across India.</p>
+            </div>
+            <h2 id="store-details-heading" className="mt-10 text-xl font-semibold">Store details</h2>
             <dl className="mt-5 grid gap-px overflow-hidden border bg-border sm:grid-cols-2">
               <div className="flex gap-3 bg-background p-5"><Mail className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" /><div><dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Email</dt><dd className="mt-1"><a href={`mailto:${STORE.email}`} className="font-medium hover:underline">{STORE.email}</a></dd></div></div>
               <div className="flex gap-3 bg-background p-5"><Phone className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" /><div><dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Phone</dt><dd className="mt-1 space-y-1">{STORE.phones.map((phone) => <a key={phone} href={`tel:+91${phone}`} className="block font-medium hover:underline">{phone}</a>)}</dd></div></div>

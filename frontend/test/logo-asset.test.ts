@@ -12,24 +12,19 @@ const paymentPage = readFileSync(
   'utf8',
 );
 const logoAsset = readFileSync(
-  new URL('../public/shoe-style-logo.svg', import.meta.url),
-  'utf8',
-);
-const socialLogoAsset = readFileSync(
   new URL('../public/shoe-style-logo.png', import.meta.url),
 );
 
-test('storefront uses SVG on the page and a crawlable PNG in link previews', () => {
-  assert.match(logoAsset, /<svg\b/);
-  assert.deepEqual([...socialLogoAsset.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
-  assert.match(logoComponent, /\/shoe-style-logo\.svg/);
-  assert.match(indexHtml, /rel="icon" type="image\/svg\+xml" href="\/shoe-style-logo\.svg"/);
-  assert.match(indexHtml, /property="og:image" content="https:\/\/shoefashion\.in\/shoe-style-logo\.png\?v=2"/);
+test('storefront uses the supplied PNG everywhere the primary logo appears', () => {
+  assert.deepEqual([...logoAsset.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+  assert.match(logoComponent, /\/shoe-style-logo\.png/);
+  assert.match(indexHtml, /rel="icon" type="image\/png" href="\/shoe-style-logo\.png"/);
+  assert.match(indexHtml, /property="og:image" content="https:\/\/shoefashion\.in\/shoe-style-logo\.png\?v=4"/);
   assert.match(indexHtml, /property="og:image:type" content="image\/png"/);
-  assert.match(indexHtml, /property="og:image:width" content="2172"/);
-  assert.match(indexHtml, /property="og:image:height" content="724"/);
-  assert.match(indexHtml, /name="twitter:image" content="https:\/\/shoefashion\.in\/shoe-style-logo\.png\?v=2"/);
-  assert.match(paymentPage, /\/shoe-style-logo\.svg/);
+  assert.match(indexHtml, /property="og:image:width" content="1760"/);
+  assert.match(indexHtml, /property="og:image:height" content="880"/);
+  assert.match(indexHtml, /name="twitter:image" content="https:\/\/shoefashion\.in\/shoe-style-logo\.png\?v=4"/);
+  assert.match(paymentPage, /\/shoe-style-logo\.png/);
 });
 
 test('storefront links expose title, description, and canonical URL', () => {

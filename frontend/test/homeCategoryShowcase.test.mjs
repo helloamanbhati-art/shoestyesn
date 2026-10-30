@@ -56,5 +56,5 @@ test('category cards open a dedicated product-listing route', () => {
   assert.match(routesSource, /path: 'category\/:category'/);
   assert.match(categoryPageSource, /useParams/);
   assert.match(categoryPageSource, /product\.category\.toLocaleLowerCase/);
-  assert.match(categoryPageSource, /<ProductGrid products=\{visibleProducts\}/);
+  assert.match(categoryPageSource, /<ProductGrid products=\{categoryProducts\}/);
 });

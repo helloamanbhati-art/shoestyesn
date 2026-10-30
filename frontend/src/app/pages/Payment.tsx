@@ -194,7 +194,7 @@ export function Payment() {
         order_id: order.paymentDetails.razorpayOrderId,
         name: 'Shoe Style',
         description: `Order ${order.orderNumber}`,
-        image: `${window.location.origin}/shoe-style-logo.svg`,
+        image: `${window.location.origin}/shoe-style-logo.png`,
         handler: (response: RazorpayResponse) => { void handleVerifiedPayment(response); },
         prefill: {
           name: order.shippingAddress?.fullName || order.customerName || '',
@@ -250,7 +250,7 @@ export function Payment() {
   }
 
   if (order.paymentStatus === 'paid') {
-    return <div className="flex-1 p-8 max-w-xl mx-auto text-center"><CheckCircle2 className="size-16 text-black mx-auto mb-4" /><h1 className="text-2xl mb-2">Payment complete</h1><p className="text-muted-foreground mb-5">Order {order.orderNumber} is confirmed.</p><Button onClick={() => void finish(order)}>View confirmation</Button></div>;
+    return <div className="flex-1 p-8 max-w-xl mx-auto text-center"><CheckCircle2 className="size-16 text-black mx-auto mb-4" /><h1 className="text-2xl mb-2">Payment complete</h1><p className="text-muted-foreground mb-5">Order {order.orderNumber} is confirmed.</p><Button asChild size="lg"><Link to={`/order/${order._id}`}>View your order</Link></Button></div>;
   }
 
   return (
