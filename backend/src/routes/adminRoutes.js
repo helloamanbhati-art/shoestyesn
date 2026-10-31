@@ -23,7 +23,7 @@ const { apiLimiter, authLimiter } = require("../middleware/rateLimiter");
 const { validate } = require("../middleware/validation");
 const { updateOrderStatusSchema } = require("../validation/orderValidation");
 const {
-  getConfiguredAdminCredentials,
+  getConfiguredAdminEmail,
   isConfiguredAdminEmail,
 } = require('../services/configuredAdminService');
 
@@ -88,7 +88,7 @@ router.post("/auth/login", authLimiter, async (req, res) => {
       || !email || !password || email.length > 254 || password.length > 256) {
       return res.status(400).json({ success: false, message: "Email and password are required" });
     }
-    const { email: configuredEmail } = getConfiguredAdminCredentials();
+    const configuredEmail = getConfiguredAdminEmail();
     if (!isConfiguredAdminEmail(email)) {
       return res.status(401).json({ success: false, message: "Invalid email or password" });
     }

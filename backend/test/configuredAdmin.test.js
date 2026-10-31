@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
+  getConfiguredAdminEmail,
   getConfiguredAdminCredentials,
   isConfiguredAdminEmail,
   synchronizeConfiguredAdmin,
@@ -39,12 +40,19 @@ test('only the configured email is accepted after normalization', () => {
   assert.equal(isConfiguredAdminEmail('another@gujjusstylehub.com', validEnv), false);
 });
 
-test('startup synchronization deactivates every other admin and updates the configured password', async () => {
+test('configured admin email can be resolved without a deployment password', () => {
+  assert.equal(
+    getConfiguredAdminEmail({ ADMIN_EMAIL: ' OWNER@GUJJUSSTYLEHUB.COM ' }),
+    validEnv.ADMIN_EMAIL,
+  );
+});
+
+test('startup synchronization preserves the original password for an existing admin', async () => {
   const actions = [];
   const configuredAdmin = {
     isActive: false,
     role: 'admin',
-    matchPassword: async () => false,
+    password: 'existing-password-hash',
     save: async function save() { actions.push(['save', this.email, this.password, this.isActive, this.role]); },
   };
   const AdminUser = {
@@ -54,7 +62,10 @@ test('startup synchronization deactivates every other admin and updates the conf
     }),
   };
 
-  await synchronizeConfiguredAdmin({ AdminUser, env: validEnv });
+  await synchronizeConfiguredAdmin({
+    AdminUser,
+    env: { ADMIN_EMAIL: validEnv.ADMIN_EMAIL, NODE_ENV: 'production' },
+  });
 
   assert.deepEqual(actions[0], [
     'updateMany',
@@ -62,6 +73,22 @@ test('startup synchronization deactivates every other admin and updates the conf
     { $set: { isActive: false } },
   ]);
   assert.deepEqual(actions[1], [
-    'save', validEnv.ADMIN_EMAIL, validEnv.ADMIN_PASSWORD, true, 'super_admin',
+    'save', validEnv.ADMIN_EMAIL, 'existing-password-hash', true, 'super_admin',
   ]);
+});
+
+test('a new admin still requires a secure bootstrap password', async () => {
+  const AdminUser = {
+    updateMany: async () => undefined,
+    findOne: () => ({ select: async () => null }),
+    create: async () => assert.fail('admin must not be created without a bootstrap password'),
+  };
+
+  await assert.rejects(
+    synchronizeConfiguredAdmin({
+      AdminUser,
+      env: { ADMIN_EMAIL: validEnv.ADMIN_EMAIL, NODE_ENV: 'production' },
+    }),
+    /ADMIN_PASSWORD/,
+  );
 });

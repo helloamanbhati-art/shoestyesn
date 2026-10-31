@@ -19,8 +19,9 @@ test('admin access accepts session cookies only and rejects legacy bearer-token 
 });
 
 test('admin login queries only the configured email and returns generic failures', () => {
-  assert.match(adminRoutes, /getConfiguredAdminCredentials/);
+  assert.match(adminRoutes, /getConfiguredAdminEmail/);
   assert.match(adminRoutes, /isConfiguredAdminEmail\(email/);
+  assert.doesNotMatch(adminRoutes, /getConfiguredAdminCredentials/);
   assert.doesNotMatch(adminRoutes, /findOne\(\{ email: email\.toLowerCase\(\)\.trim\(\) \}\)/);
   assert.match(adminRoutes, /Invalid email or password/);
 });
