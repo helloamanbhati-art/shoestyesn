@@ -41,3 +41,5 @@ coverage/
 .cache/
 *.tgz
 *.tar.gz
+.vercel
+.env*
