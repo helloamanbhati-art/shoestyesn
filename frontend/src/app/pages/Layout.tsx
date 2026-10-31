@@ -1,6 +1,6 @@
-import { MessageCircle } from 'lucide-react';
 import { Link, Outlet } from 'react-router';
 import { Navbar } from '../components/Navbar';
+import { StoreChatbot } from '../components/StoreChatbot';
 import { CartIconProvider, useCartIcon } from '../contexts/CartIconContext';
 import { STORE } from '../config/store';
 import { VisitorTracker } from '../analytics/VisitorTracker';
@@ -49,7 +49,7 @@ function LayoutContent() {
           </div>
         </div>
       </footer>
-      <a className="storefront-support" href={`https://wa.me/91${STORE.whatsappNumbers[0]}`} target="_blank" rel="noreferrer" aria-label="Customer support on WhatsApp"><MessageCircle aria-hidden="true"/><span>Chat</span></a>
+      <aside aria-label="Customer support"><StoreChatbot /></aside>
     </div>
   );
 }
