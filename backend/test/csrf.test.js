@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { requireTrustedOrigin, validateProductionAdminOrigin } = require('../src/middleware/csrf');
+const { getAllowedOrigins, requireTrustedOrigin, validateProductionAdminOrigin } = require('../src/middleware/csrf');
 
 function responseRecorder() {
   return {
@@ -61,4 +61,17 @@ test('production startup rejects a missing or insecure admin origin', () => {
     NODE_ENV: 'production', ADMIN_URL: 'https://admin.example.com',
     ALLOWED_ORIGINS: 'https://shop.example.com',
   }));
+});
+
+test('Shoe Style production domains remain trusted when hosting environment values are stale', () => {
+  const origins = getAllowedOrigins({
+    NODE_ENV: 'production',
+    ADMIN_URL: 'https://old-admin.example.com',
+    FRONTEND_URL: 'https://old-store.example.com',
+  });
+
+  assert.ok(origins.includes('https://admin.sarojinishoestyle.com'));
+  assert.ok(origins.includes('https://sarojinishoestyle.com'));
+  assert.ok(origins.includes('https://www.sarojinishoestyle.com'));
+  assert.equal(origins.includes('https://evil.example'), false);
 });

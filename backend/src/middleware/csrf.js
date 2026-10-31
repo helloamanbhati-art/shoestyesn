@@ -5,6 +5,11 @@ const {
 } = require('../services/adminSessionService');
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+const SHOE_STYLE_PRODUCTION_ORIGINS = [
+  'https://sarojinishoestyle.com',
+  'https://www.sarojinishoestyle.com',
+  'https://admin.sarojinishoestyle.com',
+];
 
 function getAllowedOrigins(env = process.env) {
   const configured = [
@@ -15,6 +20,8 @@ function getAllowedOrigins(env = process.env) {
 
   if (env.NODE_ENV !== 'production') {
     configured.push('http://localhost:5173', 'http://localhost:5174');
+  } else {
+    configured.push(...SHOE_STYLE_PRODUCTION_ORIGINS);
   }
   return [...new Set(configured)];
 }
