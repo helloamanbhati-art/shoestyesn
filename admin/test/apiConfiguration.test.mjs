@@ -20,7 +20,7 @@ test('deployed admin uses a same-origin API proxy for reliable session cookies',
   assert.doesNotMatch(source, /VITE_API_URL \|\| 'http:\/\/localhost:3000'/);
   assert.deepEqual(vercel.rewrites[0], {
     source: '/api/:path*',
-    destination: 'https://gaggu-s-3.onrender.com/api/:path*',
+    destination: 'https://shoestyesn.onrender.com/api/:path*',
   });
 });
 
