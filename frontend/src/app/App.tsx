@@ -6,19 +6,22 @@ import { CartProvider } from './contexts/CartContext';
 import { OrderProvider } from './contexts/OrderContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { MobileLoginDialog } from './components/auth/MobileLoginDialog';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 export default function App() {
   return (
-    <AuthProvider>
-      <ProductProvider>
-        <CartProvider>
-          <OrderProvider>
-            <RouterProvider router={router} />
-            <MobileLoginDialog />
-            <Toaster />
-          </OrderProvider>
-        </CartProvider>
-      </ProductProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <ProductProvider>
+          <CartProvider>
+            <OrderProvider>
+              <RouterProvider router={router} />
+              <MobileLoginDialog />
+              <Toaster />
+            </OrderProvider>
+          </CartProvider>
+        </ProductProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

@@ -2,6 +2,7 @@ import { lazy, Suspense, type ReactNode } from 'react';
 import { createBrowserRouter } from 'react-router';
 import { Layout } from './pages/Layout';
 import { Home } from './pages/Home';
+import { ProductionErrorScreen } from './components/ErrorBoundary';
 
 const ProductDetail = lazy(() => import('./pages/ProductDetail').then((module) => ({ default: module.ProductDetail })));
 const CategoryProducts = lazy(() => import('./pages/CategoryProducts').then((module) => ({ default: module.CategoryProducts })));
@@ -23,6 +24,7 @@ export const router = createBrowserRouter([
   {
     path: '/',
     element: <Layout />,
+    errorElement: <ProductionErrorScreen />,
     children: [
       { 
         index: true, 
