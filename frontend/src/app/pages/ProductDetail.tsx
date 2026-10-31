@@ -13,8 +13,8 @@ import { isVideoMediaUrl } from "../utils/media";
 import { saveBuyNowItem } from "../checkout/buyNowStorage";
 import { WomenSizeGuideDialog } from "../components/WomenSizeGuideDialog";
 import { getEuShoeSize, isFootwearProduct } from "../utils/womenShoeSizes";
+import { API_BASE_URL, resilientFetch } from "../api/client";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 interface Product {
   _id: string;
@@ -82,7 +82,7 @@ export function ProductDetail() {
         setSelectedMeters(4);
         setQuantity(1);
 
-        const response = await fetch(`${API_BASE_URL}/api/v1/products/${id}`);
+        const response = await resilientFetch(`${API_BASE_URL}/api/v1/products/${id}`);
 
         if (!response.ok) {
           throw new Error('Product not found');
@@ -104,7 +104,7 @@ export function ProductDetail() {
         // customer can still select a size before adding the item to cart.
         if ((productData.soldBy || 'piece') === 'piece' && availableSizes.length === 0 && !productData.outfitComponents?.length) {
           try {
-            const optionsResponse = await fetch(`${API_BASE_URL}/api/v1/catalog/product-options`);
+            const optionsResponse = await resilientFetch(`${API_BASE_URL}/api/v1/catalog/product-options`);
             if (optionsResponse.ok) {
               const optionsResult = await optionsResponse.json();
               availableSizes = Array.isArray(optionsResult?.data?.sizes)

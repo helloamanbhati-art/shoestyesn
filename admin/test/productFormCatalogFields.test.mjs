@@ -36,3 +36,12 @@ test('footwear products provide EU sizes 35 through 41', () => {
   assert.doesNotMatch(source, /Add a size, e\.g\. M\(38\)/);
   assert.doesNotMatch(source, /handleAddProductSize/);
 });
+
+test('footwear type dropdown provides women footwear choices instead of apparel choices', () => {
+  assert.match(
+    source,
+    /WOMENS_FOOTWEAR_TYPES = \[\s*'Sneakers',\s*'Flats',\s*'Sandals',\s*'Heels',\s*'Wedges',\s*'Loafers',\s*'Mules',\s*'Slippers',\s*'Ankle Boots',\s*'Knee Boots',?\s*\]/,
+  );
+  assert.match(source, /setClothingTypeOptions\(savedTypes\.length && !containsLegacyApparel \? savedTypes : WOMENS_FOOTWEAR_TYPES\)/);
+  assert.match(source, /clothingTypeOptions\.map\(\(type\) =>/);
+});

@@ -18,11 +18,43 @@ const indianCalendarDay = (value) => {
   return Date.UTC(part('year'), part('month') - 1, part('day'));
 };
 
+const indianCalendarKey = (value) => {
+  const day = indianCalendarDay(value);
+  return day === null ? null : new Date(day).toISOString().slice(0, 10);
+};
+
+export const getRecentOrderDayOptions = (now = new Date()) => {
+  const currentDay = indianCalendarDay(now);
+  if (currentDay === null) return [{ value: 'all', label: 'All orders' }];
+
+  const dayOptions = Array.from({ length: 7 }, (_, index) => {
+    const day = new Date(currentDay - index * 86_400_000);
+    const dateLabel = new Intl.DateTimeFormat('en-IN', {
+      weekday: 'short',
+      day: '2-digit',
+      month: 'short',
+      timeZone: 'Asia/Kolkata',
+    }).format(day);
+    const prefix = index === 0 ? 'Today' : index === 1 ? 'Yesterday' : null;
+
+    return {
+      value: day.toISOString().slice(0, 10),
+      label: prefix ? `${prefix} — ${dateLabel}` : dateLabel,
+    };
+  });
+
+  return [...dayOptions, { value: 'all', label: 'All orders' }];
+};
+
 export const sortOrdersNewestFirst = (orders) =>
   [...orders].sort((left, right) => orderTimestamp(right) - orderTimestamp(left));
 
 export const filterOrdersByDay = (orders, filter, now = new Date()) => {
   if (filter === 'all') return [...orders];
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(filter)) {
+    return orders.filter((order) => indianCalendarKey(order?.createdAt) === filter);
+  }
 
   const currentDay = indianCalendarDay(now);
   const targetAge = filter === 'yesterday' ? 1 : 0;

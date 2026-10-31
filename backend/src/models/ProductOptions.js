@@ -14,7 +14,18 @@ const productOptionsSchema = new mongoose.Schema(
     },
     clothingTypes: {
       type: [String],
-      default: ["shirt", "jeans", "dress", "kurti", "saree", "women", "men"],
+      default: [
+        "Sneakers",
+        "Flats",
+        "Sandals",
+        "Heels",
+        "Wedges",
+        "Loafers",
+        "Mules",
+        "Slippers",
+        "Ankle Boots",
+        "Knee Boots",
+      ],
     },
   },
   { timestamps: true }

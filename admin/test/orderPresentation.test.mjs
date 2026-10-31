@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   filterOrdersByDay,
   formatOrderDateTime,
+  getRecentOrderDayOptions,
   isOrderFromToday,
   sortOrdersNewestFirst,
 } from '../src/app/utils/orderPresentation.mjs';
@@ -20,6 +21,34 @@ test('sortOrdersNewestFirst puts the latest submitted order first without mutati
     'older',
   ]);
   assert.equal(orders[0].id, 'older');
+});
+
+test('getRecentOrderDayOptions exposes seven individual Indian calendar days then all orders', () => {
+  const options = getRecentOrderDayOptions(new Date('2026-10-31T12:00:00.000Z'));
+
+  assert.equal(options.length, 8);
+  assert.deepEqual(options.map(({ value }) => value), [
+    '2026-10-31',
+    '2026-10-30',
+    '2026-10-29',
+    '2026-10-28',
+    '2026-10-27',
+    '2026-10-26',
+    '2026-10-25',
+    'all',
+  ]);
+  assert.match(options[0].label, /^Today/);
+  assert.match(options[1].label, /^Yesterday/);
+  assert.equal(options[7].label, 'All orders');
+});
+
+test('filterOrdersByDay accepts an individual Indian calendar date', () => {
+  const orders = [
+    { id: 'selected', createdAt: '2026-10-29T20:00:00.000Z' },
+    { id: 'other', createdAt: '2026-10-28T18:00:00.000Z' },
+  ];
+
+  assert.deepEqual(filterOrdersByDay(orders, '2026-10-30').map(({ id }) => id), ['selected']);
 });
 
 test('formatOrderDateTime displays Indian local date and time', () => {

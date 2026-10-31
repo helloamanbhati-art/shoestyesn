@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_BASE_URL, resilientFetch } from '../api/client';
 
 export interface VariantImage {
   imageUrl: string;
@@ -31,12 +32,11 @@ export interface Product {
   compareAtPrice?: number;
 }
 
-const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
-const API_BASE_URL = configuredApiUrl || (import.meta.env.DEV ? 'http://localhost:3000' : '');
 // Version bumps intentionally invalidate older partial catalogs saved by previous loaders.
 const PRODUCT_CACHE_KEY = 'shoe-style-storefront-products-v3';
 const PRODUCT_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-const PRODUCT_REFRESH_INTERVAL_MS = 10_000;
+const INITIAL_PRODUCT_PAGE_SIZE = 24;
+const PRODUCT_REFRESH_INTERVAL_MS = 5 * 60_000;
 
 const transformProduct = (product: any): Product => {
   const rawImages: string[] = Array.isArray(product.images) ? product.images : [];
@@ -127,7 +127,10 @@ let _cachedProducts: Product[] | null = readPersistentProducts();
 let _isFetching = false;
 const _listeners: Array<(products: Product[]) => void> = [];
 
-async function fetchAndCacheProducts(forceRefresh = false): Promise<Product[]> {
+async function fetchAndCacheProducts(
+  forceRefresh = false,
+  onFirstPage?: (products: Product[]) => void,
+): Promise<Product[]> {
   if (_cachedProducts && !forceRefresh) return _cachedProducts;
   if (_isFetching) {
     // Wait for in-progress fetch
@@ -139,7 +142,7 @@ async function fetchAndCacheProducts(forceRefresh = false): Promise<Product[]> {
   _isFetching = true;
   try {
     const fetchProductPage = async (page: number) => {
-      const response = await fetch(`${API_BASE_URL}/api/v1/products?limit=500&view=card&page=${page}&catalogRefresh=${forceRefresh ? Date.now() : 0}`, {
+      const response = await resilientFetch(`${API_BASE_URL}/api/v1/products?limit=${INITIAL_PRODUCT_PAGE_SIZE}&view=card&page=${page}&catalogRefresh=${forceRefresh ? Date.now() : 0}`, {
         method: 'GET',
         headers: { Accept: 'application/json' },
         cache: 'no-store',
@@ -163,7 +166,14 @@ async function fetchAndCacheProducts(forceRefresh = false): Promise<Product[]> {
 
     do {
       const data = await fetchProductPage(page);
-      allRawProducts.push(...(data.data || data.products || []));
+      const pageProducts = data.data || data.products || [];
+      allRawProducts.push(...pageProducts);
+      if (page === 1 && onFirstPage) {
+        const firstProducts = pageProducts.map(transformProduct);
+        _cachedProducts = firstProducts;
+        persistProducts(firstProducts);
+        onFirstPage(firstProducts);
+      }
       pageCount = Math.max(Number(data.pagination?.pages) || 1, 1);
       page += 1;
     } while (page <= pageCount);
@@ -189,6 +199,7 @@ export function useProducts() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let firstPageRendered = false;
     if (_cachedProducts) {
       // Already have data — show it instantly, then do a silent background refresh
       setProducts(_cachedProducts);
@@ -202,12 +213,17 @@ export function useProducts() {
       return;
     }
 
-    fetchAndCacheProducts(true)
+    fetchAndCacheProducts(true, (firstProducts) => {
+      firstPageRendered = true;
+      setProducts(firstProducts);
+      setLoading(false);
+    })
       .then((data) => {
         setProducts(data);
         setLoading(false);
       })
       .catch((err) => {
+        if (firstPageRendered) return;
         const message = err instanceof Error ? err.message : 'Failed to fetch products';
         setError(message);
         setLoading(false);
@@ -219,6 +235,7 @@ export function useProducts() {
     let cancelled = false;
 
     const refreshProducts = () => {
+      if (!navigator.onLine || document.visibilityState !== 'visible') return;
       fetchAndCacheProducts(true)
         .then((fresh) => {
           if (cancelled) return;
@@ -253,7 +270,7 @@ export function useCatalogCategories() {
   const [categories, setCategories] = useState<string[]>([]);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/v1/catalog/categories`, {
+    resilientFetch(`${API_BASE_URL}/api/v1/catalog/categories`, {
       headers: { 'Content-Type': 'application/json' },
     })
       .then((response) => {
@@ -291,7 +308,7 @@ export function useProductById(productId: string) {
         setLoading(true);
         setError(null);
         
-        const response = await fetch(`${API_BASE_URL}/api/v1/products/${productId}`, {
+        const response = await resilientFetch(`${API_BASE_URL}/api/v1/products/${productId}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

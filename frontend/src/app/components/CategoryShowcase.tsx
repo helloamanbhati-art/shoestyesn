@@ -42,7 +42,7 @@ export function CategoryShowcase({ products, loading, error }: CategoryShowcaseP
           <p className="border-y border-neutral-200 py-16 text-center text-neutral-600">New collections are coming soon.</p>
         ) : (
           <div className="category-showcase-rail">
-            {categoryProducts.map((product, index) => {
+            {categoryProducts.map((product) => {
               const media = product.image || product.images?.[0] || '';
               return (
                 <Link
@@ -53,9 +53,9 @@ export function CategoryShowcase({ products, loading, error }: CategoryShowcaseP
                 >
                   <div>
                     {isVideoMediaUrl(media) ? (
-                      <video src={media} muted loop autoPlay playsInline preload="metadata" />
+                      <video src={media} muted loop playsInline preload="none" />
                     ) : (
-                      <img src={media} alt="" loading={index < 4 ? 'eager' : 'lazy'} fetchPriority={index < 4 ? 'high' : 'auto'} />
+                      <img src={media} alt="" loading="lazy" decoding="async" />
                     )}
                   </div>
                   <h3>{product.category}</h3>

@@ -7,11 +7,12 @@ const API_BASE_URL = resolveAdminApiBaseUrl({
   configuredUrl: import.meta.env.VITE_API_URL,
 });
 const LOGIN_MAX_ATTEMPTS = 3;
-const LOGIN_ATTEMPT_TIMEOUT_MS = 60_000;
-const RETRYABLE_LOGIN_STATUSES = new Set([502, 503, 504]);
-const RETRYABLE_REQUEST_STATUSES = new Set([429, 502, 503, 504]);
-const REQUEST_MAX_ATTEMPTS = 3;
-const REQUEST_TIMEOUT_MS = 30_000;
+const LOGIN_ATTEMPT_TIMEOUT_MS = 180_000;
+const RETRYABLE_LOGIN_STATUSES = new Set([408, 502, 503, 504]);
+const RETRYABLE_REQUEST_STATUSES = new Set([408, 429, 502, 503, 504]);
+const REQUEST_MAX_ATTEMPTS = 4;
+const REQUEST_TIMEOUT_MS = 180_000;
+const UPLOAD_TIMEOUT_MS = 600_000;
 const inFlightGetRequests = new Map<string, Promise<unknown>>();
 let refreshPromise: Promise<boolean> | null = null;
 let unauthorizedHandler: (() => void) | null = null;
@@ -62,9 +63,10 @@ async function fetchWithLoginResilience(
   headers: Headers,
 ): Promise<Response> {
   const isLogin = path === '/api/v1/admin/auth/login';
-  const isRetryableRead = (init.method || 'GET').toUpperCase() === 'GET';
+  const method = (init.method || 'GET').toUpperCase();
+  const isRetryableReadOrMutation = ['GET', 'PUT', 'DELETE'].includes(method);
   const isIdempotentWrite = headers.has('Idempotency-Key');
-  const isRetryableRequest = isLogin || isRetryableRead || isIdempotentWrite;
+  const isRetryableRequest = isLogin || isRetryableReadOrMutation || isIdempotentWrite;
   const maxAttempts = isLogin ? LOGIN_MAX_ATTEMPTS : (isRetryableRequest ? REQUEST_MAX_ATTEMPTS : 1);
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
@@ -72,7 +74,9 @@ async function fetchWithLoginResilience(
     const controller = new AbortController();
     const timeoutId = window.setTimeout(
           () => controller.abort(),
-          isLogin ? LOGIN_ATTEMPT_TIMEOUT_MS : REQUEST_TIMEOUT_MS,
+          isLogin
+            ? LOGIN_ATTEMPT_TIMEOUT_MS
+            : (init.body instanceof FormData ? UPLOAD_TIMEOUT_MS : REQUEST_TIMEOUT_MS),
         );
     const abortFromCaller = () => controller?.abort();
     init.signal?.addEventListener('abort', abortFromCaller, { once: true });

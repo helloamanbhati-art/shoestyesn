@@ -27,6 +27,12 @@ const categorySchema = new mongoose.Schema(
     displayOrder: { type: Number, default: 0 },
     seoDescription: String,
     seoKeywords: [String],
+    adminCreationKey: {
+      type: String,
+      unique: true,
+      sparse: true,
+      select: false,
+    },
   },
   { timestamps: true }
 );

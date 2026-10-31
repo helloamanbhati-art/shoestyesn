@@ -1,4 +1,4 @@
-import { createContext, useContext, ReactNode, useEffect, useState } from 'react';
+import { createContext, useContext, ReactNode, useMemo } from 'react';
 import { useCatalogCategories, useProducts, Product } from '../hooks/useProducts';
 
 interface ProductContextType {
@@ -12,7 +12,11 @@ const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
 export function ProductProvider({ children }: { children: ReactNode }) {
   const { products, loading, error } = useProducts();
-  const categories = useCatalogCategories();
+  const catalogCategories = useCatalogCategories();
+  const categories = useMemo(() => {
+    if (catalogCategories.length > 0) return catalogCategories;
+    return Array.from(new Set(products.map((product) => product.category).filter(Boolean))).sort();
+  }, [catalogCategories, products]);
 
   return (
     <ProductContext.Provider value={{ products, categories, loading, error }}>

@@ -1,5 +1,5 @@
 import { ArrowRight, Clock3, Plus, ShoppingBag } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -8,11 +8,10 @@ import { useOrders } from '../../contexts/OrderContext';
 import {
   filterOrdersByDay,
   formatOrderDateTime,
+  getRecentOrderDayOptions,
   isOrderFromToday,
   sortOrdersNewestFirst,
 } from '../../utils/orderPresentation.mjs';
-
-type OrderDayFilter = 'today' | 'yesterday' | 'last7' | 'all';
 
 const statusLabels: Record<string, string> = {
   pending: 'Pending',
@@ -48,7 +47,8 @@ const statusStyles: Record<string, string> = {
 
 export function AdminDashboard() {
   const { orders, loading, error } = useOrders();
-  const [dayFilter, setDayFilter] = useState<OrderDayFilter>('today');
+  const orderDayOptions = useMemo(() => getRecentOrderDayOptions(), []);
+  const [dayFilter, setDayFilter] = useState(() => orderDayOptions[0].value);
   const recentOrders = filterOrdersByDay(sortOrdersNewestFirst(orders), dayFilter);
 
   return (
@@ -83,13 +83,12 @@ export function AdminDashboard() {
             <select
               id="order-day-filter"
               value={dayFilter}
-              onChange={(event) => setDayFilter(event.target.value as OrderDayFilter)}
+              onChange={(event) => setDayFilter(event.target.value)}
               className="min-h-11 w-full border border-gray-300 bg-white px-3 text-base text-gray-900 outline-none focus:border-green-600 focus:ring-2 focus:ring-green-600/25"
             >
-              <option value="today">Today</option>
-              <option value="yesterday">Yesterday</option>
-              <option value="last7">Last 7 days</option>
-              <option value="all">All orders</option>
+              {orderDayOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
             </select>
             <p className="mt-2 text-xs text-gray-600" aria-live="polite">
               Showing {recentOrders.length} of {orders.length} orders

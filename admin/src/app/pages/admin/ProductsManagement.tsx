@@ -39,6 +39,7 @@ import {
   newVariantDraft,
 } from '../../components/admin/VariantManager';
 import { buildProductShareUrl } from '../../utils/productShareLink.mjs';
+import { optimizeMediaForUpload } from '../../utils/optimizeMediaForUpload';
 
 const STOREFRONT_URL = (import.meta.env.VITE_STOREFRONT_URL || 'https://shoefashion.in').replace(/\/+$/, '');
 
@@ -57,6 +58,19 @@ interface ProductVariant {
 interface OutfitComponent { componentId: string; name: string; availableSizes: string[]; }
 
 const FOOTWEAR_SIZES = ['35', '36', '37', '38', '39', '40', '41'];
+const WOMENS_FOOTWEAR_TYPES = [
+  'Sneakers',
+  'Flats',
+  'Sandals',
+  'Heels',
+  'Wedges',
+  'Loafers',
+  'Mules',
+  'Slippers',
+  'Ankle Boots',
+  'Knee Boots',
+];
+const LEGACY_APPAREL_TYPES = new Set(['shirt', 'jeans', 'dress', 'kurti', 'saree', 'women', 'men']);
 
 interface Product {
   id: string;
@@ -98,7 +112,7 @@ export function ProductsManagement() {
   const { brands } = useBrands();
   const { categories } = useCategories();
   const [products, setProducts] = useState<Product[]>([]);
-  const [clothingTypeOptions, setClothingTypeOptions] = useState<string[]>([]);
+  const [clothingTypeOptions, setClothingTypeOptions] = useState<string[]>(WOMENS_FOOTWEAR_TYPES);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [productsLoadError, setProductsLoadError] = useState<string | null>(null);
   const [productRefreshKey, setProductRefreshKey] = useState(0);
@@ -190,17 +204,19 @@ useEffect(() => {
 }, []);
 
 useEffect(() => {
-  const fetchProductOptions = async () => {
+  const fetchFootwearTypes = async () => {
     try {
       const data = await adminRequest<{ clothingTypes?: string[] }>('/api/v1/admin/product-options');
-      setClothingTypeOptions(data?.clothingTypes || []);
-    } catch (err) {
-      console.error('[fetchProductOptions] Exception:', err);
-      toast.error('Failed to load size and product type options');
+      const savedTypes = data?.clothingTypes || [];
+      const containsLegacyApparel = savedTypes.some((type) => LEGACY_APPAREL_TYPES.has(type.toLowerCase()));
+      setClothingTypeOptions(savedTypes.length && !containsLegacyApparel ? savedTypes : WOMENS_FOOTWEAR_TYPES);
+    } catch (error) {
+      console.error('[fetchFootwearTypes] Exception:', error);
     }
   };
-  fetchProductOptions();
+  void fetchFootwearTypes();
 }, []);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [brandFilter, setBrandFilter] = useState('all');
@@ -356,7 +372,10 @@ useEffect(() => {
         let uploadedUrls: string[] = [];
         if (filesToUpload.length > 0) {
           const imagesForm = new FormData();
-          filesToUpload.forEach((img) => imagesForm.append('images', img.file!));
+          const optimizedFiles = await Promise.all(
+            filesToUpload.map((image) => optimizeMediaForUpload(image.file!)),
+          );
+          optimizedFiles.forEach((file) => imagesForm.append('images', file));
           
           const uploadRes = await adminFetch('/api/v1/admin/products/upload-images', {
             method: 'POST',

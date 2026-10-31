@@ -535,15 +535,26 @@ router.get("/categories", async (req, res) => {
 });
 router.post("/categories", async (req, res) => {
   try {
-    console.log("[POST /categories] Request body:", req.body);
     if (!req.body.name || req.body.name.trim() === "") {
       return res.status(400).json({ success: false, message: "Category name is required" });
     }
-    const category = await Category.create({ name: req.body.name.trim() });
-    console.log("[POST /categories] Created:", category);
+    const creationKey = String(req.get('Idempotency-Key') || '').trim();
+    if (!/^[A-Za-z0-9_-]{16,100}$/.test(creationKey)) {
+      return res.status(400).json({ success: false, message: "A valid Idempotency-Key header is required" });
+    }
+    const existing = await Category.findOne({ adminCreationKey: creationKey });
+    if (existing) return res.json({ success: true, category: existing });
+
+    const category = await Category.create({
+      name: req.body.name.trim(),
+      adminCreationKey: creationKey,
+    });
     res.status(201).json({ success: true, category });
   } catch (e) {
-    console.error("[POST /categories] Error:", e.message);
+    if (e?.code === 11000) {
+      const retried = await Category.findOne({ adminCreationKey: String(req.get('Idempotency-Key') || '').trim() });
+      if (retried) return res.json({ success: true, category: retried });
+    }
     res.status(500).json({ success: false, message: e.message });
   }
 });

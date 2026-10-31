@@ -5,6 +5,38 @@ const productionApiUrl = 'https://gaggu-s-3.onrender.com';
 const defaultApiUrl = import.meta.env.DEV ? '' : productionApiUrl;
 
 export const API_BASE_URL = (configuredApiUrl || defaultApiUrl).replace(/\/+$/, '');
+const READ_TIMEOUT_MS = 120_000;
+const READ_MAX_ATTEMPTS = 3;
+const RETRYABLE_READ_STATUSES = new Set([408, 429, 502, 503, 504]);
+
+const waitBeforeReadRetry = (attempt: number) => new Promise<void>((resolve) => {
+  window.setTimeout(resolve, 500 * (2 ** attempt));
+});
+
+export async function resilientFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+  const method = (init.method || 'GET').toUpperCase();
+  const maxAttempts = method === 'GET' || method === 'HEAD' ? READ_MAX_ATTEMPTS : 1;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const controller = new AbortController();
+    const abortFromCaller = () => controller.abort();
+    init.signal?.addEventListener('abort', abortFromCaller, { once: true });
+    const timeoutId = window.setTimeout(() => controller.abort(), READ_TIMEOUT_MS);
+    try {
+      const response = await fetch(input, { ...init, signal: controller.signal });
+      if (!RETRYABLE_READ_STATUSES.has(response.status) || attempt === maxAttempts - 1) return response;
+      await response.body?.cancel().catch(() => undefined);
+    } catch (error) {
+      if (init.signal?.aborted || attempt === maxAttempts - 1) throw error;
+    } finally {
+      window.clearTimeout(timeoutId);
+      init.signal?.removeEventListener('abort', abortFromCaller);
+    }
+    await waitBeforeReadRetry(attempt);
+  }
+
+  throw new Error('Storefront request retry loop ended unexpectedly');
+}
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -61,7 +93,7 @@ async function performRequest<T>(path: string, init: RequestInit): Promise<T> {
 
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
+    response = await resilientFetch(`${API_BASE_URL}${path}`, {
       ...init,
       headers,
       credentials: 'include',

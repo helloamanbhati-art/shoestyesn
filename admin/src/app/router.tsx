@@ -5,7 +5,6 @@ import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminAnalytics } from './pages/admin/AdminAnalytics';
 import { ProductsManagement } from './pages/admin/ProductsManagement';
 import { OrdersManagement } from './pages/admin/OrdersManagement';
-import { BrandsManagement } from './pages/admin/BrandsManagement';
 import { CategoriesManagement } from './pages/admin/CategoriesManagement';
 import { CustomersManagement } from './pages/admin/CustomersManagement';
 import { ProductOptionsManagement } from './pages/admin/ProductOptionsManagement';
@@ -39,10 +38,7 @@ const router = createBrowserRouter([
         path: 'orders',
         element: <OrdersManagement />,
       },
-      {
-        path: 'brands',
-        element: <BrandsManagement />,
-      },
+      { path: 'brands', element: <Navigate to="/admin/footwear-types" replace /> },
       {
         path: 'categories',
         element: <CategoriesManagement />,
@@ -52,9 +48,10 @@ const router = createBrowserRouter([
         element: <CustomersManagement />,
       },
       {
-        path: 'product-options',
+        path: 'footwear-types',
         element: <ProductOptionsManagement />,
       },
+      { path: 'product-options', element: <Navigate to="/admin/footwear-types" replace /> },
       {
         path: 'storefront-settings',
         element: <StorefrontSettings />,

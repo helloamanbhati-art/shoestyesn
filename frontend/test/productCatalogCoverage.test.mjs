@@ -8,7 +8,7 @@ const source = readFileSync(
 );
 
 test('storefront requests enough products to display the complete active catalog', () => {
-  assert.match(source, /\/api\/v1\/products\?limit=500/);
+  assert.match(source, /\/api\/v1\/products\?limit=\$\{INITIAL_PRODUCT_PAGE_SIZE\}/);
 });
 
 test('storefront follows every catalog page instead of treating the first response as complete', () => {

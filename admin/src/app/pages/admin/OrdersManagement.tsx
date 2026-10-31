@@ -22,7 +22,12 @@ import {
 import { Search, Eye, ShoppingBag, Truck, CreditCard, MapPin, Copy, Printer, X } from 'lucide-react';
 import { useOrders } from '../../contexts/OrderContext';
 import { toast } from 'sonner';
-import { formatOrderDateTime, sortOrdersNewestFirst } from '../../utils/orderPresentation.mjs';
+import {
+  filterOrdersByDay,
+  formatOrderDateTime,
+  getRecentOrderDayOptions,
+  sortOrdersNewestFirst,
+} from '../../utils/orderPresentation.mjs';
 import { createInvoiceHtml } from '../../utils/invoicePresentation.mjs';
 
 const statusConfig = {
@@ -118,7 +123,9 @@ const formatOrderStatus = (status: any) => {
 export function OrdersManagement() {
   const { orders } = useOrders();
   const [searchParams, setSearchParams] = useSearchParams();
+  const dateOptions = useMemo(() => getRecentOrderDayOptions(), []);
   const [searchQuery, setSearchQuery] = useState('');
+  const [dateFilter, setDateFilter] = useState<string>(() => dateOptions[0].value);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<typeof orders[0] | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -153,7 +160,7 @@ export function OrdersManagement() {
   };
 
   // Filter orders
-  const filteredOrders = useMemo(() => sortOrdersNewestFirst(orders.filter((order) => {
+  const filteredOrders = useMemo(() => sortOrdersNewestFirst(filterOrdersByDay(orders, dateFilter).filter((order) => {
     const orderNumber = getOrderNumber(order);
     const matchesSearch =
       orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -163,7 +170,7 @@ export function OrdersManagement() {
     const matchesStatus = statusFilter === 'all' || String(order.status) === statusFilter;
 
     return matchesSearch && matchesStatus;
-  })), [orders, searchQuery, statusFilter]);
+  })), [orders, searchQuery, statusFilter, dateFilter]);
 
   const handleViewOrder = (order: typeof orders[0]) => {
     setSelectedOrder(order);
@@ -227,6 +234,16 @@ export function OrdersManagement() {
                 className="pl-10"
               />
             </div>
+            <Select value={dateFilter} onValueChange={setDateFilter}>
+              <SelectTrigger className="w-full lg:w-[180px]" aria-label="Filter orders by date">
+                <SelectValue placeholder="Filter by date" />
+              </SelectTrigger>
+              <SelectContent>
+                {dateOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full lg:w-[200px]">
                 <SelectValue placeholder="Filter by status" />

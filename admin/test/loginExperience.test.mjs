@@ -49,8 +49,8 @@ test('admin login reports credential, rate-limit, server, and connection failure
 
 test('admin login tolerates slow or waking backends without retrying rejected credentials', () => {
   assert.match(apiClientSource, /LOGIN_MAX_ATTEMPTS\s*=\s*3/);
-  assert.match(apiClientSource, /LOGIN_ATTEMPT_TIMEOUT_MS\s*=\s*60_000/);
-  assert.match(apiClientSource, /RETRYABLE_LOGIN_STATUSES\s*=\s*new Set\(\[502, 503, 504\]\)/);
+  assert.match(apiClientSource, /LOGIN_ATTEMPT_TIMEOUT_MS\s*=\s*180_000/);
+  assert.match(apiClientSource, /RETRYABLE_LOGIN_STATUSES\s*=\s*new Set\(\[408, 502, 503, 504\]\)/);
   assert.match(apiClientSource, /path === '\/api\/v1\/admin\/auth\/login'/);
   assert.match(apiClientSource, /await waitBeforeRetry\(attempt\)/);
   assert.match(loginSource, /login\(email\.trim\(\), password\)/);

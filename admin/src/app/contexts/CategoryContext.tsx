@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { createContext, useCallback, useContext, useState, ReactNode, useEffect } from 'react';
 import { useAdminAuth } from './AdminAuthContext';
 import { adminRequest } from '../api/client';
 
@@ -12,6 +12,7 @@ interface CategoryContextType {
   categories: Category[];
   loading: boolean;
   error: string | null;
+  reloadCategories: () => Promise<void>;
   addCategory: (category: Category) => Promise<boolean>;
   updateCategory: (id: string, category: Category) => Promise<boolean>;
   deleteCategory: (id: string) => Promise<boolean>;
@@ -26,40 +27,49 @@ export function CategoryProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      if (authLoading) return;
-      if (!admin) {
-        setCategories([]);
-        setLoading(false);
-        return;
-      }
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await adminRequest<{ categories: any[] }>('/api/v1/admin/categories');
-        const mapped = (data.categories || []).map((c: any) => ({
-          id: c._id || c.id,
-          name: c.name,
-          productCount: c.productCount || 0,
-        }));
-        setCategories(mapped);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'An unexpected error occurred';
-        console.error('[fetchCategories] Exception:', error);
-        setError(message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCategories();
+  const reloadCategories = useCallback(async () => {
+    if (authLoading) return;
+    if (!admin) {
+      setCategories([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await adminRequest<{ categories: any[] }>('/api/v1/admin/categories');
+      const mapped = (data.categories || []).map((category: any) => ({
+        id: category._id || category.id,
+        name: category.name,
+        productCount: category.productCount || 0,
+      }));
+      setCategories(mapped);
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : 'An unexpected error occurred';
+      console.error('[fetchCategories] Exception:', requestError);
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
   }, [admin, authLoading]);
+
+  useEffect(() => {
+    void reloadCategories();
+  }, [reloadCategories]);
+
+  useEffect(() => {
+    if (!admin) return;
+    const reloadWhenOnline = () => { void reloadCategories(); };
+    window.addEventListener('online', reloadWhenOnline);
+    return () => window.removeEventListener('online', reloadWhenOnline);
+  }, [admin, reloadCategories]);
 
   const addCategory = async (category: Category): Promise<boolean> => {
     try {
+      const creationKey = `admin_category_${crypto.randomUUID().replaceAll('-', '')}`;
       const data = await adminRequest<{ category: any }>('/api/v1/admin/categories', {
         method: 'POST',
+        headers: { 'Idempotency-Key': creationKey },
         body: JSON.stringify({ name: category.name }),
       });
       setCategories(prev => [...prev, {
@@ -106,7 +116,7 @@ export function CategoryProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <CategoryContext.Provider value={{ categories, loading, error, addCategory, updateCategory, deleteCategory, getCategoryById }}>
+    <CategoryContext.Provider value={{ categories, loading, error, reloadCategories, addCategory, updateCategory, deleteCategory, getCategoryById }}>
       {children}
     </CategoryContext.Provider>
   );

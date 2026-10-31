@@ -38,7 +38,7 @@ export function TrendingStyles({ products }: TrendingStylesProps) {
       </header>
 
       <div ref={railRef} className="trending-styles-rail">
-        {styles.map((product, index) => {
+        {styles.map((product) => {
           const media = selectTrendingStyleMedia(product);
           return (
             <Link
@@ -48,9 +48,9 @@ export function TrendingStyles({ products }: TrendingStylesProps) {
               aria-label={`View ${product.name}`}
             >
               {isVideoMediaUrl(media) ? (
-                <video src={media} muted loop autoPlay playsInline preload="metadata" />
+                <video src={media} muted loop playsInline preload="none" />
               ) : (
-                <img src={media} alt={product.name} loading={index < 4 ? 'eager' : 'lazy'} />
+                <img src={media} alt={product.name} loading="lazy" decoding="async" />
               )}
             </Link>
           );

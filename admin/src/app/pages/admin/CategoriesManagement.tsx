@@ -16,7 +16,7 @@ import { useCategories } from '../../contexts/CategoryContext';
 import { toast } from 'sonner';
 
 export function CategoriesManagement() {
-  const { categories, loading, error, addCategory, updateCategory, deleteCategory } = useCategories();
+  const { categories, loading, error, reloadCategories, addCategory, updateCategory, deleteCategory } = useCategories();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<typeof categories[0] | null>(null);
   const [categoryName, setCategoryName] = useState('');
@@ -32,12 +32,15 @@ export function CategoriesManagement() {
     );
   }
 
-  if (error) {
+  if (error && categories.length === 0) {
     return (
       <Card>
         <CardContent className="py-16 text-center text-red-600 dark:text-red-400">
           <p className="text-lg font-semibold">Unable to load categories</p>
           <p className="mt-2">{error}</p>
+          <Button className="mt-5" onClick={() => void reloadCategories()}>
+            Retry loading categories
+          </Button>
         </CardContent>
       </Card>
     );
@@ -115,6 +118,12 @@ export function CategoriesManagement() {
 
   return (
     <div className="categories-management space-y-4 sm:space-y-6">
+      {error && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900" role="status">
+          <span>Showing the last loaded categories while the server reconnects.</span>
+          <Button variant="outline" size="sm" onClick={() => void reloadCategories()}>Retry</Button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-end justify-between gap-3 border-b border-gray-200 pb-4 sm:pb-5">
         <div className="min-w-0">

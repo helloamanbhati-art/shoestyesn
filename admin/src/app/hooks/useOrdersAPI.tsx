@@ -128,6 +128,11 @@ const statusNames: Record<number | string, string> = {
   refunded: 'Refunded',
 };
 
+const createIdempotencyKey = () => (
+  globalThis.crypto?.randomUUID?.()
+  || `admin-order-${Date.now()}-${Math.random().toString(36).slice(2)}`
+);
+
 export function useOrdersAPI() {
   const { admin, loading: authLoading } = useAdminAuth();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -207,10 +212,11 @@ export function useOrdersAPI() {
   }, [admin, authLoading]);
 
   const addOrder = async (newOrder: Order) => {
+    const idempotencyKey = createIdempotencyKey();
     try {
       const response = await adminFetch('/api/v1/orders', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: { ...getAuthHeaders(), 'Idempotency-Key': idempotencyKey },
         credentials: 'include',
         body: JSON.stringify(newOrder),
       });

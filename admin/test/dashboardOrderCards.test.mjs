@@ -29,10 +29,8 @@ test('dashboard order cards explain their mobile click target', () => {
 
 test('dashboard orders can be filtered by day and clearly mark today orders', () => {
   assert.match(source, /<label htmlFor="order-day-filter"/);
-  assert.match(source, /<option value="today">Today<\/option>/);
-  assert.match(source, /<option value="yesterday">Yesterday<\/option>/);
-  assert.match(source, /<option value="last7">Last 7 days<\/option>/);
-  assert.match(source, /<option value="all">All orders<\/option>/);
+  assert.match(source, /getRecentOrderDayOptions/);
+  assert.match(source, /orderDayOptions\.map/);
   assert.match(source, />Ordered today</);
 });
 

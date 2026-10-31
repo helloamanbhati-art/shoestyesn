@@ -1,7 +1,7 @@
 import { FormEvent, Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router';
-import { API_BASE_URL, apiRequest } from '../api/client';
+import { API_BASE_URL, apiRequest, resilientFetch } from '../api/client';
 import { ProductCard } from '../components/ProductCard';
 import { CategoryShowcase } from '../components/CategoryShowcase';
 import { TrendingStyles } from '../components/TrendingStyles';
@@ -88,7 +88,7 @@ export function Home() {
     const timer = window.setTimeout(async () => {
       setSearchState('loading');
       try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/products/search?q=${encodeURIComponent(term)}&limit=12`, {
+        const response = await resilientFetch(`${API_BASE_URL}/api/v1/products/search?q=${encodeURIComponent(term)}&limit=12`, {
           signal: controller.signal,
           headers: { Accept: 'application/json' },
           credentials: 'include',

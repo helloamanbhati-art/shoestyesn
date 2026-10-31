@@ -16,5 +16,6 @@ test('an open storefront refreshes products after admin changes', () => {
   assert.match(productsHook, /window\.addEventListener\('focus', refreshProducts\)/);
   assert.match(productsHook, /document\.addEventListener\('visibilitychange', refreshVisibleProducts\)/);
   assert.match(productsHook, /setInterval\(refreshProducts, PRODUCT_REFRESH_INTERVAL_MS\)/);
-  assert.match(productsHook, /PRODUCT_REFRESH_INTERVAL_MS\s*=\s*10_000/);
+  assert.match(productsHook, /PRODUCT_REFRESH_INTERVAL_MS\s*=\s*5 \* 60_000/);
+  assert.match(productsHook, /navigator\.onLine/);
 });
