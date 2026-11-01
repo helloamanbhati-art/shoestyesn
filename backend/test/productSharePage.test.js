@@ -5,9 +5,10 @@ const { join } = require('node:path');
 
 const { buildProductSharePage } = require('../src/services/productSharePage');
 
-test('share redirects default to the public Shoe Fashion storefront domain', () => {
+test('share redirects default to the live Sarojini Shoe Style storefront domain', () => {
   const controllerSource = readFileSync(join(__dirname, '../src/controllers/shareController.js'), 'utf8');
-  assert.match(controllerSource, /https:\/\/shoefashion\.in/);
+  assert.match(controllerSource, /https:\/\/sarojinishoestyle\.com/);
+  assert.doesNotMatch(controllerSource, /https:\/\/shoefashion\.in/);
   assert.doesNotMatch(controllerSource, /amanbhati\.vercel\.app/);
 });
 

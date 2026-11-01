@@ -39,7 +39,7 @@ import {
 import { buildProductShareUrl } from '../../utils/productShareLink.mjs';
 import { optimizeMediaForUpload } from '../../utils/optimizeMediaForUpload';
 
-const STOREFRONT_URL = (import.meta.env.VITE_STOREFRONT_URL || 'https://shoefashion.in').replace(/\/+$/, '');
+const STOREFRONT_URL = (import.meta.env.VITE_STOREFRONT_URL || 'https://sarojinishoestyle.com').replace(/\/+$/, '');
 
 interface VariantImage {
   imageUrl: string;

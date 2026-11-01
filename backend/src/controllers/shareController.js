@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const { buildProductSharePage } = require('../services/productSharePage');
 
-const DEFAULT_STOREFRONT_URL = 'https://shoefashion.in';
+const DEFAULT_STOREFRONT_URL = 'https://sarojinishoestyle.com';
 
 exports.getProductSharePage = async (req, res, next) => {
   try {
