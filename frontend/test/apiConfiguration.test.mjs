@@ -11,14 +11,18 @@ const indexHtml = readFileSync(new URL('../index.html', import.meta.url), 'utf8'
 
 test('customer login never falls back to localhost in a production build', () => {
   assert.match(source, /import\.meta\.env\.DEV/);
-  assert.match(source, /https:\/\/gaggu-s-3\.onrender\.com/);
+  assert.match(source, /https:\/\/shoestyesn\.onrender\.com/);
   assert.doesNotMatch(source, /configuredApiUrl \|\| 'http:\/\/localhost:3000'/);
 });
 
 test('public product share links are rendered by the backend before the SPA fallback', () => {
   assert.deepEqual(vercel.rewrites[0], {
     source: '/share/product/:id',
-    destination: 'https://gaggu-s-3.onrender.com/share/product/:id',
+    destination: 'https://shoestyesn.onrender.com/share/product/:id',
+  });
+  assert.deepEqual(vercel.rewrites[1], {
+    source: '/api/:path*',
+    destination: 'https://shoestyesn.onrender.com/api/:path*',
   });
   assert.deepEqual(vercel.rewrites.at(-1), {
     source: '/(.*)',

@@ -1,5 +1,5 @@
 const configuredApiUrl = import.meta.env?.VITE_API_URL?.trim();
-const productionApiUrl = 'https://gaggu-s-3.onrender.com';
+const productionApiUrl = 'https://shoestyesn.onrender.com';
 
 /** In dev, use same-origin requests via Vite proxy so session cookies are stored correctly. */
 const defaultApiUrl = import.meta.env.DEV ? '' : productionApiUrl;

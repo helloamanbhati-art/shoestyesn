@@ -20,11 +20,11 @@
   "rewrites": [
     {
       "source": "/share/product/:id",
-      "destination": "https://gaggu-s-3.onrender.com/share/product/:id"
+      "destination": "https://shoestyesn.onrender.com/share/product/:id"
     },
     {
       "source": "/api/:path*",
-      "destination": "https://gaggu-s-3.onrender.com/api/:path*"
+      "destination": "https://shoestyesn.onrender.com/api/:path*"
     },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
