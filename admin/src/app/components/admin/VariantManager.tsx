@@ -1,5 +1,5 @@
-import { useRef } from 'react';
-import { Plus, Trash2, GripVertical, Upload, X, Star, Images, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Plus, Trash2, GripVertical, Upload, X, Star, Images, ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -30,6 +30,68 @@ interface VariantManagerProps {
 const isVideoFile = (file: File) => file.type.startsWith('video/');
 const isSupportedMediaFile = (file: File) => file.type.startsWith('image/') || isVideoFile(file);
 const isVideoUrl = (url: string) => /\.(mp4|webm|ogg|mov|m4v)(?:[?#]|$)/i.test(url);
+
+function VariantMediaPreview({
+  item,
+  index,
+}: {
+  item: VariantImageItem;
+  index: number;
+}) {
+  const [localUrl, setLocalUrl] = useState('');
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  useEffect(() => {
+    setLoadFailed(false);
+    if (item.url) {
+      setLocalUrl(item.url);
+      return;
+    }
+
+    if (!item.file) {
+      setLocalUrl('');
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(item.file);
+    setLocalUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [item.file, item.url]);
+
+  if (!localUrl || loadFailed) {
+    return (
+      <div
+        role="img"
+        aria-label={`Variant media ${index + 1} unavailable`}
+        className="flex h-full w-full flex-col items-center justify-center gap-1 bg-muted px-2 text-center text-muted-foreground"
+      >
+        <ImageOff className="size-5" aria-hidden="true" />
+        <span className="text-[10px] font-medium leading-tight">Image unavailable</span>
+        <span className="text-[9px] leading-tight opacity-75">Remove and upload again</span>
+      </div>
+    );
+  }
+
+  const isVideo = item.file ? isVideoFile(item.file) : isVideoUrl(localUrl);
+  return isVideo ? (
+    <video
+      src={localUrl}
+      aria-label={`Variant video ${index + 1}`}
+      className="h-full w-full object-cover"
+      controls
+      preload="metadata"
+      onError={() => setLoadFailed(true)}
+    />
+  ) : (
+    <img
+      src={localUrl}
+      alt={`Variant image ${index + 1}`}
+      className="h-full w-full object-cover"
+      loading="lazy"
+      onError={() => setLoadFailed(true)}
+    />
+  );
+}
 
 let _id = 0;
 export function newVariantDraft(name = ''): VariantDraft {
@@ -177,17 +239,6 @@ function VariantCard({
     if (e.dataTransfer.files.length > 0) onAddFiles(e.dataTransfer.files);
   };
 
-  // Build unified preview list
-  const allPreviews = variant.images.map((item) => {
-    const src = item.url ? item.url : (item.file ? URL.createObjectURL(item.file) : '');
-    return {
-      id: item.id,
-      src,
-      isVideo: item.file ? isVideoFile(item.file) : isVideoUrl(src),
-      type: item.url ? ('existing' as const) : ('new' as const),
-    };
-  });
-
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
       {/* Header */}
@@ -253,81 +304,69 @@ function VariantCard({
         />
 
         {/* Image grid */}
-        {allPreviews.length > 0 && (
+        {variant.images.length > 0 && (
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-            {allPreviews.map((item, globalIdx) => (
-              <div
-                key={item.id}
-                className={cn(
-                  'relative aspect-square rounded-lg overflow-hidden border-2 group',
-                  globalIdx === 0 ? 'border-primary shadow-sm' : 'border-transparent'
-                )}
-              >
-                {item.isVideo ? (
-                  <video
-                    src={item.src}
-                    aria-label={`Variant video ${globalIdx + 1}`}
-                    className="w-full h-full object-cover"
-                    controls
-                    preload="metadata"
-                  />
-                ) : (
-                  <img
-                    src={item.src}
-                    alt={`Variant image ${globalIdx + 1}`}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                )}
-
-                {/* Primary badge */}
-                {globalIdx === 0 && (
-                  <div className="absolute top-1 left-1 bg-primary text-primary-foreground rounded-full p-0.5 z-10 shadow-sm">
-                    <Star className="size-2.5 fill-current" />
-                  </div>
-                )}
-
-                {/* New badge */}
-                {item.type === 'new' && (
-                  <div className="absolute bottom-1 left-1 bg-green-500 text-white text-[8px] font-bold px-1 rounded z-10 shadow-sm">
-                    NEW
-                  </div>
-                )}
-
-                {/* Remove button */}
-                <button
-                  type="button"
-                  onClick={() => onRemoveImage(item.id)}
-                  className="absolute top-1 right-1 bg-black/70 hover:bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm"
-                  aria-label={`Remove ${item.isVideo ? 'video' : 'image'} ${globalIdx + 1}`}
+            {variant.images.map((item, globalIdx) => {
+              const isVideo = item.file ? isVideoFile(item.file) : isVideoUrl(item.url || '');
+              return (
+                <div
+                  key={item.id}
+                  className={cn(
+                    'relative aspect-square rounded-lg overflow-hidden border-2 group',
+                    globalIdx === 0 ? 'border-primary shadow-sm' : 'border-transparent'
+                  )}
                 >
-                  <X className="size-2.5" />
-                </button>
+                  <VariantMediaPreview item={item} index={globalIdx} />
 
-                {/* Reorder Controls overlay on hover */}
-                <div className="absolute inset-x-0 bottom-0 bg-black/60 flex items-center justify-around py-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  {/* Primary badge */}
+                  {globalIdx === 0 && (
+                    <div className="absolute top-1 left-1 bg-primary text-primary-foreground rounded-full p-0.5 z-10 shadow-sm">
+                      <Star className="size-2.5 fill-current" />
+                    </div>
+                  )}
+
+                  {/* New badge */}
+                  {!item.url && (
+                    <div className="absolute bottom-1 left-1 bg-green-500 text-white text-[8px] font-bold px-1 rounded z-10 shadow-sm">
+                      NEW
+                    </div>
+                  )}
+
+                  {/* Remove button */}
                   <button
                     type="button"
-                    disabled={globalIdx === 0}
-                    onClick={() => onMoveImage(globalIdx, 'left')}
-                    className="text-white hover:text-indigo-300 disabled:opacity-30 disabled:hover:text-white"
-                    title="Move Left"
+                    onClick={() => onRemoveImage(item.id)}
+                    className="absolute top-1 right-1 bg-black/70 hover:bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm"
+                    aria-label={`Remove ${isVideo ? 'video' : 'image'} ${globalIdx + 1}`}
                   >
-                    <ChevronLeft className="size-4" />
+                    <X className="size-2.5" />
                   </button>
-                  <span className="text-[10px] text-white select-none font-medium">{globalIdx + 1}</span>
-                  <button
-                    type="button"
-                    disabled={globalIdx === allPreviews.length - 1}
-                    onClick={() => onMoveImage(globalIdx, 'right')}
-                    className="text-white hover:text-indigo-300 disabled:opacity-30 disabled:hover:text-white"
-                    title="Move Right"
-                  >
-                    <ChevronRight className="size-4" />
-                  </button>
+
+                  {/* Reorder Controls overlay on hover */}
+                  <div className="absolute inset-x-0 bottom-0 bg-black/60 flex items-center justify-around py-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                    <button
+                      type="button"
+                      disabled={globalIdx === 0}
+                      onClick={() => onMoveImage(globalIdx, 'left')}
+                      className="text-white hover:text-indigo-300 disabled:opacity-30 disabled:hover:text-white"
+                      title="Move Left"
+                    >
+                      <ChevronLeft className="size-4" />
+                    </button>
+                    <span className="text-[10px] text-white select-none font-medium">{globalIdx + 1}</span>
+                    <button
+                      type="button"
+                      disabled={globalIdx === variant.images.length - 1}
+                      onClick={() => onMoveImage(globalIdx, 'right')}
+                      className="text-white hover:text-indigo-300 disabled:opacity-30 disabled:hover:text-white"
+                      title="Move Right"
+                    >
+                      <ChevronRight className="size-4" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
