@@ -50,6 +50,7 @@ function buildProductSharePage({ product, variantId, storefrontUrl }) {
   <meta property="og:description" content="${escapeHtml(description)}">
   <meta property="og:url" content="${escapeHtml(shareUrl)}">
   <meta property="og:image" content="${escapeHtml(imageUrl)}">
+  <meta property="og:image:secure_url" content="${escapeHtml(imageUrl)}">
   <meta property="og:image:alt" content="${escapeHtml(product.name)}">
   <meta property="product:price:amount" content="${escapeHtml(product.price)}">
   <meta property="product:price:currency" content="INR">

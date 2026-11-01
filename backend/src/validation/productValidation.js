@@ -18,6 +18,12 @@ const outfitComponentJoiSchema = Joi.object({
   availableSizes: Joi.array().items(Joi.string().trim().min(1).max(50)).min(1).unique().required(),
 });
 
+const sizeStockJoiSchema = Joi.object({
+  size: Joi.string().trim().min(1).max(50).required(),
+  available: Joi.number().integer().min(0).required(),
+  reserved: Joi.number().integer().min(0).default(0),
+});
+
 // Create Product Schema
 exports.createProductSchema = Joi.object({
   name: Joi.string().trim().required(),
@@ -37,6 +43,7 @@ exports.createProductSchema = Joi.object({
     damaged: Joi.number().min(0),
     lowStockThreshold: Joi.number().min(0),
   }).required(),
+  sizeStock: Joi.array().items(sizeStockJoiSchema).unique('size').default([]),
   tags: Joi.array().items(Joi.string()),
   attributes: Joi.array().items(
     Joi.object({
@@ -79,6 +86,7 @@ exports.updateProductSchema = Joi.object({
     damaged: Joi.number().min(0),
     lowStockThreshold: Joi.number().min(0),
   }),
+  sizeStock: Joi.array().items(sizeStockJoiSchema).unique('size'),
   tags: Joi.array().items(Joi.string()),
   attributes: Joi.array().items(
     Joi.object({

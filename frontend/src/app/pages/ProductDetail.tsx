@@ -12,8 +12,12 @@ import { OutfitComponent, ProductVariant, SelectedOutfitComponent, SelectedVaria
 import { isVideoMediaUrl } from "../utils/media";
 import { saveBuyNowItem } from "../checkout/buyNowStorage";
 import { WomenSizeGuideDialog } from "../components/WomenSizeGuideDialog";
-import { getEuShoeSize, isFootwearProduct } from "../utils/womenShoeSizes";
+import { getEuShoeSize, getFootwearSizeOptions, isFootwearProduct } from "../utils/womenShoeSizes";
 import { API_BASE_URL, resilientFetch } from "../api/client";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../components/ui/alert-dialog";
+import { STORE } from "../config/store";
+import { buildWhatsAppUrl } from "../chatbot/chatbotKnowledge";
+import { buildStockRequestMessage } from "../utils/stockRequest";
 
 
 interface Product {
@@ -33,6 +37,7 @@ interface Product {
   outfitComponents?: OutfitComponent[];
   clothingType?: string;
   stock?: { available: number };
+  sizeStock?: Array<{ size: string; available: number; reserved?: number }>;
   inStock?: boolean;
   additionalChargeName?: string;
   additionalChargeAmount?: number;
@@ -51,6 +56,7 @@ export function ProductDetail() {
   const [added, setAdded] = useState(false);
   const [showAnimation, setShowAnimation] = useState(false);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [stockRequestOption, setStockRequestOption] = useState<{ eu: string; storedSize: string | null; available: boolean; quantity: number | null } | null>(null);
   const [componentSizes, setComponentSizes] = useState<Record<string, string>>({});
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   
@@ -102,7 +108,7 @@ export function ProductDetail() {
         // Legacy per-piece products may not have sizes stored directly on the
         // product. Fall back to the public admin-managed size options so the
         // customer can still select a size before adding the item to cart.
-        if ((productData.soldBy || 'piece') === 'piece' && availableSizes.length === 0 && !productData.outfitComponents?.length) {
+        if ((productData.soldBy || 'piece') === 'piece' && availableSizes.length === 0 && !productData.sizeStock?.length && !productData.outfitComponents?.length) {
           try {
             const optionsResponse = await resilientFetch(`${API_BASE_URL}/api/v1/catalog/product-options`);
             if (optionsResponse.ok) {
@@ -152,6 +158,8 @@ export function ProductDetail() {
           soldBy: productData.soldBy || 'piece',
           isFlatPrice: productData.isFlatPrice ?? false,
           availableSizes,
+          stock: productData.stock || { available: 0 },
+          sizeStock: Array.isArray(productData.sizeStock) ? productData.sizeStock : [],
           outfitComponents: Array.isArray(productData.outfitComponents) ? productData.outfitComponents : [],
           clothingType: productData.clothingType || '',
           inStock: productData.inStock !== false,
@@ -387,17 +395,38 @@ export function ProductDetail() {
   const carouselImages = galleryImages.map((img: any) => typeof img === 'string' ? img : img.imageUrl);
   const primaryImageForAnimation = carouselImages && carouselImages.length > 0 ? carouselImages[0] : product.image;
   const activeMedia = carouselImages[activeImageIndex] || product.image;
+  const stockRequestImage = carouselImages.find((media) => !isVideoMediaUrl(media)) || product.image;
   const variants = product.variants || [];
-  const requiresSize = Boolean(product.availableSizes?.length);
+  const requiresSize = Boolean(product.availableSizes?.length || product.sizeStock?.length);
+  const usesEuShoeSizes = isFootwearProduct(product);
+  const sizeOptions = usesEuShoeSizes
+    ? getFootwearSizeOptions(product.availableSizes || [], product.sizeStock || [])
+    : (product.availableSizes || []).map((size) => ({ eu: size, storedSize: size, available: true, quantity: null }));
   const missingComponentCount = (product.outfitComponents || []).filter((component) => !componentSizes[component.componentId]).length;
   const purchaseDisabled = !product.inStock || (requiresSize && !selectedSize) || missingComponentCount > 0;
   const productLookupCode = product.id.slice(-8).toUpperCase();
   const hasPinkShootDetails = productLookupCode === '36A46A94';
-  const usesEuShoeSizes = isFootwearProduct(product);
   const hasDiscount = product.soldBy !== 'meter' && (product.compareAtPrice ?? 0) > product.price;
   const discountPercentage = hasDiscount
     ? Math.round((1 - product.price / product.compareAtPrice) * 100)
     : 0;
+  const stockRequestVariantQuery = selectedVariant?.variantId
+    ? `?${new URLSearchParams({ variant: selectedVariant.variantId })}`
+    : '';
+  const stockRequestShareUrl = `${window.location.origin}/share/product/${encodeURIComponent(product.id)}${stockRequestVariantQuery}`;
+
+  const handleStockRequest = () => {
+    if (!stockRequestOption) return;
+
+    const message = buildStockRequestMessage({
+      productName: product.name,
+      productCode: productLookupCode,
+      size: stockRequestOption.eu,
+      shareUrl: stockRequestShareUrl,
+    });
+    window.open(buildWhatsAppUrl(STORE.whatsappNumbers[0], message), '_blank', 'noopener,noreferrer');
+    setStockRequestOption(null);
+  };
 
   return (
     <>
@@ -434,7 +463,7 @@ export function ProductDetail() {
         </section>
 
         <section aria-labelledby="product-title" className="px-1 py-2 sm:px-2 lg:sticky lg:top-[88px] lg:max-h-[calc(100dvh-105px)] lg:self-start lg:overflow-y-auto lg:px-4">
-          <div className="flex flex-wrap items-center gap-2"><Badge variant="secondary">{product.brand || product.category || 'Shoe Style'}</Badge><Badge variant={product.inStock ? 'outline' : 'destructive'} className={product.inStock ? 'border-black/20 bg-white text-black' : ''}>{product.inStock ? 'In stock' : 'Out of stock'}</Badge></div>
+              <div className="flex flex-wrap items-center gap-2"><Badge variant="secondary">{product.brand || product.category || 'Shoe Style'}</Badge><Badge variant={product.inStock ? 'outline' : 'destructive'} className={product.inStock ? 'border-black/20 bg-white text-black' : ''}>{product.inStock ? `${product.stock?.available ?? 0} available` : 'Out of stock'}</Badge></div>
           <div className="mt-3"><h1 id="product-title" className="text-xl font-semibold leading-tight tracking-tight sm:text-2xl">{product.name}</h1></div>
           <div className="mt-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b pb-4"><div><div className="flex flex-wrap items-baseline gap-2"><p className="text-2xl font-bold text-black">₹{(product.soldBy === 'meter' && selectedMeters === 5 ? product.price + (product.compareAtPrice || 0) : product.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>{hasDiscount && <><p className="text-sm text-muted-foreground line-through" aria-label={`Original price ₹${product.compareAtPrice.toLocaleString('en-IN')}`}>₹{product.compareAtPrice.toLocaleString('en-IN')}</p><Badge className="bg-emerald-800 text-white hover:bg-emerald-800">-{discountPercentage}% OFF</Badge></>}</div><p className="mt-0.5 text-xs text-muted-foreground">MRP inclusive of all taxes</p></div><p className="text-xs text-muted-foreground">Product code: {productLookupCode}</p></div>
 
@@ -450,7 +479,7 @@ export function ProductDetail() {
                 {product.outfitComponents.map((component, index) => <fieldset key={component.componentId}><legend className="text-sm font-medium">{index + 1}. {component.name} <span className="text-destructive" aria-hidden="true">*</span></legend><div className="mt-2 flex flex-wrap gap-2">{component.availableSizes.map((size) => { const selected = componentSizes[component.componentId] === size; return <button key={size} type="button" onClick={() => setComponentSizes((current) => ({ ...current, [component.componentId]: size }))} className={`min-h-10 min-w-12 rounded-sm border px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${selected ? 'border-foreground bg-foreground text-background' : 'bg-background hover:border-foreground'}`} aria-pressed={selected}>{size}</button>; })}</div></fieldset>)}
                 <p className="text-xs font-medium" aria-live="polite">{missingComponentCount === 0 ? 'All sizes selected — ready to add.' : `${missingComponentCount} size${missingComponentCount === 1 ? '' : 's'} still required.`}</p>
               </section>
-            ) : product.availableSizes && product.availableSizes.length > 0 ? <fieldset><div className="flex items-center justify-between gap-4"><legend className="text-sm font-semibold">Select {usesEuShoeSizes ? 'EU size' : 'size'} <span className="text-destructive" aria-hidden="true">*</span><span className="sr-only">(required)</span></legend>{usesEuShoeSizes && <WomenSizeGuideDialog />}</div><div className="mt-2 grid grid-cols-4 gap-2 sm:flex sm:flex-wrap">{product.availableSizes.map((size) => { const displaySize = usesEuShoeSizes ? getEuShoeSize(size) : size; return <button key={size} type="button" onClick={() => setSelectedSize(size)} className={`min-h-12 min-w-14 rounded-sm border px-3 py-2 text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${selectedSize === size ? 'border-foreground bg-foreground text-background' : 'border-input bg-background hover:border-foreground hover:bg-accent'}`} aria-pressed={selectedSize === size} aria-label={`${usesEuShoeSizes ? 'EU size' : 'Size'} ${displaySize}${selectedSize === size ? ', selected' : ''}`}>{displaySize}</button>; })}</div><p className={`mt-2 text-xs ${selectedSize ? 'font-medium text-foreground' : 'text-muted-foreground'}`} aria-live="polite">{selectedSize ? `Selected: ${usesEuShoeSizes ? 'EU ' : ''}${usesEuShoeSizes ? getEuShoeSize(selectedSize) : selectedSize}` : `Choose your ${usesEuShoeSizes ? 'EU ' : ''}size to continue`}</p></fieldset> : <div><p className="text-sm font-semibold">Sold by</p><p className="mt-2 text-sm text-muted-foreground">{product.soldBy === 'meter' ? 'Fabric length' : 'One piece'}</p></div>}
+            ) : sizeOptions.length > 0 ? <fieldset><div className="flex items-center justify-between gap-4"><legend className="text-sm font-semibold">Select {usesEuShoeSizes ? 'EU size' : 'size'} <span className="text-destructive" aria-hidden="true">*</span><span className="sr-only">(required)</span></legend>{usesEuShoeSizes && <WomenSizeGuideDialog />}</div><div className="mt-2 grid grid-cols-4 gap-2 sm:flex sm:flex-wrap">{sizeOptions.map((option) => { const selected = option.available && selectedSize === option.storedSize; return <button key={option.eu} type="button" onClick={() => option.available && option.storedSize ? setSelectedSize(option.storedSize) : setStockRequestOption(option)} className={`relative min-h-12 min-w-14 overflow-hidden rounded-sm border px-3 py-2 text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${selected ? 'border-foreground bg-foreground text-background' : option.available ? 'border-input bg-background hover:border-foreground hover:bg-accent' : 'cursor-pointer border-input bg-muted/40 text-muted-foreground hover:border-foreground after:absolute after:left-1/2 after:top-1/2 after:h-px after:w-[140%] after:-translate-x-1/2 after:-translate-y-1/2 after:-rotate-45 after:bg-current after:content-[\'\']'}`} aria-pressed={selected} aria-label={`${usesEuShoeSizes ? 'EU size' : 'Size'} ${option.eu}${!option.available ? ', unavailable, request on WhatsApp' : selected ? ', selected' : ''}`}>{option.eu}</button>; })}</div><p className={`mt-2 text-xs ${selectedSize ? 'font-medium text-foreground' : 'text-muted-foreground'}`} aria-live="polite">{selectedSize ? `Selected: ${usesEuShoeSizes ? 'EU ' : ''}${usesEuShoeSizes ? getEuShoeSize(selectedSize) : selectedSize}${sizeOptions.find((option) => option.storedSize === selectedSize)?.quantity !== null ? ` · ${sizeOptions.find((option) => option.storedSize === selectedSize)?.quantity} available` : ''}` : `Choose your ${usesEuShoeSizes ? 'EU ' : ''}size to continue. Crossed-out sizes can be requested on WhatsApp.`}</p></fieldset> : <div><p className="text-sm font-semibold">Sold by</p><p className="mt-2 text-sm text-muted-foreground">{product.soldBy === 'meter' ? 'Fabric length' : 'One piece'}</p></div>}
           </div>
 
           <div ref={buttonRef} className="space-y-2">
@@ -550,6 +579,24 @@ export function ProductDetail() {
           </div>
         </section>
       </div>
+      <AlertDialog open={stockRequestOption !== null} onOpenChange={(open) => { if (!open) setStockRequestOption(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Request EU size {stockRequestOption?.eu}</AlertDialogTitle>
+            <AlertDialogDescription>
+              This size is currently out of stock. Review the product and continue to WhatsApp to ask Sarojini Shoe Style about availability.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex items-center gap-4 rounded-md border bg-muted/20 p-3">
+            <img src={stockRequestImage} alt={product.name} className="size-20 shrink-0 rounded-md object-cover" />
+            <div className="min-w-0"><p className="font-semibold">{product.name}</p><p className="mt-1 text-sm text-muted-foreground">EU size {stockRequestOption?.eu} · Product {productLookupCode}</p></div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleStockRequest}>Request this size on WhatsApp</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       {showAnimation && <AddToCartAnimation show={showAnimation} startPosition={animationPositions.start} endPosition={animationPositions.end} productImage={primaryImageForAnimation} onComplete={handleAnimationComplete} />}
       </main>
     </>

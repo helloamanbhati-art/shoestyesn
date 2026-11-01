@@ -68,3 +68,21 @@ test('untracked products do not mutate stock during reservation', async (t) => {
   assert.equal(mutationAttempted, false);
   assert.equal(result.trackInventory, false);
 });
+
+test('reserveStock atomically reserves the selected size and total product stock', async (t) => {
+  let capturedQuery;
+  let capturedUpdate;
+  t.mock.method(Product, 'findById', async () => ({ trackInventory: true }));
+  t.mock.method(Product, 'findOneAndUpdate', async (query, update) => {
+    capturedQuery = query;
+    capturedUpdate = update;
+    return { stock: { available: 3 }, sizeStock: [{ size: '38', available: 3, reserved: 2 }], inStock: true };
+  });
+  t.mock.method(Product, 'updateOne', async () => ({ acknowledged: true }));
+
+  await inventoryService.reserveStock('product-1', 2, { size: '38' });
+
+  assert.deepEqual(capturedQuery.sizeStock, { $elemMatch: { size: '38', available: { $gte: 2 } } });
+  assert.equal(capturedUpdate.$inc['sizeStock.$.available'], -2);
+  assert.equal(capturedUpdate.$inc['sizeStock.$.reserved'], 2);
+});

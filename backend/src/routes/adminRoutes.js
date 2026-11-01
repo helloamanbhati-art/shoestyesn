@@ -10,7 +10,7 @@ const ProductOptions = require("../models/ProductOptions");
 const AppSettings = require('../models/AppSettings');
 const DailyVisitor = require('../models/DailyVisitor');
 const { getVisitorSummary } = require('../services/visitorAnalyticsService');
-const { resolveInitialStock } = require("../services/productStockService");
+const { normalizeSizeStock, resolveInitialStock } = require("../services/productStockService");
 const {
   clearAdminCookies,
   createAdminSessionService,
@@ -311,7 +311,8 @@ router.post('/products', async (req, res) => {
     const legacyImages = firstVariantImages.length > 0 ? firstVariantImages
       : Array.isArray(data.images) ? data.images : [];
     const legacyImage = data.image || legacyImages[0] || '';
-    const initialStock = resolveInitialStock(data);
+    const sizeStock = normalizeSizeStock(data.sizeStock);
+    const initialStock = resolveInitialStock({ ...data, sizeStock });
 
     const productData = {
       name: data.name,
@@ -320,6 +321,7 @@ router.post('/products', async (req, res) => {
       soldBy: data.soldBy,
       clothingType: data.clothingType || null,
       availableSizes: Array.isArray(data.availableSizes) ? data.availableSizes : [],
+      sizeStock,
       outfitComponents: Array.isArray(data.outfitComponents) ? data.outfitComponents : [],
       brand: brandId,
       category: categoryId,
@@ -430,6 +432,16 @@ router.put('/products/:productId', async (req, res) => {
       : Array.isArray(data.images) ? data.images : undefined;
     const legacyImage = data.image || (legacyImages && legacyImages[0]) || undefined;
 
+    const existingProduct = await Product.findById(req.params.productId).select('sizeStock stock');
+    if (!existingProduct) return res.status(404).json({ success: false, message: 'Product not found' });
+    const sizeStock = Array.isArray(data.sizeStock)
+      ? normalizeSizeStock(data.sizeStock).map((entry) => ({
+          ...entry,
+          reserved: existingProduct.sizeStock?.find((current) => current.size === entry.size)?.reserved || 0,
+        }))
+      : undefined;
+    const available = sizeStock?.reduce((sum, entry) => sum + entry.available, 0);
+
     const updatePayload = {
       ...data,
       isFlatPrice: data.soldBy === 'meter' ? true : (data.isFlatPrice !== undefined ? data.isFlatPrice : undefined),
@@ -439,7 +451,13 @@ router.put('/products/:productId', async (req, res) => {
       ...(variants !== undefined && { variants }),
       ...(legacyImages !== undefined && { images: legacyImages }),
       ...(legacyImage !== undefined && { image: legacyImage }),
+      ...(sizeStock !== undefined && {
+        sizeStock,
+        'stock.available': available,
+        inStock: available > 0,
+      }),
     };
+    if (sizeStock !== undefined) delete updatePayload.stock;
 
     const product = await Product.findByIdAndUpdate(
       req.params.productId,

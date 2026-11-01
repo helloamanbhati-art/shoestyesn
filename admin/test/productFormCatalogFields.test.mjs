@@ -13,7 +13,7 @@ test('product form matches the footwear fields shown on the storefront', () => {
   assert.match(source, /MRP \(₹\)/);
   assert.match(source, /Category \*/);
   assert.match(source, /Footwear type/);
-  assert.match(source, /Available sizes/);
+  assert.match(source, /Quantity by size/);
   assert.match(source, /Product Description/);
   assert.match(source, /Colours, Photos & Videos \*/);
 });
@@ -29,12 +29,19 @@ test('product form omits generic fields that do not apply to this catalog', () =
 test('footwear products provide EU sizes 35 through 41', () => {
   assert.match(source, /FOOTWEAR_SIZES = \['35', '36', '37', '38', '39', '40', '41'\]/);
   assert.doesNotMatch(source, /FOOTWEAR_SIZES = \['3', '4', '5', '6', '7', '8'\]/);
-  assert.match(source, /Select all/);
+  assert.match(source, /Use 0 for a sold-out size/);
   assert.doesNotMatch(source, /Add full outfit/);
   assert.doesNotMatch(source, /Separate sizes with commas\./);
   assert.doesNotMatch(source, /New product size/);
   assert.doesNotMatch(source, /Add a size, e\.g\. M\(38\)/);
   assert.doesNotMatch(source, /handleAddProductSize/);
+});
+
+test('admin can enter an exact quantity for every footwear size', () => {
+  assert.match(source, /sizeQuantities/);
+  assert.match(source, /Quantity for EU size/);
+  assert.match(source, /sizeStock:/);
+  assert.match(source, /Total available:/);
 });
 
 test('footwear type dropdown provides women footwear choices instead of apparel choices', () => {

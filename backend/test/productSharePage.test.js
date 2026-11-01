@@ -26,6 +26,7 @@ test('product share page includes rich preview metadata and opens the exact prod
 
   assert.match(html, /property="og:title" content="Green Co-ord Set \| Shoe Fashion"/);
   assert.match(html, /property="og:image" content="https:\/\/images\.example\.com\/green\.jpg"/);
+  assert.match(html, /property="og:image:secure_url" content="https:\/\/images\.example\.com\/green\.jpg"/);
   assert.match(html, /property="product:price:amount" content="2499"/);
   assert.match(html, /url=https:\/\/shop\.example\.com\/product\/507f1f77bcf86cd799439011/);
 });

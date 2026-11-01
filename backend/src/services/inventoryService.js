@@ -20,18 +20,26 @@ exports.reserveStock = async (productId, quantity, options = {}) => {
     if (!product) throw new Error("Product not found");
     if (product.trackInventory === false) return product;
 
-    const updated = await Product.findOneAndUpdate(
-      {
+    const size = String(options.size || '').trim();
+    const query = {
         _id: productId,
         isActive: true,
         trackInventory: { $ne: false },
         "stock.available": { $gte: amount },
-      },
+      };
+    if (size) query.sizeStock = { $elemMatch: { size, available: { $gte: amount } } };
+    const increments = {
+      "stock.available": -amount,
+      "stock.reserved": amount,
+    };
+    if (size) {
+      increments["sizeStock.$.available"] = -amount;
+      increments["sizeStock.$.reserved"] = amount;
+    }
+    const updated = await Product.findOneAndUpdate(
+      query,
       {
-        $inc: {
-          "stock.available": -amount,
-          "stock.reserved": amount,
-        },
+        $inc: increments,
       },
       { new: true, runValidators: true, ...withSession(options) }
     );
@@ -60,16 +68,24 @@ exports.releaseReservedStock = async (productId, quantity, options = {}) => {
     const product = await Product.findById(productId, "trackInventory", withSession(options));
     if (!product) throw new Error("Product not found");
     if (product.trackInventory === false) return product;
-    const updated = await Product.findOneAndUpdate(
-      {
+    const size = String(options.size || '').trim();
+    const query = {
         _id: productId,
         "stock.reserved": { $gte: amount },
-      },
+      };
+    if (size) query.sizeStock = { $elemMatch: { size, reserved: { $gte: amount } } };
+    const increments = {
+      "stock.available": amount,
+      "stock.reserved": -amount,
+    };
+    if (size) {
+      increments["sizeStock.$.available"] = amount;
+      increments["sizeStock.$.reserved"] = -amount;
+    }
+    const updated = await Product.findOneAndUpdate(
+      query,
       {
-        $inc: {
-          "stock.available": amount,
-          "stock.reserved": -amount,
-        },
+        $inc: increments,
         $set: { inStock: true },
       },
       { new: true, runValidators: true, ...withSession(options) }
@@ -89,16 +105,21 @@ exports.confirmStockUsage = async (productId, quantity, options = {}) => {
     const product = await Product.findById(productId, "trackInventory", withSession(options));
     if (!product) throw new Error("Product not found");
     if (product.trackInventory === false) return product;
-    const updated = await Product.findOneAndUpdate(
-      {
+    const size = String(options.size || '').trim();
+    const query = {
         _id: productId,
         "stock.reserved": { $gte: amount },
-      },
+      };
+    if (size) query.sizeStock = { $elemMatch: { size, reserved: { $gte: amount } } };
+    const increments = {
+      "stock.reserved": -amount,
+      totalSales: amount,
+    };
+    if (size) increments["sizeStock.$.reserved"] = -amount;
+    const updated = await Product.findOneAndUpdate(
+      query,
       {
-        $inc: {
-          "stock.reserved": -amount,
-          totalSales: amount,
-        },
+        $inc: increments,
       },
       { new: true, runValidators: true, ...withSession(options) }
     );

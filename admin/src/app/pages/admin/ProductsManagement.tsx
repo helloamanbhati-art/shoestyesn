@@ -6,8 +6,6 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
 import { Badge } from '../../components/ui/badge';
-import { Switch } from '../../components/ui/switch';
-import { Checkbox } from '../../components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -89,7 +87,11 @@ interface Product {
   outfitComponents?: OutfitComponent[];
   inStock?: boolean;
   compareAtPrice?: number;
+  stock?: { available: number; reserved?: number };
+  sizeStock?: Array<{ size: string; available: number; reserved?: number }>;
 }
+
+const emptySizeQuantities = () => Object.fromEntries(FOOTWEAR_SIZES.map((size) => [size, ''])) as Record<string, string>;
 
 const isVideoUrl = (url: string) => /\.(mp4|webm|ogg|mov|m4v)(?:[?#]|$)/i.test(url);
 
@@ -175,6 +177,8 @@ useEffect(() => {
           outfitComponents: p.outfitComponents || [],
           inStock: p.inStock ?? true,
           compareAtPrice: p.compareAtPrice || 0,
+          stock: p.stock || { available: 0 },
+          sizeStock: p.sizeStock || [],
         };
       });
       if (active) {
@@ -238,6 +242,7 @@ useEffect(() => {
     availableSizes: [] as string[],
     outfitComponents: [] as OutfitComponent[],
     compareAtPrice: '',
+    sizeQuantities: emptySizeQuantities(),
   });
 
   // Filter products
@@ -280,6 +285,10 @@ useEffect(() => {
         availableSizes: product.availableSizes || [],
         outfitComponents: product.outfitComponents || [],
         compareAtPrice: product.compareAtPrice ? product.compareAtPrice.toString() : '',
+        sizeQuantities: Object.fromEntries(FOOTWEAR_SIZES.map((size) => [
+          size,
+          String(product.sizeStock?.find((entry) => entry.size === size)?.available ?? 0),
+        ])),
       });
 
       if (product.variants && product.variants.length > 0) {
@@ -322,6 +331,7 @@ useEffect(() => {
         availableSizes: [],
         outfitComponents: [],
         compareAtPrice: '',
+        sizeQuantities: emptySizeQuantities(),
       });
       setVariantsDraft([newVariantDraft('Default')]);
     }
@@ -350,11 +360,6 @@ useEffect(() => {
       toast.error('Please fill in all required fields');
       return;
     }
-    if (formData.availableSizes.length === 0) {
-      toast.error('Select at least one available footwear size');
-      return;
-    }
-
     const totalMedia = variantsDraft.reduce((acc, v) => acc + v.images.length, 0);
     if (totalMedia === 0) {
       toast.error('Please upload at least one product photo or video in your variants');
@@ -415,6 +420,11 @@ useEffect(() => {
       }
 
       // Step 2: Save product to database
+      const sizeStock = FOOTWEAR_SIZES.map((size) => ({
+        size,
+        available: Math.max(0, Math.floor(Number(formData.sizeQuantities[size]) || 0)),
+      }));
+      const totalAvailable = sizeStock.reduce((sum, entry) => sum + entry.available, 0);
       const payload = {
         name: formData.name.trim(),
         description: formData.description.trim() || formData.name.trim(),
@@ -423,10 +433,12 @@ useEffect(() => {
         price: parseFloat(formData.price),
         soldBy: 'piece',
         clothingType: formData.clothingType || null,
-        availableSizes: formData.availableSizes,
+        availableSizes: sizeStock.filter((entry) => entry.available > 0).map((entry) => entry.size),
+        sizeStock,
+        stock: { available: totalAvailable },
         outfitComponents: formData.outfitComponents,
         variants: finalizedVariants,
-        inStock: editingProduct?.inStock ?? true,
+        inStock: totalAvailable > 0,
         isActive: true,
         compareAtPrice: parseFloat(formData.compareAtPrice) || 0,
       };
@@ -457,6 +469,8 @@ useEffect(() => {
       outfitComponents: data.data.outfitComponents || [],
       inStock: data.data.inStock,
       compareAtPrice: data.data.compareAtPrice || 0,
+      stock: data.data.stock || { available: 0 },
+      sizeStock: data.data.sizeStock || [],
     };
     setProducts(prev => prev.map(p => p.id === editingProduct.id ? updatedProduct : p));
     toast.success('Product updated successfully');
@@ -493,6 +507,8 @@ useEffect(() => {
       outfitComponents: data.data.outfitComponents || [],
       inStock: data.data.inStock,
       compareAtPrice: data.data.compareAtPrice || 0,
+      stock: data.data.stock || { available: 0 },
+      sizeStock: data.data.sizeStock || [],
     };
     setProducts(prev => [newProduct, ...prev]);
     productCreationKeyRef.current = null;
@@ -509,6 +525,7 @@ useEffect(() => {
     availableSizes: [],
     outfitComponents: [],
     compareAtPrice: '',
+    sizeQuantities: emptySizeQuantities(),
   });
     } catch (err) {
       console.error('Error saving product:', err);
@@ -531,41 +548,6 @@ useEffect(() => {
       toast.success('Product deleted successfully');
     } catch (err) {
       toast.error('Failed to delete product');
-    }
-  };
-
-  const handleToggleStock = async (product: Product) => {
-    const nextInStock = !product.inStock;
-    
-    // Optimistic UI update
-    setProducts(prev =>
-      prev.map(p => (p.id === product.id ? { ...p, inStock: nextInStock } : p))
-    );
-
-    try {
-      const res = await adminFetch(`/api/v1/admin/products/${product.id}`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: {
-          ...getAuthHeaders(),
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ inStock: nextInStock }),
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to update stock status in database');
-      }
-
-      toast.success(`Stock status updated for ${product.name}`);
-    } catch (err) {
-      console.error('Error toggling stock status:', err);
-      toast.error('Failed to update stock status in database');
-      
-      // Revert UI update on failure
-      setProducts(prev =>
-        prev.map(p => (p.id === product.id ? { ...p, inStock: product.inStock } : p))
-      );
     }
   };
 
@@ -789,13 +771,8 @@ useEffect(() => {
 
                         <div className="sm:mt-3">
                           <div className="flex items-center gap-2">
-                            <Switch
-                              checked={product.inStock}
-                              onCheckedChange={() => handleToggleStock(product)}
-                              aria-label={`Mark ${product.name} as ${product.inStock ? 'out of stock' : 'in stock'}`}
-                            />
                             <Badge className={product.inStock ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs'}>
-                              {product.inStock ? 'In Stock' : 'Out'}
+                              {product.inStock ? `${product.stock?.available || 0} in stock` : 'Sold out'}
                             </Badge>
                           </div>
                         </div>
@@ -1033,44 +1010,37 @@ useEffect(() => {
             <fieldset className="space-y-3 rounded-md border p-3 sm:p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <legend className="text-sm font-medium">Available sizes *</legend>
-                      <p className="mt-1 text-xs text-muted-foreground">EU footwear sizes saved exactly as shown on the Shoe Fashion storefront.</p>
+                  <legend className="text-sm font-medium">Quantity by size *</legend>
+                  <p className="mt-1 text-xs text-muted-foreground">Enter the pairs available for each EU size. Use 0 for a sold-out size.</p>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setFormData((current) => ({
-                    ...current,
-                    availableSizes: current.availableSizes.length === FOOTWEAR_SIZES.length ? [] : [...FOOTWEAR_SIZES],
-                  }))}
-                >
-                  {formData.availableSizes.length === FOOTWEAR_SIZES.length ? 'Clear' : 'Select all'}
-                </Button>
+                <Badge variant="secondary">Total available: {FOOTWEAR_SIZES.reduce((sum, size) => sum + (Number(formData.sizeQuantities[size]) || 0), 0)}</Badge>
               </div>
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-7">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {FOOTWEAR_SIZES.map((size) => {
-                  const checked = formData.availableSizes.includes(size);
-                  const inputId = `footwear-size-${size}`;
+                  const inputId = `footwear-size-quantity-${size}`;
                   return (
-                    <label key={size} htmlFor={inputId} className={`flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md border px-2 py-2 text-sm transition-colors ${checked ? 'border-primary bg-primary/5 font-medium' : 'hover:bg-muted'}`}>
-                      <Checkbox
+                    <div key={size} className="rounded-md border p-3">
+                      <Label htmlFor={inputId} className="mb-2 block text-xs font-semibold">EU {size}</Label>
+                      <Input
                         id={inputId}
-                        checked={checked}
-                        onCheckedChange={(nextChecked) => setFormData((current) => ({
+                        type="number"
+                        min="0"
+                        step="1"
+                        inputMode="numeric"
+                        value={formData.sizeQuantities[size]}
+                        aria-label={`Quantity for EU size ${size}`}
+                        onChange={(event) => setFormData((current) => ({
                           ...current,
-                          availableSizes: nextChecked
-                            ? [...current.availableSizes, size].sort((a, b) => Number(a) - Number(b))
-                            : current.availableSizes.filter((item) => item !== size),
+                          sizeQuantities: { ...current.sizeQuantities, [size]: event.target.value },
                         }))}
+                        placeholder="0"
                       />
-                      <span>{size}</span>
-                    </label>
+                    </div>
                   );
                 })}
               </div>
               <p className="text-xs font-medium text-muted-foreground" aria-live="polite">
-                {formData.availableSizes.length} of {FOOTWEAR_SIZES.length} sizes selected
+                Sizes with zero quantity will remain visible but crossed out on the storefront.
               </p>
             </fieldset>
 

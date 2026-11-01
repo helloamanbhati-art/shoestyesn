@@ -53,3 +53,12 @@ test('checkout rejects a cart quantity that is no longer available', () => {
     variantId: 'default',
   }]), (error) => error instanceof CheckoutError && error.code === 'INSUFFICIENT_STOCK');
 });
+
+test('checkout rejects quantity above the selected size inventory', () => {
+  assert.throws(() => buildOrderItems([{
+    product: product({ stock: { available: 5 }, sizeStock: [{ size: 'M', available: 1 }] }),
+    quantity: 2,
+    selectedSize: 'M',
+    variantId: 'default',
+  }]), (error) => error instanceof CheckoutError && error.code === 'INSUFFICIENT_SIZE_STOCK');
+});

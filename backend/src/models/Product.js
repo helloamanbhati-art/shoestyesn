@@ -19,6 +19,12 @@ const outfitComponentSchema = new mongoose.Schema({
   availableSizes: { type: [String], default: [] },
 }, { _id: false });
 
+const sizeStockSchema = new mongoose.Schema({
+  size: { type: String, required: true, trim: true },
+  available: { type: Number, default: 0, min: 0 },
+  reserved: { type: Number, default: 0, min: 0 },
+}, { _id: false });
+
 const productSchema = new mongoose.Schema(
   {
     // Basic Info
@@ -96,6 +102,7 @@ const productSchema = new mongoose.Schema(
       default: true,
     },
     trackInventory: { type: Boolean, default: true },
+    sizeStock: { type: [sizeStockSchema], default: [] },
 
     // Tax
     taxable: { type: Boolean, default: true },

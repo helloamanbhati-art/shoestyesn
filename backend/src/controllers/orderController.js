@@ -139,7 +139,7 @@ exports.createOrder = async (req, res, next) => {
           const quote = await quoteCart(cartItems, address.state, input.couponCode, customer?._id);
 
           for (const item of quote.items) {
-            await inventoryService.reserveStock(item.product, item.quantity, { session });
+            await inventoryService.reserveStock(item.product, item.quantity, { session, size: item.size });
           }
 
           const orderNumber = `ORD-${Date.now()}-${crypto.randomBytes(5).toString('hex').toUpperCase()}`;
@@ -193,7 +193,7 @@ exports.createOrder = async (req, res, next) => {
             const current = await Order.findOne({ _id: order._id, 'stockReservation.status': 'reserved' }).session(compensation);
             if (current) {
               for (const item of current.items) {
-                await inventoryService.releaseReservedStock(item.product, item.quantity, { session: compensation });
+                await inventoryService.releaseReservedStock(item.product, item.quantity, { session: compensation, size: item.size });
               }
               current.stockReservation.status = 'released';
               current.stockReservation.releasedAt = new Date();

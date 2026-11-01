@@ -24,6 +24,7 @@ const CARD_PRODUCT_FIELDS = [
   "soldBy",
   "inStock",
   "availableSizes",
+  "sizeStock",
   "clothingType",
   "createdAt",
 ].join(" ");

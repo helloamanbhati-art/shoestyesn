@@ -61,6 +61,12 @@ function buildOrderItems(cartItems) {
     if (product.availableSizes?.length && !product.availableSizes.includes(cartItem.selectedSize)) {
       throw new CheckoutError('SIZE_UNAVAILABLE', `${product.name} size is no longer available`, 409);
     }
+    const sizeInventory = Array.isArray(product.sizeStock)
+      ? product.sizeStock.find((entry) => entry.size === cartItem.selectedSize)
+      : null;
+    if (sizeInventory && Number(sizeInventory.available || 0) < quantity) {
+      throw new CheckoutError('INSUFFICIENT_SIZE_STOCK', `Only ${Math.max(Number(sizeInventory.available || 0), 0)} of ${product.name} in size ${cartItem.selectedSize} remain`, 409);
+    }
     const outfitComponents = Array.isArray(product.outfitComponents) ? product.outfitComponents : [];
     const selectedComponents = outfitComponents.map((component) => {
       const selected = (cartItem.selectedComponents || []).find((item) => item.componentId === component.componentId);

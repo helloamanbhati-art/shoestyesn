@@ -28,6 +28,22 @@ export function getEuShoeSize(storedSize: string): string {
   return LEGACY_WOMEN_SIZE_TO_EU[normalized] ?? normalized;
 }
 
+const STOREFRONT_EU_SIZES = WOMEN_SHOE_SIZE_ROWS
+  .map((row) => row.eu)
+  .filter((size) => Number(size) >= 35 && Number(size) <= 41);
+
+export function getFootwearSizeOptions(
+  availableSizes: string[],
+  sizeStock: Array<{ size: string; available: number }> = [],
+) {
+  return STOREFRONT_EU_SIZES.map((eu) => {
+    const storedSize = availableSizes.find((size) => getEuShoeSize(size) === eu) ?? null;
+    const inventory = sizeStock.find((entry) => getEuShoeSize(entry.size) === eu);
+    const quantity = inventory ? Math.max(0, Number(inventory.available) || 0) : null;
+    return { eu, storedSize, available: storedSize !== null && quantity !== 0, quantity };
+  });
+}
+
 function searchableValue(value: unknown): string {
   if (typeof value === 'string') return value;
   if (value && typeof value === 'object' && 'name' in value && typeof value.name === 'string') return value.name;
