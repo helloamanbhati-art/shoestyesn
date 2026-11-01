@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const { buildProductSharePage } = require('../services/productSharePage');
 
-const DEFAULT_STOREFRONT_URL = 'https://sarojinishoestyle.com';
+const STOREFRONT_URL = 'https://sarojinishoestyle.com';
 
 exports.getProductSharePage = async (req, res, next) => {
   try {
@@ -19,8 +19,7 @@ exports.getProductSharePage = async (req, res, next) => {
     const variantId = typeof req.query.variant === 'string'
       ? req.query.variant.slice(0, 100)
       : '';
-    const storefrontUrl = (process.env.STOREFRONT_URL || DEFAULT_STOREFRONT_URL).replace(/\/+$/, '');
-    const html = buildProductSharePage({ product, variantId, storefrontUrl });
+    const html = buildProductSharePage({ product, variantId, storefrontUrl: STOREFRONT_URL });
 
     return res
       .status(200)

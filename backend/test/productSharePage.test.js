@@ -9,6 +9,7 @@ test('share redirects default to the live Sarojini Shoe Style storefront domain'
   const controllerSource = readFileSync(join(__dirname, '../src/controllers/shareController.js'), 'utf8');
   assert.match(controllerSource, /https:\/\/sarojinishoestyle\.com/);
   assert.doesNotMatch(controllerSource, /https:\/\/shoefashion\.in/);
+  assert.doesNotMatch(controllerSource, /process\.env\.STOREFRONT_URL/);
   assert.doesNotMatch(controllerSource, /amanbhati\.vercel\.app/);
 });
 
