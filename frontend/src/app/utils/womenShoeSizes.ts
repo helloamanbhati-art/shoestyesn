@@ -1,5 +1,4 @@
 export const WOMEN_SHOE_SIZE_ROWS = [
-  { eu: '35', uk: '2.5', india: '2.5', footLength: '22.0' },
   { eu: '36', uk: '3.5', india: '3.5', footLength: '22.5' },
   { eu: '37', uk: '4', india: '4', footLength: '23.0' },
   { eu: '38', uk: '5', india: '5', footLength: '24.0' },
@@ -11,7 +10,6 @@ export const WOMEN_SHOE_SIZE_ROWS = [
 ] as const;
 
 const LEGACY_WOMEN_SIZE_TO_EU: Record<string, string> = {
-  '2': '35',
   '3': '36',
   '4': '37',
   '5': '38',
@@ -30,7 +28,7 @@ export function getEuShoeSize(storedSize: string): string {
 
 const STOREFRONT_EU_SIZES = WOMEN_SHOE_SIZE_ROWS
   .map((row) => row.eu)
-  .filter((size) => Number(size) >= 35 && Number(size) <= 41);
+  .filter((size) => Number(size) >= 36 && Number(size) <= 41);
 
 export function getFootwearSizeOptions(
   availableSizes: string[],
@@ -42,6 +40,21 @@ export function getFootwearSizeOptions(
     const quantity = inventory ? Math.max(0, Number(inventory.available) || 0) : null;
     return { eu, storedSize, available: storedSize !== null && quantity !== 0, quantity };
   });
+}
+
+export type SizeInventoryOption = {
+  storedSize: string | null;
+  quantity: number | null;
+};
+
+export function getSizeQuantityLimit(
+  selectedSize: string | null,
+  sizeOptions: SizeInventoryOption[],
+  fallbackLimit = 10,
+): number {
+  if (!selectedSize) return fallbackLimit;
+  const quantity = sizeOptions.find((option) => option.storedSize === selectedSize)?.quantity;
+  return quantity === null || quantity === undefined ? fallbackLimit : Math.max(1, quantity);
 }
 
 function searchableValue(value: unknown): string {

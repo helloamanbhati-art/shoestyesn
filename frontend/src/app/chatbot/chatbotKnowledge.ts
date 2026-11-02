@@ -70,7 +70,11 @@ export function answerStoreQuestion(input: string, catalog: CatalogItem[] = []):
     return {
       kind: 'contact',
       text: `Call us on ${STORE.phones.join(' or ')}. Email ${STORE.email}, or visit ${STORE.address}.`,
-      actions: [...PHONE_ACTIONS, { label: 'Open WhatsApp', href: buildWhatsAppUrl(STORE.whatsappNumbers[0]) }],
+      actions: [
+        { label: 'Get directions', href: STORE.mapUrl },
+        ...PHONE_ACTIONS,
+        { label: 'Open WhatsApp', href: buildWhatsAppUrl(STORE.whatsappNumbers[0]) },
+      ],
     };
   }
 

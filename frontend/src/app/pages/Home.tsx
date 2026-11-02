@@ -1,7 +1,7 @@
 import { FormEvent, Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router';
-import { API_BASE_URL, apiRequest, resilientFetch } from '../api/client';
+import { API_BASE_URL, resilientFetch } from '../api/client';
 import { ProductCard } from '../components/ProductCard';
 import { CategoryShowcase } from '../components/CategoryShowcase';
 import { TrendingStyles } from '../components/TrendingStyles';
@@ -10,7 +10,6 @@ import { useProductContext } from '../contexts/ProductContext';
 import { usePageTitle } from '../hooks/usePageTitle';
 import type { Product } from '../types/product';
 
-type StorefrontSettings = { bannerUrl: string | null };
 type SearchProduct = Product & { _id?: string };
 type HeroSlide = { category: string; href: string; image: string; alt: string };
 
@@ -35,9 +34,9 @@ function NewArrivalsRail({ products, loading, error }: { products: Product[]; lo
     railRef.current?.scrollBy({ left: direction * railRef.current.clientWidth * .9, behavior: 'smooth' });
   };
 
-  return <section className="new-arrivals" aria-labelledby="new-arrivals-title">
+  return <section id="new-arrivals-title" className="new-arrivals" aria-label="New arrivals">
     <div className="new-arrivals-heading">
-      <div><h2 id="new-arrivals-title">{products.length} new styles just in</h2><span>Fresh arrivals, selected from our latest collection</span></div>
+      <p className="new-arrivals-kicker"><strong>New arrivals</strong><span>Fresh arrivals, selected from our latest collection</span></p>
       <div className="new-arrivals-controls" aria-label="New arrival navigation">
         <button type="button" onClick={() => moveRail(-1)} aria-label="Previous new arrivals"><ChevronLeft/></button>
         <button type="button" onClick={() => moveRail(1)} aria-label="Next new arrivals"><ChevronRight/></button>
@@ -48,7 +47,7 @@ function NewArrivalsRail({ products, loading, error }: { products: Product[]; lo
     {!loading && !error && products.length === 0 && <div className="storefront-status" role="status">The new collection will appear here soon.</div>}
     {products.length > 0 && <div ref={railRef} className="new-arrivals-rail">{products.map((product, index) => <Fragment key={product.id}>
       {index === 2 && <Link className="new-arrivals-mobile-view-all" to="/products">View all products <ArrowRight size={15}/></Link>}
-      <div className={`new-arrivals-card ${index % 3 === 2 ? 'is-wide' : ''}`}><ProductCard product={product} priority={index < 2} variant="editorial" badge="New"/></div>
+      <div className={`new-arrivals-card ${index % 3 === 2 ? 'is-wide' : ''}`}><ProductCard product={product} priority={index < 2} variant="editorial" badge={product.isNewArrival ? 'New' : undefined}/></div>
     </Fragment>)}</div>}
     {products.length > 0 && <Link className="new-arrivals-view-all new-arrivals-desktop-view-all" to="/products">View all products <ArrowRight size={15}/></Link>}
   </section>;
@@ -63,14 +62,7 @@ export function Home() {
   const [results, setResults] = useState<Product[]>([]);
   const [searchState, setSearchState] = useState<'idle' | 'loading' | 'ready' | 'error'>(initialQuery ? 'loading' : 'idle');
   const [searchAttempt, setSearchAttempt] = useState(0);
-  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
   const [activeHeroIndex, setActiveHeroIndex] = useState(0);
-
-  useEffect(() => {
-    apiRequest<StorefrontSettings>('/api/v1/catalog/storefront-settings')
-      .then((settings) => setBannerUrl(settings.bannerUrl))
-      .catch(() => setBannerUrl(null));
-  }, []);
 
   useEffect(() => {
     const nextQuery = params.get('search') || '';
@@ -108,16 +100,16 @@ export function Home() {
     };
   }, [query, searchAttempt]);
 
-  const heroSlides = useMemo(() => categories.map((category, index) => {
+  const heroSlides = useMemo(() => categories.map((category) => {
     const product = products.find((item) => item.category.toLocaleLowerCase() === category.toLocaleLowerCase());
-    const image = (index === 0 ? bannerUrl : '') || product?.image || product?.images?.[0] || '';
+    const image = product?.image || product?.images?.[0] || '';
     return image ? {
       category,
       href: `/category/${encodeURIComponent(category)}`,
       image,
       alt: product ? `${product.name} from the ${category} collection` : `Shop the ${category} collection`,
     } : null;
-  }).filter((slide): slide is HeroSlide => Boolean(slide)), [bannerUrl, categories, products]);
+  }).filter((slide): slide is HeroSlide => Boolean(slide)), [categories, products]);
   const activeHero = heroSlides[activeHeroIndex] || heroSlides[0];
   const collection = useMemo(() => products.slice(0, 8), [products]);
 

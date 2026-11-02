@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Cart = require('../models/Cart');
 const Product = require('../models/Product');
 const ProductOptions = require('../models/ProductOptions');
+const { filterSupportedFootwearSizes } = require('../utils/footwearSizes');
 const {
   CartValidationError,
   MAX_CART_ITEMS,
@@ -22,7 +23,7 @@ const productPopulation = {
 async function getFallbackSizes(product) {
   if (product.soldBy !== 'piece' || product.availableSizes?.length || product.outfitComponents?.length) return [];
   const options = await ProductOptions.findOne({ key: 'default' }).lean();
-  return options?.sizes || [];
+  return filterSupportedFootwearSizes(options?.sizes);
 }
 
 async function findOrCreateCart(customerId) {

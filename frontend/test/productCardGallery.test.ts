@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 
-import { getProductCardMedia } from '../src/app/components/productCardGallery.ts';
+import { getProductCardMedia, getProductVariantPreviews } from '../src/app/components/productCardGallery.ts';
 
 const cardSource = readFileSync(
   new URL('../src/app/components/ProductCard.tsx', import.meta.url),
@@ -20,6 +20,26 @@ test('collects unique product and variant media in display order', () => {
   });
 
   assert.deepEqual(media, ['cover.jpg', 'side.jpg', 'back.jpg', 'detail.jpg']);
+});
+
+test('collects the first real image from every product variant for card previews', () => {
+  assert.deepEqual(getProductVariantPreviews({
+    variants: [
+      { variantId: 'red', variantName: 'Red', images: [{ imageUrl: 'red-front.jpg' }, { imageUrl: 'red-side.jpg' }] },
+      { variantId: 'black', variantName: 'Black', images: [{ imageUrl: 'black-front.jpg' }] },
+      { variantId: 'empty', variantName: 'Empty', images: [] },
+    ],
+  }), [
+    { id: 'red', name: 'Red', image: 'red-front.jpg' },
+    { id: 'black', name: 'Black', image: 'black-front.jpg' },
+  ]);
+});
+
+test('product cards show rounded variant-first-image previews below the main image', () => {
+  assert.match(cardSource, /const variantPreviews = getProductVariantPreviews\(product\)/);
+  assert.match(cardSource, /variantPreviews\.length > 1/);
+  assert.match(cardSource, /rounded-full/);
+  assert.match(cardSource, /alt=\{`\$\{product\.name\} in \$\{preview\.name\}`\}/);
 });
 
 test('desktop hover gallery cycles every product image and stops on leave', () => {

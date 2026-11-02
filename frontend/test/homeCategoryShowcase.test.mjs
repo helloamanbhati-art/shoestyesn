@@ -8,10 +8,11 @@ const categoryPageSource = readFileSync(new URL('../src/app/pages/CategoryProduc
 const routesSource = readFileSync(new URL('../src/app/routes.tsx', import.meta.url), 'utf8');
 const stylesSource = readFileSync(new URL('../src/styles/globals.css', import.meta.url), 'utf8');
 
-test('the live hero links every backend-derived banner to its category collection', () => {
-  assert.match(homeSource, /categories\.map\(\(category, index\)/);
+test('the live hero uses real category product images and links them to each collection', () => {
+  assert.match(homeSource, /categories\.map\(\(category\)/);
   assert.match(homeSource, /href: `\/category\/\$\{encodeURIComponent\(category\)\}`/);
-  assert.match(homeSource, /index === 0 \? bannerUrl/);
+  assert.match(homeSource, /const image = product\?\.image \|\| product\?\.images\?\.\[0\] \|\| ''/);
+  assert.doesNotMatch(homeSource, /bannerUrl|storefront-settings/);
   assert.match(homeSource, /to=\{activeHero\.href\}/);
 });
 
@@ -39,10 +40,15 @@ test('all live product categories appear immediately after the banner, before ne
 });
 
 test('the new-arrivals rail offers navigation and links to the full live collection', () => {
+  assert.doesNotMatch(homeSource, /new styles just in/i);
+  assert.match(homeSource, /<strong>New arrivals<\/strong><span>Fresh arrivals, selected from our latest collection<\/span>/);
+  assert.match(stylesSource, /\.new-arrivals-kicker\s*\{[^}]*display:\s*flex;[^}]*font-size:\s*16px;/);
   assert.match(homeSource, /aria-label="Previous new arrivals"/);
   assert.match(homeSource, /aria-label="Next new arrivals"/);
   assert.match(homeSource, /to="\/products"/);
   assert.match(homeSource, /View all products/);
+  assert.match(homeSource, /badge=\{product\.isNewArrival \? 'New' : undefined\}/);
+  assert.doesNotMatch(homeSource, /badge="New"/);
 });
 
 test('categories wrap and expand the section without leaving a fixed empty gap', () => {

@@ -7,7 +7,7 @@ import { isVideoMediaUrl } from '../utils/media';
 import { Badge } from './ui/badge';
 import { Card, CardContent } from './ui/card';
 import { useCart } from '../contexts/CartContext';
-import { getProductCardMedia } from './productCardGallery';
+import { getProductCardMedia, getProductVariantPreviews } from './productCardGallery';
 
 interface ProductCardProps {
   product: Product;
@@ -19,8 +19,8 @@ interface ProductCardProps {
 export function ProductCard({ product, priority = false, variant = 'catalog', badge }: ProductCardProps) {
   const navigate = useNavigate();
   const { addToCart } = useCart();
-  const variantsCount = product.variants?.length ?? 0;
   const galleryMedia = getProductCardMedia(product);
+  const variantPreviews = getProductVariantPreviews(product);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
   const mobileViewportRef = useRef<HTMLDivElement>(null);
@@ -149,12 +149,6 @@ export function ProductCard({ product, priority = false, variant = 'catalog', ba
               </span>
             )}
 
-            {variantsCount > 1 && (
-              <span className="absolute bottom-2 left-2 rounded-full border border-white/30 bg-black/70 px-2.5 py-1 text-[11px] font-semibold leading-none text-white shadow-sm backdrop-blur-sm transition-transform duration-200 group-hover:-translate-y-0.5 md:bottom-3 md:left-3 md:text-xs">
-                {variantsCount} styles
-              </span>
-            )}
-
             {!product.inStock && (
               <Badge
                 variant="destructive"
@@ -164,6 +158,16 @@ export function ProductCard({ product, priority = false, variant = 'catalog', ba
               </Badge>
             )}
           </div>
+
+          {variantPreviews.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto px-2 pt-2 md:px-3 md:pt-3" role="list" aria-label={`${product.name} available variants`}>
+              {variantPreviews.map((preview) => (
+                <span key={preview.id} className="block size-8 shrink-0 overflow-hidden rounded-full border border-neutral-300 bg-white p-0.5 md:size-10" role="listitem" title={preview.name}>
+                  <img src={preview.image} alt={`${product.name} in ${preview.name}`} loading="lazy" decoding="async" className="h-full w-full rounded-full object-cover" />
+                </span>
+              ))}
+            </div>
+          )}
 
           <CardContent className={`flex flex-1 flex-col bg-transparent text-left ${isEditorial ? 'px-0 pb-2 pt-2.5 [&:last-child]:pb-2 md:pt-4' : 'px-2 pb-2.5 pt-2 [&:last-child]:pb-2.5 md:px-3 md:pb-3 md:pt-2.5 md:[&:last-child]:pb-3'}`}>
             <h3 className="line-clamp-2 min-h-8 text-xs font-medium uppercase leading-4 tracking-[0.08em] text-[#26314a] md:min-h-10 md:text-sm md:leading-5">

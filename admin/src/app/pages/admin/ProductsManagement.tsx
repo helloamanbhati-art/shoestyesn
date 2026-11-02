@@ -55,7 +55,7 @@ interface ProductVariant {
 
 interface OutfitComponent { componentId: string; name: string; availableSizes: string[]; }
 
-const FOOTWEAR_SIZES = ['35', '36', '37', '38', '39', '40', '41'];
+const FOOTWEAR_SIZES = ['36', '37', '38', '39', '40', '41'];
 const WOMENS_FOOTWEAR_TYPES = [
   'Sneakers',
   'Flats',
@@ -86,6 +86,7 @@ interface Product {
   availableSizes?: string[];
   outfitComponents?: OutfitComponent[];
   inStock?: boolean;
+  isNewArrival?: boolean;
   compareAtPrice?: number;
   stock?: { available: number; reserved?: number };
   sizeStock?: Array<{ size: string; available: number; reserved?: number }>;
@@ -176,6 +177,7 @@ useEffect(() => {
           availableSizes: p.availableSizes || [],
           outfitComponents: p.outfitComponents || [],
           inStock: p.inStock ?? true,
+          isNewArrival: p.isNewArrival === true,
           compareAtPrice: p.compareAtPrice || 0,
           stock: p.stock || { available: 0 },
           sizeStock: p.sizeStock || [],
@@ -242,6 +244,7 @@ useEffect(() => {
     availableSizes: [] as string[],
     outfitComponents: [] as OutfitComponent[],
     compareAtPrice: '',
+    isNewArrival: false,
     sizeQuantities: emptySizeQuantities(),
   });
 
@@ -285,6 +288,7 @@ useEffect(() => {
         availableSizes: product.availableSizes || [],
         outfitComponents: product.outfitComponents || [],
         compareAtPrice: product.compareAtPrice ? product.compareAtPrice.toString() : '',
+        isNewArrival: product.isNewArrival === true,
         sizeQuantities: Object.fromEntries(FOOTWEAR_SIZES.map((size) => [
           size,
           String(product.sizeStock?.find((entry) => entry.size === size)?.available ?? 0),
@@ -331,6 +335,7 @@ useEffect(() => {
         availableSizes: [],
         outfitComponents: [],
         compareAtPrice: '',
+        isNewArrival: false,
         sizeQuantities: emptySizeQuantities(),
       });
       setVariantsDraft([newVariantDraft('Default')]);
@@ -440,6 +445,7 @@ useEffect(() => {
         variants: finalizedVariants,
         inStock: totalAvailable > 0,
         isActive: true,
+        isNewArrival: formData.isNewArrival,
         compareAtPrice: parseFloat(formData.compareAtPrice) || 0,
       };
 
@@ -468,6 +474,7 @@ useEffect(() => {
       availableSizes: data.data.availableSizes || [],
       outfitComponents: data.data.outfitComponents || [],
       inStock: data.data.inStock,
+      isNewArrival: data.data.isNewArrival === true,
       compareAtPrice: data.data.compareAtPrice || 0,
       stock: data.data.stock || { available: 0 },
       sizeStock: data.data.sizeStock || [],
@@ -506,6 +513,7 @@ useEffect(() => {
       availableSizes: data.data.availableSizes || [],
       outfitComponents: data.data.outfitComponents || [],
       inStock: data.data.inStock,
+      isNewArrival: data.data.isNewArrival === true,
       compareAtPrice: data.data.compareAtPrice || 0,
       stock: data.data.stock || { available: 0 },
       sizeStock: data.data.sizeStock || [],
@@ -1006,6 +1014,20 @@ useEffect(() => {
               <p className="text-xs text-muted-foreground">Add one entry for each colour or style. The first photo becomes its storefront preview.</p>
               <VariantManager variants={variantsDraft} onChange={setVariantsDraft} />
             </div>
+
+            <label htmlFor="isNewArrival" className="flex cursor-pointer items-start gap-3 rounded-md border p-3 sm:p-4">
+              <input
+                id="isNewArrival"
+                type="checkbox"
+                checked={formData.isNewArrival}
+                onChange={(event) => setFormData({ ...formData, isNewArrival: event.target.checked })}
+                className="mt-0.5 size-4 accent-black"
+              />
+              <span>
+                <span className="block text-sm font-semibold">Show NEW badge on storefront</span>
+                <span className="mt-1 block text-xs text-muted-foreground">Enable this only when you want this product to display the NEW label.</span>
+              </span>
+            </label>
 
             <fieldset className="space-y-3 rounded-md border p-3 sm:p-4">
               <div className="flex items-start justify-between gap-3">

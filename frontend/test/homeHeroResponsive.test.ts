@@ -71,7 +71,7 @@ test('desktop and tablet navigation use a compact height while mobile keeps its 
 
 test('hero rotates through every live category and each banner opens that category', () => {
   assert.match(home, /const HERO_ROTATION_MS = 5000/);
-  assert.match(home, /categories\.map\(\(category, index\)/);
+  assert.match(home, /categories\.map\(\(category\)/);
   assert.match(home, /window\.setInterval/);
   assert.match(home, /setActiveHeroIndex\(\(index\) => \(index \+ 1\) % heroSlides\.length\)/);
   assert.match(home, /to=\{activeHero\.href\}/);

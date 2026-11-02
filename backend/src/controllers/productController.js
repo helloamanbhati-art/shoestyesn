@@ -2,6 +2,7 @@ const Product = require("../models/Product");
 const Brand = require("../models/Brand");
 const Category = require("../models/Category");
 const ProductOptions = require("../models/ProductOptions");
+const { filterSupportedFootwearSizes } = require("../utils/footwearSizes");
 const { v2: cloudinary } = require("cloudinary");
 const {
   buildCategorySearchFilter,
@@ -23,6 +24,7 @@ const CARD_PRODUCT_FIELDS = [
   "category",
   "soldBy",
   "inStock",
+  "isNewArrival",
   "availableSizes",
   "sizeStock",
   "clothingType",
@@ -119,10 +121,10 @@ exports.getProductById = async (req, res, next) => {
     // Older per-piece products may not have product-level sizes yet. In that
     // case, expose the centrally managed admin sizes so the storefront can
     // still require a size selection. Explicit product sizes always win.
-    let availableSizes = product.availableSizes || [];
+    let availableSizes = filterSupportedFootwearSizes(product.availableSizes);
     if (product.soldBy === "piece" && availableSizes.length === 0 && !product.outfitComponents?.length) {
       const options = await ProductOptions.findOne({ key: "default" }).lean();
-      availableSizes = options?.sizes || [];
+      availableSizes = filterSupportedFootwearSizes(options?.sizes);
     }
 
     res.json({
@@ -328,7 +330,7 @@ exports.getProductOptions = async (req, res, next) => {
     res.json({
       success: true,
       data: {
-        sizes: options.sizes || [],
+        sizes: filterSupportedFootwearSizes(options.sizes),
         clothingTypes: options.clothingTypes || [],
       },
     });

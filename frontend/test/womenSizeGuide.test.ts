@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { getEuShoeSize, getFootwearSizeOptions, isFootwearProduct, WOMEN_SHOE_SIZE_ROWS } from '../src/app/utils/womenShoeSizes.ts';
+import { getEuShoeSize, getFootwearSizeOptions, getSizeQuantityLimit, isFootwearProduct, WOMEN_SHOE_SIZE_ROWS } from '../src/app/utils/womenShoeSizes.ts';
 
 const productDetail = readFileSync(new URL('../src/app/pages/ProductDetail.tsx', import.meta.url), 'utf8');
 const storeInformation = readFileSync(new URL('../src/app/pages/StoreInformation.tsx', import.meta.url), 'utf8');
@@ -15,8 +15,8 @@ test('women size guide includes EU, UK, India, and foot length conversions', () 
     assert.match(storeInformation, new RegExp(heading.replace(/[()]/g, '\\$&')));
   }
 
-  assert.equal(WOMEN_SHOE_SIZE_ROWS[0].footLength, '22.0');
-  assert.equal(WOMEN_SHOE_SIZE_ROWS[4].india, '6');
+  assert.equal(WOMEN_SHOE_SIZE_ROWS[0].footLength, '22.5');
+  assert.equal(WOMEN_SHOE_SIZE_ROWS.find((row) => row.eu === '39')?.india, '6');
   assert.equal(WOMEN_SHOE_SIZE_ROWS.at(-1)?.footLength, '27.5');
 });
 
@@ -28,11 +28,11 @@ test('legacy footwear sizes are presented as EU sizes', () => {
   assert.equal(getEuShoeSize('3'), '36');
   assert.equal(getEuShoeSize('6'), '39');
   assert.equal(getEuShoeSize('8'), '42');
-  assert.equal(getEuShoeSize('35'), '35');
+  assert.equal(getEuShoeSize('36'), '36');
 });
 
 test('the selectable EU values come from the same women size guide', () => {
-  assert.deepEqual(WOMEN_SHOE_SIZE_ROWS.map((row) => row.eu), ['35', '36', '37', '38', '39', '40', '41', '42', '43']);
+  assert.deepEqual(WOMEN_SHOE_SIZE_ROWS.map((row) => row.eu), ['36', '37', '38', '39', '40', '41', '42', '43']);
   assert.match(productDetail, /getFootwearSizeOptions\(product\.availableSizes/);
   assert.match(productDetail, /WomenSizeGuideDialog/);
 });
@@ -44,7 +44,6 @@ test('EU conversion is applied to footwear without changing clothing sizes', () 
 
 test('footwear size options show the full store range and mark missing sizes unavailable', () => {
   assert.deepEqual(getFootwearSizeOptions(['35', '37', '5', '41']), [
-    { eu: '35', storedSize: '35', available: true, quantity: null },
     { eu: '36', storedSize: null, available: false, quantity: null },
     { eu: '37', storedSize: '37', available: true, quantity: null },
     { eu: '38', storedSize: '5', available: true, quantity: null },
@@ -59,10 +58,27 @@ test('size inventory quantities control storefront availability', () => {
     { size: '35', available: 2 },
     { size: '36', available: 0 },
   ]);
-  assert.deepEqual(options.slice(0, 2), [
-    { eu: '35', storedSize: '35', available: true, quantity: 2 },
+  assert.deepEqual(options.slice(0, 1), [
     { eu: '36', storedSize: '36', available: false, quantity: 0 },
   ]);
+});
+
+test('the selected size inventory caps the purchasable quantity', () => {
+  const options = getFootwearSizeOptions(['35', '36', '37'], [
+    { size: '35', available: 1 },
+    { size: '36', available: 1 },
+    { size: '37', available: 4 },
+  ]);
+
+  assert.equal(getSizeQuantityLimit('36', options), 1);
+  assert.equal(getSizeQuantityLimit('37', options), 4);
+  assert.equal(getSizeQuantityLimit(null, options), 10);
+});
+
+test('product detail shows inventory in every size box and uses it as the quantity limit', () => {
+  assert.match(productDetail, /option\.quantity !== null \? `\$\{option\.quantity\} left` : 'Available'/);
+  assert.match(productDetail, /setQuantity\(\(current\) => Math\.min\(current, getSizeQuantityLimit\(option\.storedSize, sizeOptions\)\)\)/);
+  assert.match(productDetail, /disabled=\{quantity >= quantityLimit\}/);
 });
 
 test('product detail renders unavailable footwear sizes as crossed-out WhatsApp request buttons', () => {

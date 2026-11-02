@@ -164,6 +164,7 @@ const productSchema = new mongoose.Schema(
     // Status
     isActive: { type: Boolean, default: true },
     isFeatured: { type: Boolean, default: false },
+    isNewArrival: { type: Boolean, default: false },
     isOnSale: { type: Boolean, default: false },
 
     // Metadata

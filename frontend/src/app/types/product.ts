@@ -46,6 +46,7 @@ export interface Product {
   isFlatPrice?: boolean; // If true, do not multiply price by selected meters
   compareAtPrice?: number; // Price for 5 meters package
   inStock?: boolean;
+  isNewArrival?: boolean;
 }
 
 export interface FilterState {

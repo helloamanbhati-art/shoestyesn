@@ -14,6 +14,7 @@ interface ChatMessage {
 const QUICK_QUESTIONS = [
   { label: 'Shop products', question: 'Show me shoes' },
   { label: 'Delivery info', question: 'Tell me about delivery' },
+  { label: 'Store location', question: 'Where is your store located?' },
   { label: 'Store timings', question: 'What time do you open?' },
   { label: 'Call us', question: 'Give me both phone numbers' },
   { label: 'WhatsApp', question: 'Open WhatsApp' },
@@ -26,13 +27,13 @@ const INITIAL_MESSAGE: ChatMessage = {
   text: 'Hi! I’m the Shoe Style assistant. Ask me about our live catalogue, sizes, delivery, store details, payments, or contact options.',
 };
 
-function AnswerContent({ answer }: { answer: ChatAnswer }) {
+function AnswerContent({ answer, onNavigate }: { answer: ChatAnswer; onNavigate: () => void }) {
   return (
     <>
       {answer.products?.length ? (
         <div className="store-chat-products">
           {answer.products.map((product) => (
-            <Link key={product.id} to={`/product/${product.id}`} className="store-chat-product">
+            <Link key={product.id} to={`/product/${product.id}`} className="store-chat-product" onClick={onNavigate}>
               <span>{product.name}</span>
               <strong>₹{product.price.toLocaleString('en-IN')}</strong>
             </Link>
@@ -113,14 +114,15 @@ export function StoreChatbot() {
             {messages.map((message) => (
               <div key={message.id} className={`store-chat-message is-${message.role}`}>
                 <p>{message.text}</p>
-                {message.answer ? <AnswerContent answer={message.answer} /> : null}
+                {message.answer ? <AnswerContent answer={message.answer} onNavigate={closeChat} /> : null}
               </div>
             ))}
-            {messages.length === 1 ? (
-              <div className="store-chat-quick" aria-label="Popular questions">
+            <div className="store-chat-follow-up">
+              <p>{messages.length === 1 ? 'Popular questions' : 'What else can I help with?'}</p>
+              <div className="store-chat-quick" aria-label="Main questions">
                 {QUICK_QUESTIONS.map((item) => <button type="button" key={item.label} onClick={() => ask(item.question)}>{item.label}</button>)}
               </div>
-            ) : null}
+            </div>
           </div>
 
           <form className="store-chat-form" onSubmit={submit}>

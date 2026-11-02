@@ -7,6 +7,7 @@ const Category = require("../models/Category");
 const Brand = require("../models/Brand");
 const Product = require("../models/Product");
 const ProductOptions = require("../models/ProductOptions");
+const { filterSupportedFootwearSizes } = require("../utils/footwearSizes");
 const AppSettings = require('../models/AppSettings');
 const DailyVisitor = require('../models/DailyVisitor');
 const { getVisitorSummary } = require('../services/visitorAnalyticsService');
@@ -338,6 +339,7 @@ router.post('/products', async (req, res) => {
       inStock: initialStock.inStock,
       isFlatPrice: data.soldBy === 'meter' ? true : (data.isFlatPrice ?? false),
       isActive: data.isActive ?? true,
+      isNewArrival: Boolean(data.isNewArrival),
       createdBy: req.admin?._id,
       sku: data.sku || `SKU-${Date.now()}`,
       compareAtPrice: Number(data.compareAtPrice) || 0,
@@ -484,7 +486,7 @@ router.get("/product-options", async (req, res) => {
     res.json({
       success: true,
       data: {
-        sizes: options.sizes || [],
+        sizes: filterSupportedFootwearSizes(options.sizes),
         clothingTypes: options.clothingTypes || [],
       },
     });
@@ -495,9 +497,7 @@ router.get("/product-options", async (req, res) => {
 
 router.put("/product-options", async (req, res) => {
   try {
-    const sizes = Array.isArray(req.body?.sizes)
-      ? req.body.sizes.map((s) => String(s).trim()).filter(Boolean)
-      : [];
+    const sizes = filterSupportedFootwearSizes(req.body?.sizes);
     const clothingTypes = Array.isArray(req.body?.clothingTypes)
       ? req.body.clothingTypes.map((t) => String(t).trim()).filter(Boolean)
       : [];

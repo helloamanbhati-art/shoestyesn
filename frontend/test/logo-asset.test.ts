@@ -33,6 +33,6 @@ test('storefront deploys the supplied Jai Mata Di PNG without Git LFS', () => {
 test('storefront links expose title, description, and canonical URL', () => {
   assert.match(indexHtml, /<link rel="canonical" href="https:\/\/shoefashion\.in\/" \/>/);
   assert.match(indexHtml, /property="og:title" content="Shoe Style \| Footwear in Sarojini Nagar"/);
-  assert.match(indexHtml, /property="og:description" content="Shop footwear in sizes 35 to 41/);
+  assert.match(indexHtml, /property="og:description" content="Shop footwear in sizes 36 to 41/);
   assert.match(indexHtml, /property="og:url" content="https:\/\/shoefashion\.in\/"/);
 });

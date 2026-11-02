@@ -10,7 +10,7 @@ const productOptionsSchema = new mongoose.Schema(
     },
     sizes: {
       type: [String],
-      default: ["XS", "S", "M", "L", "XL", "XXL", "28", "30", "32", "34", "36"],
+      default: ["36", "37", "38", "39", "40", "41"],
     },
     clothingTypes: {
       type: [String],

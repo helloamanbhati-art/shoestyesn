@@ -6,7 +6,7 @@ import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { adminRequest } from '../../api/client';
 
-const EU_FOOTWEAR_SIZES = ['35', '36', '37', '38', '39', '40', '41'];
+const EU_FOOTWEAR_SIZES = ['36', '37', '38', '39', '40', '41'];
 const DEFAULT_FOOTWEAR_TYPES = [
   'Sneakers', 'Flats', 'Sandals', 'Heels', 'Wedges',
   'Loafers', 'Mules', 'Slippers', 'Ankle Boots', 'Knee Boots',

@@ -26,8 +26,9 @@ test('product form omits generic fields that do not apply to this catalog', () =
   assert.match(source, /brand: editingProduct\?\.brand \|\| 'Shoe Fashion'/);
 });
 
-test('footwear products provide EU sizes 35 through 41', () => {
-  assert.match(source, /FOOTWEAR_SIZES = \['35', '36', '37', '38', '39', '40', '41'\]/);
+test('footwear products provide EU sizes 36 through 41 without size 35', () => {
+  assert.match(source, /FOOTWEAR_SIZES = \['36', '37', '38', '39', '40', '41'\]/);
+  assert.doesNotMatch(source, /FOOTWEAR_SIZES = \[[^\]]*'35'/);
   assert.doesNotMatch(source, /FOOTWEAR_SIZES = \['3', '4', '5', '6', '7', '8'\]/);
   assert.match(source, /Use 0 for a sold-out size/);
   assert.doesNotMatch(source, /Add full outfit/);
@@ -42,6 +43,12 @@ test('admin can enter an exact quantity for every footwear size', () => {
   assert.match(source, /Quantity for EU size/);
   assert.match(source, /sizeStock:/);
   assert.match(source, /Total available:/);
+});
+
+test('admin explicitly controls whether a product displays the NEW badge', () => {
+  assert.match(source, /id="isNewArrival"/);
+  assert.match(source, /Show NEW badge on storefront/);
+  assert.match(source, /isNewArrival: formData\.isNewArrival/);
 });
 
 test('footwear type dropdown provides women footwear choices instead of apparel choices', () => {

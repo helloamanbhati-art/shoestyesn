@@ -41,6 +41,7 @@ function LayoutContent() {
             <p>Need a hand?</p>
             <span>We can help with styles, sizing and orders.</span>
             <a href={`https://wa.me/91${STORE.whatsappNumbers[0]}`} target="_blank" rel="noreferrer">Chat on WhatsApp <span aria-hidden="true">↗</span></a>
+            <a href={STORE.mapUrl} target="_blank" rel="noreferrer">Get directions <span aria-hidden="true">↗</span></a>
           </div>
 
           <div className="storefront-footer-bottom">

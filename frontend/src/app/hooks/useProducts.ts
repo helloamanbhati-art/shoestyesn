@@ -30,10 +30,11 @@ export interface Product {
   clothingType?: string;
   inStock?: boolean;
   compareAtPrice?: number;
+  isNewArrival?: boolean;
 }
 
 // Version bumps intentionally invalidate older partial catalogs saved by previous loaders.
-const PRODUCT_CACHE_KEY = 'shoe-style-storefront-products-v3';
+const PRODUCT_CACHE_KEY = 'shoe-style-storefront-products-v5';
 const PRODUCT_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const INITIAL_PRODUCT_PAGE_SIZE = 24;
 const PRODUCT_REFRESH_INTERVAL_MS = 5 * 60_000;
@@ -88,10 +89,13 @@ const transformProduct = (product: any): Product => {
     description: product.description || product.shortDescription || '',
     shortDescription: product.shortDescription || '',
     soldBy: product.soldBy || 'piece',
-    availableSizes: Array.isArray(product.availableSizes) ? product.availableSizes : [],
+    availableSizes: Array.isArray(product.availableSizes)
+      ? product.availableSizes.filter((size: unknown) => String(size).trim() !== '35')
+      : [],
     clothingType: product.clothingType || '',
     inStock: product.inStock !== false,
     compareAtPrice: product.compareAtPrice || 0,
+    isNewArrival: product.isNewArrival === true,
   };
 };
 

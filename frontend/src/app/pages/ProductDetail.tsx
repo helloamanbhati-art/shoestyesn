@@ -12,7 +12,7 @@ import { OutfitComponent, ProductVariant, SelectedOutfitComponent, SelectedVaria
 import { isVideoMediaUrl } from "../utils/media";
 import { saveBuyNowItem } from "../checkout/buyNowStorage";
 import { WomenSizeGuideDialog } from "../components/WomenSizeGuideDialog";
-import { getEuShoeSize, getFootwearSizeOptions, isFootwearProduct } from "../utils/womenShoeSizes";
+import { getEuShoeSize, getFootwearSizeOptions, getSizeQuantityLimit, isFootwearProduct } from "../utils/womenShoeSizes";
 import { API_BASE_URL, resilientFetch } from "../api/client";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../components/ui/alert-dialog";
 import { STORE } from "../config/store";
@@ -102,7 +102,7 @@ export function ProductDetail() {
         }
 
         let availableSizes = Array.isArray(productData.availableSizes)
-          ? productData.availableSizes
+          ? productData.availableSizes.filter((size: unknown) => String(size).trim() !== '35')
           : [];
 
         // Legacy per-piece products may not have sizes stored directly on the
@@ -159,7 +159,9 @@ export function ProductDetail() {
           isFlatPrice: productData.isFlatPrice ?? false,
           availableSizes,
           stock: productData.stock || { available: 0 },
-          sizeStock: Array.isArray(productData.sizeStock) ? productData.sizeStock : [],
+          sizeStock: Array.isArray(productData.sizeStock)
+            ? productData.sizeStock.filter((entry: { size?: unknown }) => String(entry.size).trim() !== '35')
+            : [],
           outfitComponents: Array.isArray(productData.outfitComponents) ? productData.outfitComponents : [],
           clothingType: productData.clothingType || '',
           inStock: productData.inStock !== false,
@@ -225,6 +227,12 @@ export function ProductDetail() {
         toast.error('Please select a size before adding to cart');
         return;
       }
+    }
+    const selectedInventory = product.sizeStock?.find((entry) => entry.size === selectedSize)?.available;
+    if (selectedInventory !== undefined && quantity > selectedInventory) {
+      setQuantity(Math.max(1, selectedInventory));
+      toast.error(`Only ${selectedInventory} available in this size`);
+      return;
     }
     const missingComponent = product.outfitComponents?.find((component) => !componentSizes[component.componentId]);
     if (missingComponent) {
@@ -401,7 +409,12 @@ export function ProductDetail() {
   const usesEuShoeSizes = isFootwearProduct(product);
   const sizeOptions = usesEuShoeSizes
     ? getFootwearSizeOptions(product.availableSizes || [], product.sizeStock || [])
-    : (product.availableSizes || []).map((size) => ({ eu: size, storedSize: size, available: true, quantity: null }));
+    : (product.availableSizes || []).map((size) => {
+        const inventory = product.sizeStock?.find((entry) => entry.size === size);
+        const optionQuantity = inventory ? Math.max(0, Number(inventory.available) || 0) : null;
+        return { eu: size, storedSize: size, available: optionQuantity !== 0, quantity: optionQuantity };
+      });
+  const quantityLimit = getSizeQuantityLimit(selectedSize, sizeOptions);
   const missingComponentCount = (product.outfitComponents || []).filter((component) => !componentSizes[component.componentId]).length;
   const purchaseDisabled = !product.inStock || (requiresSize && !selectedSize) || missingComponentCount > 0;
   const productLookupCode = product.id.slice(-8).toUpperCase();
@@ -472,14 +485,14 @@ export function ProductDetail() {
           {product.soldBy === 'meter' && <fieldset className="border-b py-3"><legend className="mb-2 text-sm font-semibold">Fabric length</legend><div className="flex flex-wrap gap-2">{[4, 5].map((meters) => <button key={meters} type="button" onClick={() => setSelectedMeters(meters)} className={`rounded-md border px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${selectedMeters === meters ? 'border-primary bg-primary text-primary-foreground' : 'bg-background hover:bg-accent'}`} aria-pressed={selectedMeters === meters}>{meters} metres{meters === 5 && product.compareAtPrice ? ` (+₹${product.compareAtPrice.toFixed(2)})` : ''}</button>)}</div></fieldset>}
 
           <div className="space-y-4 py-4">
-            <div><p className="mb-2 text-sm font-semibold">Quantity</p><div className="inline-flex h-10 items-center overflow-hidden rounded-md border bg-background"><button type="button" className="grid h-full w-10 place-items-center transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:text-muted-foreground" onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={quantity === 1} aria-label="Decrease quantity"><Minus className="size-4" /></button><output className="min-w-10 border-x px-2 text-center text-sm font-semibold" aria-live="polite">{quantity}</output><button type="button" className="grid h-full w-10 place-items-center transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:text-muted-foreground" onClick={() => setQuantity(Math.min(10, quantity + 1))} disabled={quantity === 10} aria-label="Increase quantity"><Plus className="size-4" /></button></div></div>
+            <div><p className="mb-2 text-sm font-semibold">Quantity</p><div className="inline-flex h-10 items-center overflow-hidden rounded-md border bg-background"><button type="button" className="grid h-full w-10 place-items-center transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:text-muted-foreground" onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={quantity === 1} aria-label="Decrease quantity"><Minus className="size-4" /></button><output className="min-w-10 border-x px-2 text-center text-sm font-semibold" aria-live="polite">{quantity}</output><button type="button" className="grid h-full w-10 place-items-center transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:text-muted-foreground" onClick={() => setQuantity(Math.min(quantityLimit, quantity + 1))} disabled={quantity >= quantityLimit} aria-label="Increase quantity"><Plus className="size-4" /></button></div></div>
             {product.outfitComponents && product.outfitComponents.length > 0 ? (
               <section aria-labelledby="outfit-size-heading" className="space-y-4 rounded-md border bg-muted/20 p-4">
                 <div><h2 id="outfit-size-heading" className="text-sm font-semibold">Choose every item size</h2><p className="mt-1 text-xs text-muted-foreground">This look includes {product.outfitComponents.length} items. Select a size for each one.</p></div>
                 {product.outfitComponents.map((component, index) => <fieldset key={component.componentId}><legend className="text-sm font-medium">{index + 1}. {component.name} <span className="text-destructive" aria-hidden="true">*</span></legend><div className="mt-2 flex flex-wrap gap-2">{component.availableSizes.map((size) => { const selected = componentSizes[component.componentId] === size; return <button key={size} type="button" onClick={() => setComponentSizes((current) => ({ ...current, [component.componentId]: size }))} className={`min-h-10 min-w-12 rounded-sm border px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${selected ? 'border-foreground bg-foreground text-background' : 'bg-background hover:border-foreground'}`} aria-pressed={selected}>{size}</button>; })}</div></fieldset>)}
                 <p className="text-xs font-medium" aria-live="polite">{missingComponentCount === 0 ? 'All sizes selected — ready to add.' : `${missingComponentCount} size${missingComponentCount === 1 ? '' : 's'} still required.`}</p>
               </section>
-            ) : sizeOptions.length > 0 ? <fieldset><div className="flex items-center justify-between gap-4"><legend className="text-sm font-semibold">Select {usesEuShoeSizes ? 'EU size' : 'size'} <span className="text-destructive" aria-hidden="true">*</span><span className="sr-only">(required)</span></legend>{usesEuShoeSizes && <WomenSizeGuideDialog />}</div><div className="mt-2 grid grid-cols-4 gap-2 sm:flex sm:flex-wrap">{sizeOptions.map((option) => { const selected = option.available && selectedSize === option.storedSize; return <button key={option.eu} type="button" onClick={() => option.available && option.storedSize ? setSelectedSize(option.storedSize) : setStockRequestOption(option)} className={`relative min-h-12 min-w-14 overflow-hidden rounded-sm border px-3 py-2 text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${selected ? 'border-foreground bg-foreground text-background' : option.available ? 'border-input bg-background hover:border-foreground hover:bg-accent' : 'cursor-pointer border-input bg-muted/40 text-muted-foreground hover:border-foreground after:absolute after:left-1/2 after:top-1/2 after:h-px after:w-[140%] after:-translate-x-1/2 after:-translate-y-1/2 after:-rotate-45 after:bg-current after:content-[\'\']'}`} aria-pressed={selected} aria-label={`${usesEuShoeSizes ? 'EU size' : 'Size'} ${option.eu}${!option.available ? ', unavailable, request on WhatsApp' : selected ? ', selected' : ''}`}>{option.eu}</button>; })}</div><p className={`mt-2 text-xs ${selectedSize ? 'font-medium text-foreground' : 'text-muted-foreground'}`} aria-live="polite">{selectedSize ? `Selected: ${usesEuShoeSizes ? 'EU ' : ''}${usesEuShoeSizes ? getEuShoeSize(selectedSize) : selectedSize}${sizeOptions.find((option) => option.storedSize === selectedSize)?.quantity !== null ? ` · ${sizeOptions.find((option) => option.storedSize === selectedSize)?.quantity} available` : ''}` : `Choose your ${usesEuShoeSizes ? 'EU ' : ''}size to continue. Crossed-out sizes can be requested on WhatsApp.`}</p></fieldset> : <div><p className="text-sm font-semibold">Sold by</p><p className="mt-2 text-sm text-muted-foreground">{product.soldBy === 'meter' ? 'Fabric length' : 'One piece'}</p></div>}
+            ) : sizeOptions.length > 0 ? <fieldset><div className="flex items-center justify-between gap-4"><legend className="text-sm font-semibold">Select {usesEuShoeSizes ? 'EU size' : 'size'} <span className="text-destructive" aria-hidden="true">*</span><span className="sr-only">(required)</span></legend>{usesEuShoeSizes && <WomenSizeGuideDialog />}</div><div className="mt-2 grid grid-cols-4 gap-2 sm:flex sm:flex-wrap">{sizeOptions.map((option) => { const selected = option.available && selectedSize === option.storedSize; const availabilityLabel = option.quantity !== null ? `${option.quantity} left` : 'Available'; return <button key={option.eu} type="button" onClick={() => { if (option.available && option.storedSize) { setSelectedSize(option.storedSize); setQuantity((current) => Math.min(current, getSizeQuantityLimit(option.storedSize, sizeOptions))); } else { setStockRequestOption(option); } }} className={`relative flex min-h-14 min-w-16 flex-col items-center justify-center overflow-hidden rounded-sm border px-2 py-1.5 text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${selected ? 'border-foreground bg-foreground text-background' : option.available ? 'border-input bg-background hover:border-foreground hover:bg-accent' : 'cursor-pointer border-input bg-muted/40 text-muted-foreground hover:border-foreground after:absolute after:left-1/2 after:top-1/2 after:h-px after:w-[140%] after:-translate-x-1/2 after:-translate-y-1/2 after:-rotate-45 after:bg-current after:content-[\'\']'}`} aria-pressed={selected} aria-label={`${usesEuShoeSizes ? 'EU size' : 'Size'} ${option.eu}, ${availabilityLabel}${!option.available ? ', unavailable, request on WhatsApp' : selected ? ', selected' : ''}`}><span>{option.eu}</span><span className="text-[10px] font-medium leading-tight opacity-75">{availabilityLabel}</span></button>; })}</div><p className={`mt-2 text-xs ${selectedSize ? 'font-medium text-foreground' : 'text-muted-foreground'}`} aria-live="polite">{selectedSize ? `Selected: ${usesEuShoeSizes ? 'EU ' : ''}${usesEuShoeSizes ? getEuShoeSize(selectedSize) : selectedSize}${sizeOptions.find((option) => option.storedSize === selectedSize)?.quantity !== null ? ` · ${sizeOptions.find((option) => option.storedSize === selectedSize)?.quantity} available` : ''}` : `Choose your ${usesEuShoeSizes ? 'EU ' : ''}size to continue. Crossed-out sizes can be requested on WhatsApp.`}</p></fieldset> : <div><p className="text-sm font-semibold">Sold by</p><p className="mt-2 text-sm text-muted-foreground">{product.soldBy === 'meter' ? 'Fabric length' : 'One piece'}</p></div>}
           </div>
 
           <div ref={buttonRef} className="space-y-2">
