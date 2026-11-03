@@ -1,4 +1,4 @@
-import { Link, Outlet } from 'react-router';
+import { Link, Outlet, ScrollRestoration } from 'react-router';
 import { Navbar } from '../components/Navbar';
 import { StoreChatbot } from '../components/StoreChatbot';
 import { CartIconProvider, useCartIcon } from '../contexts/CartIconContext';
@@ -10,6 +10,7 @@ function LayoutContent() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
+      <ScrollRestoration />
       <VisitorTracker />
       <Navbar onCartIconReady={setCartIconElement} />
       <main className="flex-1 pt-[72px] md:pt-[82px]"><Outlet /></main>
