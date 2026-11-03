@@ -16,8 +16,27 @@ const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy').then((module) =
 const NotFound = lazy(() => import('./pages/NotFound').then((module) => ({ default: module.NotFound })));
 const StoreInformation = lazy(() => import('./pages/StoreInformation').then((module) => ({ default: module.StoreInformation })));
 
+function PageLoadingState() {
+  return (
+    <div className="min-h-[70vh] bg-white px-4 py-10 text-[#0A0A0A]" role="status" aria-live="polite" aria-busy="true">
+      <div className="mx-auto max-w-[1600px]">
+        <p className="text-sm font-semibold">Loading the collection…</p>
+        <div className="mt-6 grid grid-cols-2 gap-x-3 gap-y-8 md:grid-cols-3 md:gap-6 lg:grid-cols-4" aria-hidden="true">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="animate-pulse">
+              <div className="aspect-[3/4] bg-neutral-100" />
+              <div className="mt-3 h-3 w-3/4 bg-neutral-100" />
+              <div className="mt-2 h-3 w-1/3 bg-neutral-100" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function deferred(page: ReactNode) {
-  return <Suspense fallback={<div className="flex-1 min-h-64" aria-busy="true" aria-label="Loading page" />}>{page}</Suspense>;
+  return <Suspense fallback={<PageLoadingState />}>{page}</Suspense>;
 }
 
 export const router = createBrowserRouter([

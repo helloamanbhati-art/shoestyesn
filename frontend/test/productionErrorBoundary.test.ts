@@ -16,3 +16,11 @@ test('storefront production fallback does not render raw exception details', () 
   assert.doesNotMatch(boundary, /error\.stack/);
   assert.match(boundary, /Refresh page/);
 });
+
+test('every deferred route shows a visible loading state instead of a blank page', () => {
+  assert.match(router, /function PageLoadingState/);
+  assert.match(router, /role="status"/);
+  assert.match(router, /Loading the collection/);
+  assert.match(router, /animate-pulse/);
+  assert.match(router, /<Suspense fallback=\{<PageLoadingState \/>\}>/);
+});

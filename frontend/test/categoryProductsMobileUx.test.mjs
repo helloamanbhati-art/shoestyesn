@@ -15,3 +15,10 @@ test('collection page opens directly on the product grid without listing control
   assert.match(categoryPageSource, /<ArrowLeft[^>]*\/>\s*<span>Back<\/span>/);
   assert.match(categoryPageSource, /<main[^>]*>[\s\S]*Back[\s\S]*\{loading/);
 });
+
+test('collection page always explains loading and failure states', () => {
+  assert.match(categoryPageSource, /Loading this collection/);
+  assert.match(categoryPageSource, /role="status"/);
+  assert.match(categoryPageSource, /We couldn't load this collection/);
+  assert.match(categoryPageSource, /to="\/products"[\s\S]*Browse all products/);
+});

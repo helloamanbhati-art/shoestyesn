@@ -22,7 +22,20 @@ export function CategoryProducts() {
             <span>Back</span>
           </Link>
         </div>
-        {loading ? <div className="grid min-h-96 place-items-center" role="status"><Loader2 className="animate-spin" /></div> : error ? <div className="px-4 py-24 text-center"><h2 className="font-bold">We couldn't load this collection.</h2><p className="mt-2 text-sm text-neutral-600">Please try again shortly.</p></div> : <ProductGrid products={categoryProducts} />}
+        {loading ? (
+          <div className="grid min-h-96 place-items-center px-4 text-center" role="status" aria-live="polite">
+            <div>
+              <Loader2 className="mx-auto animate-spin" aria-hidden="true" />
+              <p className="mt-4 text-sm font-semibold">Loading this collection…</p>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="px-4 py-24 text-center" role="alert">
+            <h2 className="font-bold">We couldn't load this collection.</h2>
+            <p className="mt-2 text-sm text-neutral-600">Please try again shortly or browse the complete collection.</p>
+            <Link to="/products" className="mt-6 inline-flex min-h-11 items-center border border-black px-5 text-sm font-semibold">Browse all products</Link>
+          </div>
+        ) : <ProductGrid products={categoryProducts} />}
       </main>
     </div>
   );
