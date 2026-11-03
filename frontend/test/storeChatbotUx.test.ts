@@ -11,6 +11,11 @@ test('chatbot keeps the main questions available after every answer', () => {
   assert.match(component, /label:\s*'Store location',\s*question:\s*'Where is your store located\?'/);
 });
 
+test('chatbot does not show delivery information as a quick option', () => {
+  assert.doesNotMatch(component, /label:\s*'Delivery info'/);
+  assert.doesNotMatch(component, /question:\s*'Tell me about delivery'/);
+});
+
 test('chatbot product results wrap without horizontal mobile overflow', () => {
   assert.match(styles, /\.store-chat-log\s*\{[^}]*overflow-x:\s*hidden/s);
   assert.match(styles, /\.store-chat-product span\s*\{[^}]*white-space:\s*normal/s);

@@ -66,7 +66,7 @@ export function answerStoreQuestion(input: string, catalog: CatalogItem[] = []):
     };
   }
 
-  if (includesAny(question, ['call', 'contact', 'phone', 'number', 'email', 'address', 'location', 'where are'])) {
+  if (includesAny(question, ['call', 'contact', 'phone', 'number', 'email', 'address', 'location', 'located', 'where are'])) {
     return {
       kind: 'contact',
       text: `Call us on ${STORE.phones.join(' or ')}. Email ${STORE.email}, or visit ${STORE.address}.`,
@@ -81,7 +81,7 @@ export function answerStoreQuestion(input: string, catalog: CatalogItem[] = []):
   if (includesAny(question, ['open', 'close', 'closing', 'hours', 'timing', 'time do'])) {
     return {
       kind: 'hours',
-      text: `Our store hours are not published on the website yet. Please call ${STORE.phones[0]} or confirm on WhatsApp before visiting.`,
+      text: `Our store is open from ${STORE.openingHours}.`,
       actions: [PHONE_ACTIONS[0], { label: 'Confirm on WhatsApp', href: buildWhatsAppUrl(STORE.whatsappNumbers[0], 'Hi, please confirm today’s store opening hours.') }],
     };
   }
@@ -107,6 +107,14 @@ export function answerStoreQuestion(input: string, catalog: CatalogItem[] = []):
     };
   }
 
+  if (includesAny(question, ['about', 'story', 'who are', 'shop'])) {
+    return {
+      kind: 'about',
+      text: `${STORE.name} is a Delhi footwear store with 40 years of experience. We personally select women’s footwear and deliver across India.`,
+      actions: [{ label: 'Read our story', href: '/about-us' }],
+    };
+  }
+
   const products = findProducts(question, catalog);
   if (products.length && includesAny(question, ['show', 'have', 'looking', 'shoe', 'heel', 'boot', 'sandal', 'sneaker', 'flat', 'size'])) {
     return {
@@ -121,14 +129,6 @@ export function answerStoreQuestion(input: string, catalog: CatalogItem[] = []):
       kind: 'sizes',
       text: `Women’s footwear is available in EU sizes ${STORE.availableSizes}. Use the size guide for EU, UK, India and foot-length conversions.`,
       actions: [{ label: 'Open size guide', href: '/size-guide' }],
-    };
-  }
-
-  if (includesAny(question, ['about', 'story', 'who are', 'shop'])) {
-    return {
-      kind: 'about',
-      text: `${STORE.name} is a Delhi footwear store with 40 years of experience. We personally select women’s footwear and deliver across India.`,
-      actions: [{ label: 'Read our story', href: '/about-us' }],
     };
   }
 

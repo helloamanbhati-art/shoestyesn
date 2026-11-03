@@ -10,6 +10,7 @@ export const STORE = {
   ],
   address: 'Shop No. 14, Shoe Style, Sarojini Nagar Market',
   mapUrl: 'https://maps.app.goo.gl/piEvZEpgH6fBeSaP9',
+  openingHours: '11:00 AM to 10:00 PM',
   availableSizes: '36 to 41',
   exchangePolicy: 'Exchange only. Returns are not accepted.',
   paymentMethods: 'Online payment only. Cash on Delivery is not available.',

@@ -13,7 +13,6 @@ interface ChatMessage {
 
 const QUICK_QUESTIONS = [
   { label: 'Shop products', question: 'Show me shoes' },
-  { label: 'Delivery info', question: 'Tell me about delivery' },
   { label: 'Store location', question: 'Where is your store located?' },
   { label: 'Store timings', question: 'What time do you open?' },
   { label: 'Call us', question: 'Give me both phone numbers' },

@@ -18,7 +18,7 @@ function LayoutContent() {
           <div className="storefront-footer-brand-block">
             <p className="storefront-footer-kicker">Delhi · 40 years in footwear</p>
             <p className="storefront-footer-brand">Shoe Style</p>
-            <p className="storefront-footer-copy">Footwear for every version of you, available in sizes {STORE.availableSizes}.</p>
+            <p className="storefront-footer-copy">Footwear for every version of you.</p>
             <Link to="/?view=all" className="storefront-footer-shop">Shop the collection <span aria-hidden="true">→</span></Link>
           </div>
 

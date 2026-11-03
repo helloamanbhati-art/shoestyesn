@@ -14,6 +14,13 @@ test('chatbot answers contact questions with both published phone numbers', () =
   assert.equal(answer.kind, 'contact');
 });
 
+test('chatbot answers the store location quick question with the published address', () => {
+  const answer = answerStoreQuestion('Where is your store located?', catalog);
+  assert.equal(answer.kind, 'contact');
+  assert.match(answer.text, /Shop No\. 14, Shoe Style, Sarojini Nagar Market/);
+  assert.equal(answer.actions?.[0]?.label, 'Get directions');
+});
+
 test('chatbot provides a direct WhatsApp handoff', () => {
   const answer = answerStoreQuestion('whatsapp please', catalog);
   assert.equal(answer.kind, 'whatsapp');
@@ -33,8 +40,32 @@ test('chatbot offers live products for a general shopping request', () => {
   assert.equal(answer.products?.length, 2);
 });
 
-test('chatbot does not invent unpublished opening or delivery times', () => {
-  assert.match(answerStoreQuestion('What time do you open?', catalog).text, /not published/i);
+test('every visible quick question returns its related answer type', () => {
+  const brandedCatalog: CatalogItem[] = [
+    ...catalog,
+    { id: 'shoe-style-boot', name: 'Black Boot', category: 'Boots', brand: 'Shoe Style', price: 2450 },
+  ];
+  const quickQuestions = [
+    ['Show me shoes', 'products'],
+    ['Where is your store located?', 'contact'],
+    ['What time do you open?', 'hours'],
+    ['Give me both phone numbers', 'contact'],
+    ['Open WhatsApp', 'whatsapp'],
+    ['Tell me about Shoe Style', 'about'],
+  ] as const;
+
+  for (const [question, expectedKind] of quickQuestions) {
+    assert.equal(answerStoreQuestion(question, brandedCatalog).kind, expectedKind, question);
+  }
+});
+
+test('chatbot answers opening-time questions with the published store hours', () => {
+  const answer = answerStoreQuestion('What time do you open?', catalog);
+  assert.equal(answer.kind, 'hours');
+  assert.match(answer.text, /11:00 AM to 10:00 PM/);
+});
+
+test('chatbot does not invent unpublished delivery times', () => {
   assert.match(answerStoreQuestion('How many days for delivery?', catalog).text, /confirm/i);
 });
 
