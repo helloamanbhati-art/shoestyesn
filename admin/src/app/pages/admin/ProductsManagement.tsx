@@ -88,6 +88,10 @@ interface Product {
   inStock?: boolean;
   isNewArrival?: boolean;
   compareAtPrice?: number;
+  shippingWeightKg?: number;
+  shippingLengthCm?: number;
+  shippingBreadthCm?: number;
+  shippingHeightCm?: number;
   stock?: { available: number; reserved?: number };
   sizeStock?: Array<{ size: string; available: number; reserved?: number }>;
 }
@@ -179,6 +183,10 @@ useEffect(() => {
           inStock: p.inStock ?? true,
           isNewArrival: p.isNewArrival === true,
           compareAtPrice: p.compareAtPrice || 0,
+          shippingWeightKg: p.shippingWeightKg || 0,
+          shippingLengthCm: p.shippingLengthCm || 0,
+          shippingBreadthCm: p.shippingBreadthCm || 0,
+          shippingHeightCm: p.shippingHeightCm || 0,
           stock: p.stock || { available: 0 },
           sizeStock: p.sizeStock || [],
         };
@@ -244,6 +252,10 @@ useEffect(() => {
     availableSizes: [] as string[],
     outfitComponents: [] as OutfitComponent[],
     compareAtPrice: '',
+    shippingWeightKg: '',
+    shippingLengthCm: '',
+    shippingBreadthCm: '',
+    shippingHeightCm: '',
     isNewArrival: false,
     sizeQuantities: emptySizeQuantities(),
   });
@@ -288,6 +300,10 @@ useEffect(() => {
         availableSizes: product.availableSizes || [],
         outfitComponents: product.outfitComponents || [],
         compareAtPrice: product.compareAtPrice ? product.compareAtPrice.toString() : '',
+        shippingWeightKg: product.shippingWeightKg ? product.shippingWeightKg.toString() : '',
+        shippingLengthCm: product.shippingLengthCm ? product.shippingLengthCm.toString() : '',
+        shippingBreadthCm: product.shippingBreadthCm ? product.shippingBreadthCm.toString() : '',
+        shippingHeightCm: product.shippingHeightCm ? product.shippingHeightCm.toString() : '',
         isNewArrival: product.isNewArrival === true,
         sizeQuantities: Object.fromEntries(FOOTWEAR_SIZES.map((size) => [
           size,
@@ -335,6 +351,10 @@ useEffect(() => {
         availableSizes: [],
         outfitComponents: [],
         compareAtPrice: '',
+        shippingWeightKg: '',
+        shippingLengthCm: '',
+        shippingBreadthCm: '',
+        shippingHeightCm: '',
         isNewArrival: false,
         sizeQuantities: emptySizeQuantities(),
       });
@@ -447,6 +467,10 @@ useEffect(() => {
         isActive: true,
         isNewArrival: formData.isNewArrival,
         compareAtPrice: parseFloat(formData.compareAtPrice) || 0,
+        shippingWeightKg: Number(formData.shippingWeightKg) || undefined,
+        shippingLengthCm: Number(formData.shippingLengthCm) || undefined,
+        shippingBreadthCm: Number(formData.shippingBreadthCm) || undefined,
+        shippingHeightCm: Number(formData.shippingHeightCm) || undefined,
       };
 
   if (editingProduct) {
@@ -476,6 +500,10 @@ useEffect(() => {
       inStock: data.data.inStock,
       isNewArrival: data.data.isNewArrival === true,
       compareAtPrice: data.data.compareAtPrice || 0,
+      shippingWeightKg: data.data.shippingWeightKg || 0,
+      shippingLengthCm: data.data.shippingLengthCm || 0,
+      shippingBreadthCm: data.data.shippingBreadthCm || 0,
+      shippingHeightCm: data.data.shippingHeightCm || 0,
       stock: data.data.stock || { available: 0 },
       sizeStock: data.data.sizeStock || [],
     };
@@ -515,6 +543,10 @@ useEffect(() => {
       inStock: data.data.inStock,
       isNewArrival: data.data.isNewArrival === true,
       compareAtPrice: data.data.compareAtPrice || 0,
+      shippingWeightKg: data.data.shippingWeightKg || 0,
+      shippingLengthCm: data.data.shippingLengthCm || 0,
+      shippingBreadthCm: data.data.shippingBreadthCm || 0,
+      shippingHeightCm: data.data.shippingHeightCm || 0,
       stock: data.data.stock || { available: 0 },
       sizeStock: data.data.sizeStock || [],
     };
@@ -533,6 +565,10 @@ useEffect(() => {
     availableSizes: [],
     outfitComponents: [],
     compareAtPrice: '',
+    shippingWeightKg: '',
+    shippingLengthCm: '',
+    shippingBreadthCm: '',
+    shippingHeightCm: '',
     sizeQuantities: emptySizeQuantities(),
   });
     } catch (err) {
@@ -960,6 +996,35 @@ useEffect(() => {
                 />
               </div>
             </div>
+
+            <section className="space-y-3 rounded-md border p-4" aria-labelledby="parcel-heading">
+              <div>
+                <h3 id="parcel-heading" className="font-medium">Packed parcel measurements</h3>
+                <p className="text-xs text-muted-foreground">Measure one packed unit. Delivery checks stay unavailable until all four values are entered.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {([
+                  ['shippingWeightKg', 'Weight (kg)', '0.5', '0.001'],
+                  ['shippingLengthCm', 'Length (cm)', '25', '1'],
+                  ['shippingBreadthCm', 'Breadth (cm)', '18', '1'],
+                  ['shippingHeightCm', 'Height (cm)', '10', '1'],
+                ] as const).map(([id, label, placeholder, min]) => (
+                  <div key={id} className="space-y-2">
+                    <Label htmlFor={id}>{label} *</Label>
+                    <Input
+                      id={id}
+                      type="number"
+                      min={min}
+                      step={id === 'shippingWeightKg' ? '0.001' : '1'}
+                      required
+                      value={formData[id]}
+                      onChange={(event) => setFormData({ ...formData, [id]: event.target.value })}
+                      placeholder={placeholder}
+                    />
+                  </div>
+                ))}
+              </div>
+            </section>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">

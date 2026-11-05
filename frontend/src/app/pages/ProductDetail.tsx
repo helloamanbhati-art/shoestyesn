@@ -1,7 +1,7 @@
 import { useParams, Link, useLocation, useNavigate } from "react-router";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import { ArrowLeft, ShoppingBag, ShoppingCart, Minus, Plus, Loader, Check, ChevronDown, ChevronLeft, ChevronRight, Share2 } from "lucide-react";
+import { ArrowLeft, ShoppingBag, ShoppingCart, Minus, Plus, Loader, Loader2, Check, ChevronDown, ChevronLeft, ChevronRight, Share2, MapPin } from "lucide-react";
 import { useCart } from "../contexts/CartContext";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -18,6 +18,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { STORE } from "../config/store";
 import { buildWhatsAppUrl } from "../chatbot/chatbotKnowledge";
 import { buildStockRequestMessage } from "../utils/stockRequest";
+import { checkProductDelivery, type CheckoutDeliveryCheck } from "../checkout/checkoutApi";
 
 
 interface Product {
@@ -66,6 +67,10 @@ export function ProductDetail() {
   // Meters and Qty states
   const [selectedMeters, setSelectedMeters] = useState<number>(4);
   const [quantity, setQuantity] = useState<number>(1);
+  const [deliveryPincode, setDeliveryPincode] = useState('');
+  const [deliveryCheck, setDeliveryCheck] = useState<CheckoutDeliveryCheck | null>(null);
+  const [deliveryError, setDeliveryError] = useState('');
+  const [checkingDelivery, setCheckingDelivery] = useState(false);
 
   const [animationPositions, setAnimationPositions] = useState({
     start: { x: 0, y: 0 },
@@ -87,6 +92,9 @@ export function ProductDetail() {
         setActiveImageIndex(0);
         setSelectedMeters(4);
         setQuantity(1);
+        setDeliveryPincode('');
+        setDeliveryCheck(null);
+        setDeliveryError('');
 
         const response = await resilientFetch(`${API_BASE_URL}/api/v1/products/${id}`);
 
@@ -336,6 +344,26 @@ export function ProductDetail() {
   const handleAddToCart = () => { void handlePurchase(false); };
   const handleBuyNow = () => { void handlePurchase(true); };
 
+  const handleCheckDelivery = async () => {
+    const pincode = deliveryPincode.replace(/\D/g, '').slice(0, 6);
+    if (!/^\d{6}$/.test(pincode)) {
+      setDeliveryError('Enter a valid six-digit PIN code.');
+      setDeliveryCheck(null);
+      return;
+    }
+    setCheckingDelivery(true);
+    setDeliveryError('');
+    setDeliveryCheck(null);
+    try {
+      const result = await checkProductDelivery({ pincode });
+      setDeliveryCheck(result);
+    } catch (checkError) {
+      setDeliveryError(checkError instanceof Error ? checkError.message : 'Delivery estimate is unavailable right now.');
+    } finally {
+      setCheckingDelivery(false);
+    }
+  };
+
   const handleAnimationComplete = useCallback(() => {
     setShowAnimation(false);
   }, []);
@@ -480,12 +508,43 @@ export function ProductDetail() {
           <div className="mt-3"><h1 id="product-title" className="text-xl font-semibold leading-tight tracking-tight sm:text-2xl">{product.name}</h1></div>
           <div className="mt-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b pb-4"><div><div className="flex flex-wrap items-baseline gap-2"><p className="text-2xl font-bold text-black">₹{(product.soldBy === 'meter' && selectedMeters === 5 ? product.price + (product.compareAtPrice || 0) : product.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>{hasDiscount && <><p className="text-sm text-muted-foreground line-through" aria-label={`Original price ₹${product.compareAtPrice.toLocaleString('en-IN')}`}>₹{product.compareAtPrice.toLocaleString('en-IN')}</p><Badge className="bg-emerald-800 text-white hover:bg-emerald-800">-{discountPercentage}% OFF</Badge></>}</div><p className="mt-0.5 text-xs text-muted-foreground">MRP inclusive of all taxes</p></div><p className="text-xs text-muted-foreground">Product code: {productLookupCode}</p></div>
 
-          {variants.length > 1 && <fieldset className="border-b py-3"><legend className="mb-2 text-sm font-semibold">Style <span className="font-normal text-muted-foreground">— {selectedVariant?.variantName}</span></legend><div className="flex flex-wrap gap-2">{variants.map((variant) => { const image = variant.images?.[0]?.imageUrl; const selected = selectedVariant?.variantId === variant.variantId; return <button key={variant.variantId} type="button" onClick={() => handleVariantSelect(variant)} className={`relative size-16 overflow-hidden rounded-md border-2 bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${selected ? 'border-primary' : 'border-transparent hover:border-muted-foreground/40'}`} aria-label={`Select ${variant.variantName}`} aria-pressed={selected} title={variant.variantName}>{image ? <img src={image} alt="" className="h-full w-full object-cover" /> : <span className="grid h-full place-items-center px-1 text-xs">{variant.variantName}</span>}{selected && <span className="absolute right-1 top-1 grid size-5 place-items-center rounded-full bg-primary text-primary-foreground"><Check className="size-3" /></span>}</button>; })}</div></fieldset>}
+          {variants.length > 1 && <div className="flex items-center justify-between gap-3 border-b py-3"><fieldset className="min-w-0 flex-1"><legend className="mb-2 text-sm font-semibold">Style <span className="font-normal text-muted-foreground">— {selectedVariant?.variantName}</span></legend><div className="flex flex-wrap gap-2">{variants.map((variant) => { const image = variant.images?.[0]?.imageUrl; const selected = selectedVariant?.variantId === variant.variantId; return <button key={variant.variantId} type="button" onClick={() => handleVariantSelect(variant)} className={`relative size-16 overflow-hidden rounded-md border-2 bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${selected ? 'border-primary' : 'border-transparent hover:border-muted-foreground/40'}`} aria-label={`Select ${variant.variantName}`} aria-pressed={selected} title={variant.variantName}>{image ? <img src={image} alt="" className="h-full w-full object-cover" /> : <span className="grid h-full place-items-center px-1 text-xs">{variant.variantName}</span>}{selected && <span className="absolute right-1 top-1 grid size-5 place-items-center rounded-full bg-primary text-primary-foreground"><Check className="size-3" /></span>}</button>; })}</div></fieldset><Button type="button" variant="outline" size="icon" onClick={handleShare} aria-label="Share this product" title="Share this product" className="mt-5 size-11 shrink-0 rounded-full"><Share2 className="size-5" aria-hidden="true" /></Button></div>}
+
+          <section aria-labelledby="delivery-check-heading" className="my-4">
+            <h2 id="delivery-check-heading" className="mb-3 text-base font-semibold">Check delivery availability</h2>
+            <form className="flex w-full rounded-md focus-within:ring-2 focus-within:ring-foreground/20 focus-within:ring-offset-2" onSubmit={(event) => { event.preventDefault(); void handleCheckDelivery(); }}>
+              <label className="relative min-w-0 flex-1 rounded-l-md">
+                <MapPin className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                <input
+                  aria-label="Delivery PIN code"
+                  value={deliveryPincode}
+                  onChange={(event) => {
+                    setDeliveryPincode(event.target.value.replace(/\D/g, '').slice(0, 6));
+                    setDeliveryCheck(null);
+                    setDeliveryError('');
+                  }}
+                  inputMode="numeric"
+                  autoComplete="postal-code"
+                  maxLength={6}
+                  placeholder="Enter PIN code"
+                  className="h-12 w-full rounded-l-md border border-r-0 border-border bg-background pl-11 pr-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:z-10 focus-visible:border-foreground/50"
+                />
+              </label>
+              <Button type="submit" disabled={checkingDelivery || !/^\d{6}$/.test(deliveryPincode)} className="h-12 shrink-0 rounded-l-none rounded-r-md border border-l-0 border-foreground bg-foreground px-5 text-sm font-semibold text-background transition-colors duration-150 enabled:hover:bg-foreground/85 enabled:active:bg-foreground/75 disabled:border-foreground disabled:bg-foreground disabled:text-background/70">
+                {checkingDelivery ? <><Loader2 className="mr-2 size-4 animate-spin" />Checking</> : 'Check'}
+              </Button>
+            </form>
+            {deliveryCheck?.pincode === deliveryPincode && (deliveryCheck.available
+              ? <p role="status" className="mt-3 flex items-center gap-2 text-sm font-medium text-emerald-800"><Check className="size-4 shrink-0" aria-hidden="true" />Delivery available{deliveryCheck.selected?.estimatedDelivery ? ` · estimated ${deliveryCheck.selected.estimatedDelivery}` : ' to this PIN code'}.</p>
+              : <p role="status" className="mt-3 text-sm font-medium text-rose-700">Delivery is not available to this PIN code right now.</p>)}
+            {deliveryError && <p role="alert" className="mt-3 text-sm text-rose-700">{deliveryError}</p>}
+            {deliveryCheck?.pincode === deliveryPincode && <p className="mt-2 text-[11px] leading-4 text-muted-foreground">This PIN-level estimate uses a standard parcel. Actual availability and timing are confirmed again at checkout.</p>}
+          </section>
 
           {product.soldBy === 'meter' && <fieldset className="border-b py-3"><legend className="mb-2 text-sm font-semibold">Fabric length</legend><div className="flex flex-wrap gap-2">{[4, 5].map((meters) => <button key={meters} type="button" onClick={() => setSelectedMeters(meters)} className={`rounded-md border px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${selectedMeters === meters ? 'border-primary bg-primary text-primary-foreground' : 'bg-background hover:bg-accent'}`} aria-pressed={selectedMeters === meters}>{meters} metres{meters === 5 && product.compareAtPrice ? ` (+₹${product.compareAtPrice.toFixed(2)})` : ''}</button>)}</div></fieldset>}
 
           <div className="space-y-4 py-4">
-            <div><p className="mb-2 text-sm font-semibold">Quantity</p><div className="inline-flex h-10 items-center overflow-hidden rounded-md border bg-background"><button type="button" className="grid h-full w-10 place-items-center transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:text-muted-foreground" onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={quantity === 1} aria-label="Decrease quantity"><Minus className="size-4" /></button><output className="min-w-10 border-x px-2 text-center text-sm font-semibold" aria-live="polite">{quantity}</output><button type="button" className="grid h-full w-10 place-items-center transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:text-muted-foreground" onClick={() => setQuantity(Math.min(quantityLimit, quantity + 1))} disabled={quantity >= quantityLimit} aria-label="Increase quantity"><Plus className="size-4" /></button></div></div>
+            <div><p className="mb-2 text-sm font-semibold">Quantity</p><div className="inline-flex h-10 items-center overflow-hidden rounded-md border bg-background"><button type="button" className="grid h-full w-10 place-items-center transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:text-muted-foreground" onClick={() => { setQuantity(Math.max(1, quantity - 1)); setDeliveryCheck(null); }} disabled={quantity === 1} aria-label="Decrease quantity"><Minus className="size-4" /></button><output className="min-w-10 border-x px-2 text-center text-sm font-semibold" aria-live="polite">{quantity}</output><button type="button" className="grid h-full w-10 place-items-center transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:text-muted-foreground" onClick={() => { setQuantity(Math.min(quantityLimit, quantity + 1)); setDeliveryCheck(null); }} disabled={quantity >= quantityLimit} aria-label="Increase quantity"><Plus className="size-4" /></button></div></div>
             {product.outfitComponents && product.outfitComponents.length > 0 ? (
               <section aria-labelledby="outfit-size-heading" className="space-y-4 rounded-md border bg-muted/20 p-4">
                 <div><h2 id="outfit-size-heading" className="text-sm font-semibold">Choose every item size</h2><p className="mt-1 text-xs text-muted-foreground">This look includes {product.outfitComponents.length} items. Select a size for each one.</p></div>
@@ -580,10 +639,6 @@ export function ProductDetail() {
                     </ul>
                   </div>
 
-                  <Button type="button" variant="outline" onClick={handleShare} className="w-full gap-2">
-                    <Share2 className="size-4" aria-hidden="true" />
-                    Share
-                  </Button>
                 </div>
               </details>
             ) : product.description ? (

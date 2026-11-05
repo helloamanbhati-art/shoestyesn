@@ -55,6 +55,20 @@ exports.apiLimiter = structuredLimiter({
   message: "Too many API requests. Please try again later.",
 });
 
+exports.shiprocketServiceabilityLimiter = structuredLimiter({
+  windowMs: 60 * 1000,
+  max: 15,
+  code: 'DELIVERY_CHECK_RATE_LIMITED',
+  message: 'Too many delivery checks. Wait a moment and try again.',
+});
+
+exports.shiprocketWebhookLimiter = structuredLimiter({
+  windowMs: 60 * 1000,
+  max: 120,
+  code: 'TRACKING_WEBHOOK_RATE_LIMITED',
+  message: 'Too many tracking updates. Please retry later.',
+});
+
 // Upload limiter
 exports.uploadLimiter = structuredLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour

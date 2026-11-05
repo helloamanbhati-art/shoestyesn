@@ -52,6 +52,11 @@ const productSchema = new mongoose.Schema(
     },
     compareAtPrice: Number,
     cost: Number,
+    // Packed unit measurements used for server-side Shiprocket quotes.
+    shippingWeightKg: { type: Number, min: 0.001, max: 1000 },
+    shippingLengthCm: { type: Number, min: 1, max: 500 },
+    shippingBreadthCm: { type: Number, min: 1, max: 500 },
+    shippingHeightCm: { type: Number, min: 1, max: 500 },
 
     // Images (legacy — kept for backward compat)
     image: String, // Main image

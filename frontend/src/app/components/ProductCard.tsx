@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { ShoppingBag } from 'lucide-react';
+import { Share2, ShoppingBag } from 'lucide-react';
 import { toast } from 'sonner';
 import { Product } from '../types/product';
 import { isVideoMediaUrl } from '../utils/media';
@@ -103,6 +103,32 @@ export function ProductCard({ product, priority = false, variant = 'catalog', ba
     if (added) toast.success(`${product.name} added to your bag.`);
   };
 
+  const handleShare = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const shareUrl = new URL(`/share/product/${encodeURIComponent(product.id)}`, window.location.origin);
+    const shareData = {
+      title: product.name,
+      text: `Take a look at ${product.name} from Shoe Style.`,
+      url: shareUrl.toString(),
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareData.url);
+        toast.success('Product link copied');
+      } else {
+        window.prompt('Copy this product link', shareData.url);
+      }
+    } catch (shareError) {
+      if (shareError instanceof DOMException && shareError.name === 'AbortError') return;
+      toast.error('Unable to share this product');
+    }
+  };
+
   return (
     <div ref={cardRef} className="group relative h-full" style={{ contentVisibility: 'auto', containIntrinsicSize: '420px' }}>
     <Link
@@ -148,6 +174,16 @@ export function ProductCard({ product, priority = false, variant = 'catalog', ba
                 {badge}
               </span>
             )}
+
+            <button
+              type="button"
+              onClick={handleShare}
+              aria-label={`Share ${product.name}`}
+              title="Share product"
+              className="absolute right-3 top-3 z-20 grid size-10 place-items-center rounded-full bg-white/95 text-neutral-900 shadow-md transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2"
+            >
+              <Share2 size={17} aria-hidden="true" />
+            </button>
 
             {!product.inStock && (
               <Badge
@@ -198,7 +234,7 @@ export function ProductCard({ product, priority = false, variant = 'catalog', ba
           </CardContent>
         </Card>
     </Link>
-    <button type="button" onClick={() => void quickAdd()} disabled={!product.inStock} className="absolute bottom-[5.8rem] left-3 right-3 z-10 hidden min-h-11 items-center justify-center gap-2 bg-black px-3 text-[10px] font-black uppercase tracking-[0.16em] text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-400 md:flex md:translate-y-2 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100 md:focus-visible:translate-y-0 md:focus-visible:opacity-100"><ShoppingBag size={15}/>{(product.availableSizes?.length || 0) > 1 ? 'Choose size' : 'Quick add'}</button>
+    {!isEditorial && <button type="button" onClick={() => void quickAdd()} disabled={!product.inStock} className="absolute bottom-[5.8rem] left-3 right-3 z-10 hidden min-h-11 items-center justify-center gap-2 bg-black px-3 text-[10px] font-black uppercase tracking-[0.16em] text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-400 md:flex md:translate-y-2 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100 md:focus-visible:translate-y-0 md:focus-visible:opacity-100"><ShoppingBag size={15}/>{(product.availableSizes?.length || 0) > 1 ? 'Choose size' : 'Quick add'}</button>}
     </div>
   );
 }

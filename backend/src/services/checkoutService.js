@@ -1,5 +1,6 @@
 const discountService = require('./discountService');
 const taxService = require('./taxService');
+const shiprocketService = require('./shiprocketService');
 
 class CheckoutError extends Error {
   constructor(code, message, statusCode = 400) {
@@ -108,11 +109,16 @@ function buildOrderItems(cartItems) {
       discount: 0,
       tax: 0,
       total: subtotal,
+      shippingWeightKg: product.shippingWeightKg,
+      shippingLengthCm: product.shippingLengthCm,
+      shippingBreadthCm: product.shippingBreadthCm,
+      shippingHeightCm: product.shippingHeightCm,
+      sku: product.sku || null,
     };
   });
 }
 
-async function quoteCart(cartItems, shippingState, couponCode, customerId) {
+async function quoteCart(cartItems, shippingState, couponCode, customerId, deliveryPincode, knownDelivery, forceDeliveryRefresh = false) {
   const items = buildOrderItems(cartItems);
   const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
   let discount = 0;
@@ -121,13 +127,35 @@ async function quoteCart(cartItems, shippingState, couponCode, customerId) {
     discount = discountService.calculateDiscount(coupon, subtotal);
   }
   const tax = await taxService.getOrderTax(items, shippingState);
-  const shippingCost = getShippingCost(shippingState);
+  let shippingCost = getShippingCost(shippingState);
+  let delivery = null;
+  if (knownDelivery) {
+    delivery = knownDelivery;
+    if (!delivery.available || !delivery.selected || !Number.isFinite(Number(delivery.selected.rate))) {
+      throw new CheckoutError('DELIVERY_UNAVAILABLE', 'Delivery is not available to this PIN code.', 422);
+    }
+    shippingCost = Number(delivery.selected.rate);
+  } else if (deliveryPincode) {
+    const parcel = shiprocketService.buildParcel(items);
+    delivery = await shiprocketService.checkServiceability({
+      deliveryPincode,
+      parcel,
+      declaredValue: Math.max(0, subtotal - discount + tax),
+      forceRefresh: forceDeliveryRefresh,
+    });
+    if (!delivery.available) {
+      throw new CheckoutError('DELIVERY_UNAVAILABLE', 'Delivery is not available to this PIN code.', 422);
+    }
+    shippingCost = delivery.selected.rate;
+  }
   return {
     items,
     subtotal,
     discount,
     tax,
     shippingCost,
+    delivery,
+    package: delivery || knownDelivery ? shiprocketService.buildParcel(items) : null,
     total: Math.max(0, subtotal - discount + tax + shippingCost),
   };
 }

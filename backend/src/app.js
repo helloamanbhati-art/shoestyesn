@@ -1,5 +1,9 @@
-require("dotenv").config({ path: ".env.local" });
-require("dotenv").config();
+const path = require('path');
+const dotenv = require('dotenv');
+dotenv.config({ path: path.resolve(__dirname, '../../.env.local') });
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
+dotenv.config();
 
 const express = require("express");
 const cors = require("cors");
@@ -25,6 +29,7 @@ const adminRoutes = require("./routes/adminRoutes");
 const cartRoutes = require("./routes/cartRoutes");
 const analyticsRoutes = require('./routes/analyticsRoutes');
 const shareController = require('./controllers/shareController');
+const fulfillmentRoutes = require('./routes/fulfillmentRoutes');
 
 // Models - Import from separate files
 const AdminUser = require("./models/AdminUser");
@@ -57,7 +62,7 @@ app.use(cors({
 app.use(express.json({
   limit: "10mb",
   verify: (req, _res, buffer) => {
-    if (req.originalUrl === "/api/v1/payments/webhook/razorpay") {
+    if (["/api/v1/payments/webhook/razorpay", "/api/v1/hooks/fulfillment"].includes(req.originalUrl.split('?')[0])) {
       req.rawBody = Buffer.from(buffer);
     }
   },
@@ -92,6 +97,7 @@ app.use("/api/v1/payments", paymentRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/cart", cartRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
+app.use('/api/v1/hooks', fulfillmentRoutes);
 
 // 404 Handler
 app.use(notFoundHandler);

@@ -86,6 +86,20 @@ exports.checkoutQuoteSchema = Joi.object({
   couponCode: Joi.string().trim().max(50).allow(""),
 }).xor("addressId", "shippingAddress").required();
 
+exports.checkoutServiceabilitySchema = Joi.object({
+  pincode: Joi.string().pattern(/^\d{6}$/).required(),
+  checkoutMode: Joi.string().valid('buyNow'),
+  items: Joi.when('checkoutMode', {
+    is: 'buyNow',
+    then: buyNowItemsSchema.required(),
+    otherwise: cartItemsSchema,
+  }),
+}).required();
+
+exports.productServiceabilitySchema = Joi.object({
+  pincode: Joi.string().pattern(/^\d{6}$/).required(),
+}).required();
+
 exports.addressSchema = addressSchema;
 exports.cartItemSchema = cartItemSchema;
 

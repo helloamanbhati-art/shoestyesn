@@ -34,7 +34,7 @@ export interface Product {
 }
 
 // Version bumps intentionally invalidate older partial catalogs saved by previous loaders.
-const PRODUCT_CACHE_KEY = 'shoe-style-storefront-products-v5';
+const PRODUCT_CACHE_KEY = 'shoe-style-storefront-products-v6';
 const PRODUCT_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const INITIAL_PRODUCT_PAGE_SIZE = 24;
 const PRODUCT_REFRESH_INTERVAL_MS = 5 * 60_000;

@@ -3,6 +3,7 @@ const crypto = require("crypto");
 const Order = require("../models/Order");
 const PaymentTransaction = require("../models/PaymentTransaction");
 const { AppError } = require("../middleware/errorHandler");
+const shiprocketFulfillmentService = require('./shiprocketFulfillmentService');
 
 const mockPaymentsEnabled = () =>
   process.env.RAZORPAY_MOCK_MODE === "true" && process.env.NODE_ENV !== "production";
@@ -337,6 +338,10 @@ exports.updateOrderPaymentStatus = async (orderId, paymentStatus, paymentData) =
     if (paymentStatus === "failed") {
       query.paymentStatus = { $nin: ["paid", "refunded"] };
     }
+    if (paymentStatus === "paid") {
+      query.paymentStatus = { $nin: ["cancelled", "refunded"] };
+      query['stockReservation.status'] = 'reserved';
+    }
     const update = {
       paymentStatus,
       "paymentDetails.razorpayPaymentId": paymentData.razorpayPaymentId,
@@ -362,6 +367,10 @@ exports.updateOrderPaymentStatus = async (orderId, paymentStatus, paymentData) =
       updateDocument,
       { new: true }
     );
+
+    if (order && paymentStatus === "paid") {
+      await shiprocketFulfillmentService.enqueuePaidOrder(order._id);
+    }
 
     return order;
   } catch (error) {

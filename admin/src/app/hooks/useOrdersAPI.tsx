@@ -95,6 +95,20 @@ export interface Order {
   createdAt: string;
   shippingAddress?: string;
   statusHistory?: StatusHistory[];
+  fulfillment?: {
+    syncStatus?: 'not_ready' | 'queued' | 'synced' | 'failed';
+    shiprocketOrderId?: string;
+    shipmentId?: string;
+    awbCode?: string;
+    courierName?: string;
+    providerStatus?: string;
+    pickupStatus?: string;
+    bookingStatus?: string;
+    lastErrorCode?: string;
+    labelUrl?: string;
+    manifestUrl?: string;
+    manifestStatus?: 'not_generated' | 'generated' | 'failed';
+  };
 }
 
 const normalizeOrder = (order: any): Order => ({

@@ -6,6 +6,7 @@ const Customer = require("../models/Customer");
 const crypto = require("crypto");
 const WebhookEvent = require("../models/WebhookEvent");
 const { canAccessOrder } = require('../services/guestOrderAccessService');
+const shiprocketFulfillmentService = require('../services/shiprocketFulfillmentService');
 
 async function findAccessibleOrder(req, orderId, populateCustomer = false) {
   let query = Order.findById(orderId).select('+guestAccessTokenHash');
@@ -104,6 +105,10 @@ exports.verifyPayment = async (req, res, next) => {
       });
     }
 
+    if (order.stockReservation?.status !== 'reserved' || ['cancelled', 'refunded'].includes(order.paymentStatus)) {
+      return res.status(409).json({ success: false, message: 'This order is no longer available for payment.' });
+    }
+
     order.paymentStatus = "paid";
     order.paymentDetails.razorpayPaymentId = razorpayPaymentId;
     order.paymentDetails.razorpaySignature = razorpaySignature;
@@ -122,6 +127,7 @@ exports.verifyPayment = async (req, res, next) => {
     }
 
     await order.save();
+    await shiprocketFulfillmentService.enqueuePaidOrder(order._id);
 
     // Record transaction
     await paymentService.recordPaymentTransaction({

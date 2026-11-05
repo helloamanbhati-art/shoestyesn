@@ -4,8 +4,17 @@ import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
 import { Search, Filter } from 'lucide-react';
 import { useOrders } from '../../contexts/OrderContext';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { adminFetch } from '../../api/client';
 
 const statusConfig = {
+  pending: { label: 'Order Placed', color: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300' },
+  confirmed: { label: 'Confirmed', color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' },
+  processing: { label: 'Processing', color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' },
+  shipped: { label: 'Shipped', color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' },
+  out_for_delivery: { label: 'Out for Delivery', color: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300' },
+  delivered: { label: 'Delivered', color: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' },
   0: { label: 'Order Placed', color: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300' },
   1: { label: 'Processing', color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' },
   2: { label: 'Shipped', color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' },
@@ -17,6 +26,25 @@ const statusConfig = {
 
 export function Orders() {
   const { orders } = useOrders();
+  const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
+
+  const runFulfillmentAction = async (orderId: string, action: 'sync' | 'ship') => {
+    setBusyOrderId(orderId);
+    try {
+      const response = await adminFetch(`/api/v1/admin/orders/${encodeURIComponent(orderId)}/shiprocket/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': globalThis.crypto.randomUUID().replaceAll('-', '') },
+        credentials: 'include',
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error?.message || 'Shipping action could not be completed.');
+      toast.success(action === 'ship' ? 'Pickup booked with Shiprocket.' : 'Order sync queued for Shiprocket.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Shipping action failed.');
+    } finally {
+      setBusyOrderId(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -66,12 +94,31 @@ export function Orders() {
                     <td className="py-3 px-4">{order.items.length} items</td>
                     <td className="py-3 px-4 font-medium">₹{order.total.toLocaleString()}</td>
                     <td className="py-3 px-4">
-                      <Badge className={statusConfig[order.status].color}>
-                        {statusConfig[order.status].label}
+                      <Badge className={(statusConfig[order.status] || statusConfig.pending).color}>
+                        {(statusConfig[order.status] || statusConfig.pending).label}
                       </Badge>
                     </td>
                     <td className="py-3 px-4">
-                      <Button variant="ghost" size="sm">View Details</Button>
+                      {order.paymentStatus === 'paid' && order.fulfillment?.syncStatus === 'failed' && !order.fulfillment?.awbCode && (
+                        <Button size="sm" variant="outline" disabled={busyOrderId === order.id} onClick={() => void runFulfillmentAction(order.id, 'sync')}>
+                          {busyOrderId === order.id ? 'Working…' : 'Retry Shiprocket sync'}
+                        </Button>
+                      )}
+                      {order.paymentStatus === 'paid' && order.fulfillment?.syncStatus === 'synced' && order.fulfillment.pickupStatus !== 'requested' && (
+                        <Button size="sm" disabled={busyOrderId === order.id} onClick={() => void runFulfillmentAction(order.id, 'ship')}>
+                          {busyOrderId === order.id ? 'Booking…' : 'Approve packed · book pickup'}
+                        </Button>
+                      )}
+                      {order.fulfillment?.pickupStatus === 'requested' && (
+                        <div className="text-xs text-muted-foreground">
+                          {order.fulfillment.courierName || 'Courier'} · AWB {order.fulfillment.awbCode || 'pending'}
+                          {order.fulfillment.labelUrl && <a className="ml-2 underline" href={order.fulfillment.labelUrl} target="_blank" rel="noreferrer">Shipping label</a>}
+                          {order.fulfillment.manifestUrl && <a className="ml-2 underline" href={order.fulfillment.manifestUrl} target="_blank" rel="noreferrer">Manifest</a>}
+                        </div>
+                      )}
+                      {order.paymentStatus === 'paid' && (!order.fulfillment?.syncStatus || ['not_ready', 'queued'].includes(order.fulfillment.syncStatus)) && (
+                        <span className="text-xs text-muted-foreground">Shiprocket sync pending</span>
+                      )}
                     </td>
                   </tr>
                 ))}

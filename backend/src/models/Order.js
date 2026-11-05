@@ -55,6 +55,10 @@ const orderItemSchema = new mongoose.Schema(
     discount: { type: Number, default: 0, min: 0 },
     tax: { type: Number, default: 0, min: 0 },
     total: { type: Number, required: true, min: 0 },
+    shippingWeightKg: { type: Number, min: 0.001, max: 1000 },
+    shippingLengthCm: { type: Number, min: 1, max: 500 },
+    shippingBreadthCm: { type: Number, min: 1, max: 500 },
+    shippingHeightCm: { type: Number, min: 1, max: 500 },
   },
   { _id: true }
 );
@@ -121,6 +125,32 @@ const orderSchema = new mongoose.Schema(
     },
     trackingNumber: String,
     carrier: String, // e.g., "Shipway", "Easypost"
+    fulfillment: {
+      provider: { type: String, enum: ['shiprocket'], default: 'shiprocket' },
+      syncStatus: { type: String, enum: ['not_ready', 'queued', 'synced', 'failed'], default: 'not_ready' },
+      shiprocketOrderId: String,
+      shipmentId: String,
+      awbCode: String,
+      courierName: String,
+      courierId: Number,
+      labelUrl: String,
+      manifestUrl: String,
+      manifestStatus: { type: String, enum: ['not_generated', 'generated', 'failed'], default: 'not_generated' },
+      providerStatus: String,
+      lastTrackingAt: Date,
+      estimatedDeliveryAt: Date,
+      pickupStatus: String,
+      bookingStatus: { type: String, enum: ['not_requested', 'processing', 'requested', 'failed'], default: 'not_requested' },
+      bookingLockedUntil: Date,
+      package: {
+        weight: Number,
+        length: Number,
+        breadth: Number,
+        height: Number,
+      },
+      lastErrorCode: String,
+      updatedAt: Date,
+    },
 
 
 
@@ -240,6 +270,8 @@ orderSchema.index({ status: 1 });
 orderSchema.index({ createdAt: -1 });
 orderSchema.index({ updatedAt: 1, _id: 1 });
 orderSchema.index({ paymentStatus: 1 });
+orderSchema.index({ 'fulfillment.shiprocketOrderId': 1 }, { sparse: true, unique: true });
+orderSchema.index({ 'fulfillment.shipmentId': 1 }, { sparse: true, unique: true });
 orderSchema.index(
   { customer: 1, checkoutIdempotencyKey: 1 },
   {

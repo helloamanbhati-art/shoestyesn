@@ -5,7 +5,8 @@ const Customer = require('../models/Customer');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const Return = require('../models/Return');
-const { CheckoutError, quoteCart } = require('../services/checkoutService');
+const { CheckoutError, buildOrderItems, quoteCart } = require('../services/checkoutService');
+const shiprocketService = require('../services/shiprocketService');
 const inventoryService = require('../services/inventoryService');
 const paymentService = require('../services/paymentService');
 const { createGuestAccessToken, hashGuestAccessToken, canAccessOrder } = require('../services/guestOrderAccessService');
@@ -62,6 +63,25 @@ function publicQuote(quote) {
     shippingCost: quote.shippingCost,
     total: quote.total,
     currency: 'INR',
+    ...(quote.delivery ? {
+      delivery: {
+        available: quote.delivery.available,
+        courier: quote.delivery.selected?.name || null,
+        estimatedDelivery: quote.delivery.selected?.etd || null,
+      },
+    } : {}),
+  };
+}
+
+function publicDelivery(delivery) {
+  return {
+    available: delivery.available,
+    couriers: delivery.couriers.map(({ name, rate, etd }) => ({ name, rate, estimatedDelivery: etd })),
+    selected: delivery.selected ? {
+      name: delivery.selected.name,
+      rate: delivery.selected.rate,
+      estimatedDelivery: delivery.selected.etd,
+    } : null,
   };
 }
 
@@ -104,16 +124,61 @@ exports.quoteOrder = async (req, res, next) => {
     const cartItems = req.customer
       ? await loadCheckoutItems(input, req.customer._id)
       : await loadGuestCart(input.items);
-    const quote = await quoteCart(cartItems, address.state, input.couponCode, req.customer?._id);
+    const quote = await quoteCart(cartItems, address.state, input.couponCode, req.customer?._id, address.zipCode);
     return res.json({ success: true, data: publicQuote(quote) });
   } catch (error) {
+    if (error instanceof shiprocketService.ShiprocketError) {
+      return res.status(error.statusCode).json({ success: false, error: { code: error.code, message: error.message } });
+    }
     return sendCheckoutError(error, res, next);
+  }
+};
+
+exports.checkDeliveryServiceability = async (req, res, next) => {
+  try {
+    const input = req.validatedData || req.body;
+    if (!req.customer && !Array.isArray(input.items)) {
+      throw new CheckoutError('CART_REQUIRED', 'Refresh your cart and try again.', 400);
+    }
+    const cartItems = req.customer
+      ? await loadCheckoutItems(input, req.customer._id)
+      : await loadGuestCart(input.items);
+    const items = buildOrderItems(cartItems);
+    const parcel = shiprocketService.buildParcel(items);
+    const declaredValue = items.reduce((sum, item) => sum + item.subtotal, 0);
+    const delivery = await shiprocketService.checkServiceability({
+      deliveryPincode: input.pincode,
+      parcel,
+      declaredValue,
+    });
+    return res.json({ success: true, data: { ...publicDelivery(delivery), pincode: input.pincode } });
+  } catch (error) {
+    if (error instanceof shiprocketService.ShiprocketError) {
+      return res.status(error.statusCode).json({ success: false, error: { code: error.code, message: error.message } });
+    }
+    return sendCheckoutError(error, res, next);
+  }
+};
+
+exports.checkProductDeliveryServiceability = async (req, res, next) => {
+  try {
+    const input = req.validatedData || req.body;
+    const delivery = await shiprocketService.checkPincodeServiceability({ deliveryPincode: input.pincode });
+    return res.json({ success: true, data: { ...publicDelivery(delivery), pincode: input.pincode } });
+  } catch (error) {
+    if (error instanceof shiprocketService.ShiprocketError) {
+      return res.status(error.statusCode).json({ success: false, error: { code: error.code, message: error.message } });
+    }
+    return next(error);
   }
 };
 
 exports.createOrder = async (req, res, next) => {
   const input = req.validatedData || req.body;
   const idempotencyKey = String(req.get('Idempotency-Key') || '').trim();
+  const orderIdentity = req.customer
+    ? { customer: req.customer._id, checkoutIdempotencyKey: idempotencyKey }
+    : { customer: null, checkoutIdempotencyKey: idempotencyKey };
   if (!/^[A-Za-z0-9_-]{16,100}$/.test(idempotencyKey)) {
     return res.status(400).json({
       success: false,
@@ -122,12 +187,26 @@ exports.createOrder = async (req, res, next) => {
   }
 
   try {
-    const guestAccessToken = req.customer ? null : createGuestAccessToken(idempotencyKey);
-    const orderIdentity = req.customer
-      ? { customer: req.customer._id, checkoutIdempotencyKey: idempotencyKey }
-      : { customer: null, checkoutIdempotencyKey: idempotencyKey };
     let order = await Order.findOne(orderIdentity).select('+guestAccessTokenHash');
+    const guestAccessToken = req.customer || order ? null : createGuestAccessToken(idempotencyKey);
     if (!order) {
+      const preflightCustomer = req.customer ? await Customer.findById(req.customer._id).select('addresses') : null;
+      const preflightAddress = preflightCustomer
+        ? savedAddress(preflightCustomer, input.addressId)
+        : input.guest.shippingAddress;
+      const preflightCart = req.customer
+        ? await loadCheckoutItems(input, req.customer._id)
+        : await loadGuestCart(input.items);
+      const deliveryQuote = await quoteCart(
+        preflightCart,
+        preflightAddress.state,
+        input.couponCode,
+        preflightCustomer?._id,
+        preflightAddress.zipCode,
+        undefined,
+        true,
+      );
+
       const session = await mongoose.startSession();
       try {
         await session.withTransaction(async () => {
@@ -136,7 +215,17 @@ exports.createOrder = async (req, res, next) => {
           const cartItems = customer
             ? await loadCheckoutItems(input, req.customer._id, session)
             : await loadGuestCart(input.items, session);
-          const quote = await quoteCart(cartItems, address.state, input.couponCode, customer?._id);
+          const quote = await quoteCart(
+            cartItems,
+            address.state,
+            input.couponCode,
+            customer?._id,
+            undefined,
+            deliveryQuote.delivery,
+          );
+          if (JSON.stringify(quote.package) !== JSON.stringify(deliveryQuote.package)) {
+            throw new CheckoutError('SHIPPING_QUOTE_STALE', 'Delivery details changed. Please verify checkout again.', 409);
+          }
 
           for (const item of quote.items) {
             await inventoryService.reserveStock(item.product, item.quantity, { session, size: item.size });
@@ -161,6 +250,7 @@ exports.createOrder = async (req, res, next) => {
             couponDiscount: quote.discount,
             shippingMethod: input.shippingMethod,
             shippingAddress: address,
+            fulfillment: { package: quote.package },
             paymentMethod: input.paymentMethod,
             customerNotes: input.customerNotes || '',
             ipAddress: req.ip,
@@ -224,9 +314,16 @@ exports.createOrder = async (req, res, next) => {
       data: { order, razorpayOrder, ...(guestAccessToken ? { guestAccessToken } : {}) },
     });
   } catch (error) {
+    if (error instanceof shiprocketService.ShiprocketError) {
+      return res.status(error.statusCode).json({ success: false, error: { code: error.code, message: error.message } });
+    }
     if (error?.code === 11000) {
       const order = await Order.findOne(orderIdentity);
-      return res.status(200).json({ success: true, data: { order } });
+      if (!order) return next(error);
+      if (!order.paymentDetails?.razorpayOrderId && order.paymentStatus !== 'paid') {
+        return res.status(409).json({ success: false, error: { code: 'CHECKOUT_RETRY_REQUIRED', message: 'Payment setup failed. Start checkout again to safely retry.' } });
+      }
+      return res.status(200).json({ success: true, data: { order, ...(req.customer ? {} : { guestAccessToken: createGuestAccessToken(idempotencyKey) }), razorpayOrder: { id: order.paymentDetails.razorpayOrderId, amount: Math.round(order.total * 100), currency: 'INR' } } });
     }
     return sendCheckoutError(error, res, next);
   }
@@ -239,7 +336,9 @@ exports.getCustomerOrders = async (req, res, next) => {
     const query = { customer: req.customer._id };
     if (req.query.status) query.status = req.query.status;
     const [orders, total] = await Promise.all([
-      Order.find(query).skip((page - 1) * limit).limit(limit).sort({ createdAt: -1 }).populate('items.product', 'name image'),
+      Order.find(query)
+        .select('-fulfillment')
+        .skip((page - 1) * limit).limit(limit).sort({ createdAt: -1 }).populate('items.product', 'name image'),
       Order.countDocuments(query),
     ]);
     return res.json({ success: true, data: orders, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
@@ -250,12 +349,26 @@ exports.getCustomerOrders = async (req, res, next) => {
 
 exports.getOrderById = async (req, res, next) => {
   try {
-    const order = await Order.findById(req.params.orderId).select('+guestAccessTokenHash').populate('items.product');
+    const order = await Order.findById(req.params.orderId).select('+guestAccessTokenHash');
     if (!order || !canAccessOrder(order, req.customer, req.get('X-Guest-Order-Token'))) {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
-    order.guestAccessTokenHash = undefined;
-    return res.json({ success: true, data: order });
+    const customerOrder = order.toObject();
+    delete customerOrder.guestAccessTokenHash;
+    delete customerOrder.ipAddress;
+    delete customerOrder.userAgent;
+    delete customerOrder.adminNotes;
+    delete customerOrder.internalNotes;
+    if (customerOrder.fulfillment) {
+      customerOrder.fulfillment = {
+        awbCode: customerOrder.fulfillment.awbCode,
+        courierName: customerOrder.fulfillment.courierName,
+        providerStatus: customerOrder.fulfillment.providerStatus,
+        lastTrackingAt: customerOrder.fulfillment.lastTrackingAt,
+        estimatedDeliveryAt: customerOrder.fulfillment.estimatedDeliveryAt,
+      };
+    }
+    return res.json({ success: true, data: customerOrder });
   } catch (error) {
     return next(error);
   }

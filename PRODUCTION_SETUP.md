@@ -9,6 +9,7 @@ The storefront, admin, and API must use HTTPS. Configure the API with:
 - `CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` from the production Clerk instance
 - `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, and a separate `RAZORPAY_WEBHOOK_SECRET`
 - `RAZORPAY_MOCK_MODE=false`
+- `SHIPROCKET_EMAIL`, `SHIPROCKET_PASSWORD`, `SHIPROCKET_PICKUP_PINCODE`, `SHIPROCKET_PICKUP_LOCATION`, and `SHIPROCKET_WEBHOOK_SECRET` on the backend only. Use an API user created in Shiprocket settings, an existing pickup location name, and a random webhook token.
 
 Set `VITE_API_URL`, `VITE_CLERK_PUBLISHABLE_KEY`, `VITE_ADMIN_URL`, and the matching public `VITE_RAZORPAY_KEY_ID` in the storefront hosting provider before building. Vite embeds `VITE_*` values into the browser bundle at build time, so changing them requires a redeploy. Never put `CLERK_SECRET_KEY` or `RAZORPAY_KEY_SECRET` in the storefront/admin environment.
 
@@ -39,4 +40,6 @@ Before launch:
 3. Run `npm run build` in `frontend` and `admin`.
 4. Run `npm run audit:inventory` in `backend`. `Product.stock` is authoritative; investigate every reported legacy `Inventory` discrepancy before archiving that collection.
 5. Configure Razorpay webhooks for `order.paid` and `payment.failed` at `/api/v1/payments/webhook/razorpay`.
-6. Test OTP, cart merge, checkout, captured payment, webhook replay, order cancellation, delivery stock settlement, and admin totals in a staging environment.
+6. Configure the Shiprocket tracking webhook to `https://<api-host>/api/v1/hooks/fulfillment` with the same `SHIPROCKET_WEBHOOK_SECRET` as its `x-api-key`; do not put the word Shiprocket in the callback path.
+7. Enter accurate packed-unit weight and dimensions for every active product in admin. Serviceability and shipping stay unavailable until parcel values and pickup PIN are configured.
+8. Test OTP, cart merge, checkout, captured payment, webhook replay, order cancellation, delivery stock settlement, and admin totals in a staging environment.

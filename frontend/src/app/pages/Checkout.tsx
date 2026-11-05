@@ -164,6 +164,7 @@ export function Checkout() {
   });
 
   const onChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    if (event.target.id === 'zip') setQuote(null);
     setForm((current) => ({ ...current, [event.target.id]: event.target.value }));
   };
 
@@ -260,7 +261,7 @@ export function Checkout() {
               <div className="grid md:grid-cols-3 gap-4">
                 <Field id="city" label="City" value={form.city} onChange={onChange} />
                 <Field id="state" label="State" value={form.state} onChange={onChange} />
-                <Field id="zip" label="PIN code" value={form.zip} onChange={onChange} maxLength={6} inputMode="numeric" />
+                <Field id="zip" label="PIN code" value={form.zip} onChange={onChange} maxLength={6} inputMode="numeric" autoComplete="postal-code" placeholder="Six-digit PIN code" />
               </div>
             </CardContent>
           </Card>
@@ -302,6 +303,7 @@ export function Checkout() {
               {displayed.discount > 0 && <Price label="Discount" value={-displayed.discount} />}
               <Price label="Tax" value={displayed.tax} />
               <Price label="Shipping" value={displayed.shippingCost} />
+              {quote?.delivery?.estimatedDelivery && <p className="text-xs text-muted-foreground">Estimated delivery: {quote.delivery.estimatedDelivery}</p>}
               <div className="flex justify-between border-t pt-3 font-semibold text-lg"><span>Total</span><span>₹{displayed.total.toLocaleString('en-IN')}</span></div>
               {isQuoting && <p className="text-xs text-muted-foreground">Updating from the server…</p>}
               <Button type="submit" size="lg" className="w-full" disabled={submitState.disabled}>

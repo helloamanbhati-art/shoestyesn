@@ -19,6 +19,7 @@ const {
   setAdminCookies,
 } = require("../services/adminSessionService");
 const adminController = require("../controllers/adminController");
+const fulfillmentController = require('../controllers/fulfillmentController');
 const { authenticateAdmin, requireRole } = require("../middleware/auth");
 const { apiLimiter, authLimiter } = require("../middleware/rateLimiter");
 const { validate } = require("../middleware/validation");
@@ -343,6 +344,10 @@ router.post('/products', async (req, res) => {
       createdBy: req.admin?._id,
       sku: data.sku || `SKU-${Date.now()}`,
       compareAtPrice: Number(data.compareAtPrice) || 0,
+      shippingWeightKg: data.shippingWeightKg,
+      shippingLengthCm: data.shippingLengthCm,
+      shippingBreadthCm: data.shippingBreadthCm,
+      shippingHeightCm: data.shippingHeightCm,
       ...(creationKey && { adminCreationKey: creationKey }),
     };
 
@@ -526,6 +531,8 @@ router.put("/product-options", async (req, res) => {
 // Order management
 router.get("/orders", adminController.getAllOrders);
 router.put("/orders/:orderId/status", validate(updateOrderStatusSchema), adminController.updateOrderStatus);
+router.post('/orders/:orderId/shiprocket/sync', fulfillmentController.retrySync);
+router.post('/orders/:orderId/shiprocket/ship', fulfillmentController.bookPackedOrder);
 
 // Customer management
 router.get("/customers", adminController.getAllCustomers);

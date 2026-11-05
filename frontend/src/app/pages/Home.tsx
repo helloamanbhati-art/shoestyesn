@@ -1,5 +1,5 @@
-import { FormEvent, Fragment, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { FormEvent, Fragment, useEffect, useMemo, useState } from 'react';
+import { ArrowRight, Search } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router';
 import { API_BASE_URL, resilientFetch } from '../api/client';
 import { ProductCard } from '../components/ProductCard';
@@ -29,25 +29,16 @@ function normalizeProduct(product: SearchProduct): Product {
 }
 
 function NewArrivalsRail({ products, loading, error }: { products: Product[]; loading: boolean; error: string | null }) {
-  const railRef = useRef<HTMLDivElement>(null);
-  const moveRail = (direction: -1 | 1) => {
-    railRef.current?.scrollBy({ left: direction * railRef.current.clientWidth * .9, behavior: 'smooth' });
-  };
-
   return <section id="new-arrivals-title" className="new-arrivals" aria-label="New arrivals">
     <div className="new-arrivals-heading">
       <p className="new-arrivals-kicker"><strong>New arrivals</strong><span>Fresh arrivals, selected from our latest collection</span></p>
-      <div className="new-arrivals-controls" aria-label="New arrival navigation">
-        <button type="button" onClick={() => moveRail(-1)} aria-label="Previous new arrivals"><ChevronLeft/></button>
-        <button type="button" onClick={() => moveRail(1)} aria-label="Next new arrivals"><ChevronRight/></button>
-      </div>
     </div>
     {loading && <div className="storefront-status" role="status">Loading the collection...</div>}
     {error && <div className="storefront-status" role="alert">The collection is taking a moment to load.</div>}
     {!loading && !error && products.length === 0 && <div className="storefront-status" role="status">The new collection will appear here soon.</div>}
-    {products.length > 0 && <div ref={railRef} className="new-arrivals-rail">{products.map((product, index) => <Fragment key={product.id}>
+    {products.length > 0 && <div className="storefront-product-grid new-arrivals-product-grid">{products.map((product, index) => <Fragment key={product.id}>
       {index === 2 && <Link className="new-arrivals-mobile-view-all" to="/products">View all products <ArrowRight size={15}/></Link>}
-      <div className={`new-arrivals-card ${index % 3 === 2 ? 'is-wide' : ''}`}><ProductCard product={product} priority={index < 2} variant="editorial" badge={product.isNewArrival ? 'New' : undefined}/></div>
+      <div className={`new-arrivals-card ${index % 3 === 2 ? 'is-wide' : ''}`}><ProductCard product={product} priority={index < 4} variant="editorial"/></div>
     </Fragment>)}</div>}
     {products.length > 0 && <Link className="new-arrivals-view-all new-arrivals-desktop-view-all" to="/products">View all products <ArrowRight size={15}/></Link>}
   </section>;

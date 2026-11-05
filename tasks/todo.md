@@ -1,5 +1,39 @@
 # Mobile-authenticated commerce task list
 
+## Shiprocket API delivery and fulfillment
+
+Detailed plan: [`tasks/plan-shiprocket-integration.md`](plan-shiprocket-integration.md).
+
+- [ ] T-SR01 Confirm Shiprocket API credentials are configured backend-side; confirm API-user access and pickup location without printing secret values.
+  - Verify: backend config preflight reports presence only; scan tracked files/frontend output for exposure.
+- [ ] T-SR02 Confirm pickup PIN, product/variant parcel weights and dimensions, regions, Shiprocket outage policy, and COD scope.
+  - Verify: active catalog has approved packaging data and checkout behavior is documented.
+- [ ] T-SR03 Define serviceability/fulfillment API contracts, quote policy, and state transitions.
+  - Verify: schema review confirms server-derived prices/weights and idempotent events.
+- [ ] T-SR04 Build secure backend Shiprocket client with API-user token handling, fixed HTTPS host, timeout/retry, response validation, and redaction.
+  - Depends on: T-SR03. Verify: mocked auth/API failures and log-redaction checks.
+- [ ] T-SR05 Add shipment order fields and durable deduplicated fulfillment outbox/worker.
+  - Depends on: T-SR03, T-SR04. Verify: duplicate callbacks, concurrent claims, and worker restart recovery.
+- [ ] T-SR06 Add rate-limited PIN serviceability endpoint using server-derived cart and package data.
+  - Depends on: T-SR04, T-SR02. Verify: input abuse, auth/guest ownership, and provider failure handling.
+- [ ] T-SR07 Add PIN-first checkout UI and authoritative serviceability/shipping recheck at final quote/order submission.
+  - Depends on: T-SR06. Verify: no client-tampering bypass and correct available/unavailable/outage states.
+- [ ] Checkpoint: PIN availability is useful before address entry; final totals and availability are server-authoritative.
+- [ ] T-SR08 Enqueue fulfillment once from the verified paid-order transition covering Razorpay callback and webhook paths.
+  - Depends on: T-SR05. Verify: only paid orders sync, payment/webhook races enqueue once, provider outage recovers.
+- [ ] T-SR09 Create Shiprocket orders idempotently from local immutable order snapshots and store provider identifiers.
+  - Depends on: T-SR08. Verify: retries do not duplicate provider orders and only required PII is sent.
+- [ ] T-SR10 Add protected admin ready-to-ship action for AWB assignment and pickup request, with safe retries and shipment state.
+  - Depends on: T-SR09. Verify: role, state, double-submit, and provider error cases.
+- [ ] Checkpoint: one paid staging order reconciles across Razorpay, local admin, and Shiprocket; admin approval books shipment once.
+- [ ] T-SR11 Verify/deduplicate Shiprocket webhooks and map tracking updates without changing payment state.
+  - Depends on: T-SR10. Verify: forged, replayed, malformed, and out-of-order events.
+- [ ] T-SR12 Add customer-owned tracking view and admin queue/error visibility with operational alerts.
+  - Depends on: T-SR11. Verify: authorization and PII minimization.
+- [ ] T-SR13 Stage, register provider webhook, document rollback/runbook, and reconcile a low-value live order.
+  - Depends on: T-SR12. Verify: end-to-end delivery lifecycle and rollback rehearsal.
+- [ ] Final checkpoint: production monitoring detects auth failures, stuck jobs, failed webhooks, and paid orders not synced; rollback can pause Shiprocket dispatch without blocking orders/payments.
+
 ## Implementation status (9 October 2026)
 
 - Implemented in code: T02-T18, including mobile OTP identity, rotating cookie sessions, database cart/address/order flows, authoritative checkout totals, Razorpay verification/webhooks, inventory reservation, admin authentication, and database-backed admin reporting.

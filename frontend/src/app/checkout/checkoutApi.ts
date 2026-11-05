@@ -28,6 +28,34 @@ export interface CheckoutQuote {
   shippingCost: number;
   total: number;
   currency: 'INR';
+  delivery?: { available: boolean; courier: string | null; estimatedDelivery: string | null };
+}
+
+export interface CheckoutDeliveryCheck {
+  pincode: string;
+  available: boolean;
+  couriers: Array<{ name: string; rate: number; estimatedDelivery: string }>;
+  selected: { name: string; rate: number; estimatedDelivery: string } | null;
+}
+
+export async function checkCheckoutDelivery(input: {
+  pincode: string;
+  items?: GuestCartSelection[];
+  checkoutMode?: 'buyNow';
+}): Promise<CheckoutDeliveryCheck> {
+  return apiRequest('/api/v1/orders/serviceability', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function checkProductDelivery(input: {
+  pincode: string;
+}): Promise<CheckoutDeliveryCheck> {
+  return apiRequest('/api/v1/orders/product-serviceability', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
 }
 
 export interface CheckoutOrder {

@@ -22,6 +22,7 @@ import {
 import { Search, Eye, ShoppingBag, Truck, CreditCard, MapPin, Copy, Printer, X } from 'lucide-react';
 import { useOrders } from '../../contexts/OrderContext';
 import { toast } from 'sonner';
+import { adminFetch } from '../../api/client';
 import {
   filterOrdersByDay,
   formatOrderDateTime,
@@ -130,6 +131,24 @@ export function OrdersManagement() {
   const [selectedOrder, setSelectedOrder] = useState<typeof orders[0] | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [activeLightbox, setActiveLightbox] = useState<{ images: string[]; activeIndex: number } | null>(null);
+  const [syncingOrderId, setSyncingOrderId] = useState<string | null>(null);
+
+  const handleShiprocketSync = async (orderId: string) => {
+    setSyncingOrderId(orderId);
+    try {
+      const response = await adminFetch(`/api/v1/admin/orders/${encodeURIComponent(orderId)}/shiprocket/sync`, {
+        method: 'POST',
+        headers: { 'Idempotency-Key': globalThis.crypto.randomUUID().replaceAll('-', '') },
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error?.message || 'Shiprocket sync could not be queued.');
+      toast.success('Shiprocket sync queued. This order will update shortly.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Shiprocket sync failed.');
+    } finally {
+      setSyncingOrderId(null);
+    }
+  };
 
   const getVariantImages = (item: any) => {
     // Read only from order.items.selectedVariant snapshot
@@ -286,6 +305,7 @@ export function OrdersManagement() {
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Items</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Total</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Payment</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Shiprocket</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Status</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Date &amp; time</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Action</th>
@@ -334,6 +354,32 @@ export function OrdersManagement() {
                           </div>
                         </td>
                         <td className="py-3 px-4">
+                          {order.paymentStatus !== 'paid' ? (
+                            <span className="text-xs text-gray-500 dark:text-gray-400">After payment</span>
+                          ) : (
+                            <div className="space-y-1">
+                              <Badge className={order.fulfillment?.syncStatus === 'synced'
+                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                                : order.fulfillment?.syncStatus === 'failed'
+                                  ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                                  : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'}>
+                                {order.fulfillment?.syncStatus === 'synced'
+                                  ? 'Synced'
+                                  : order.fulfillment?.syncStatus === 'failed'
+                                    ? 'Failed'
+                                    : order.fulfillment?.syncStatus === 'queued'
+                                      ? 'Queued'
+                                      : 'Not queued'}
+                              </Badge>
+                              {order.fulfillment?.lastErrorCode && (
+                                <p className="max-w-40 break-words text-[11px] text-red-700 dark:text-red-300" title={order.fulfillment.lastErrorCode}>
+                                  {order.fulfillment.lastErrorCode}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
                           <Badge className={statusConfig[order.status as OrderStatus]?.color || 'bg-gray-100'}>
                             {statusConfig[order.status as OrderStatus]?.label || order.status}
                           </Badge>
@@ -351,6 +397,18 @@ export function OrdersManagement() {
                               <Printer className="size-4" />
                               Print invoice
                             </Button>
+                            {order.paymentStatus === 'paid' && order.fulfillment?.syncStatus !== 'synced' && !order.fulfillment?.shiprocketOrderId && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={syncingOrderId === order.id}
+                                onClick={() => void handleShiprocketSync(order.id)}
+                              >
+                                {syncingOrderId === order.id
+                                  ? 'Syncing…'
+                                  : order.fulfillment?.syncStatus === 'failed' ? 'Retry sync' : 'Sync to Shiprocket'}
+                              </Button>
+                            )}
                           </div>
                         </td>
                       </tr>

@@ -2,6 +2,7 @@ const { app, ensureDefaultAdmin } = require("./app");
 const { validateProductionAdminOrigin } = require('./middleware/csrf');
 const { getCookieSettings } = require('./services/sessionService');
 const { connectDatabase, disconnectDatabase } = require('./config/database');
+const { startWorker } = require('./services/shiprocketFulfillmentService');
 
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -16,6 +17,7 @@ async function bootstrap() {
 
   await connectDatabase(MONGODB_URI);
   await ensureDefaultAdmin();
+  const stopFulfillmentWorker = startWorker();
 
   const server = app.listen(PORT, () => {
     console.log(`Backend running on port ${PORT}`);
@@ -25,6 +27,7 @@ async function bootstrap() {
   const shutdown = async (signal) => {
     if (isShuttingDown) return;
     isShuttingDown = true;
+    stopFulfillmentWorker();
     console.log(`${signal} received; draining HTTP and database connections`);
     server.close(async () => {
       await disconnectDatabase().catch((error) => {
