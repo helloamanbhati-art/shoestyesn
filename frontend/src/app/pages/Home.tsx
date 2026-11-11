@@ -91,7 +91,7 @@ export function Home() {
     };
   }, [query, searchAttempt]);
 
-  const heroSlides = useMemo(() => categories.map((category) => {
+  const heroSlides = useMemo(() => categories.map(({ name: category }) => {
     const product = products.find((item) => item.category.toLocaleLowerCase() === category.toLocaleLowerCase());
     const image = product?.image || product?.images?.[0] || '';
     return image ? {
@@ -158,7 +158,7 @@ export function Home() {
           <div aria-hidden="true"><strong>Secure checkout</strong><span>Protected online payments</span></div>
         </div>
       </section>
-      <CategoryShowcase products={products} loading={loading} error={error}/>
+      <CategoryShowcase categories={categories} loading={loading} error={error}/>
       <NewArrivalsRail products={collection} loading={loading} error={error}/>
       <TrendingStyles products={products}/>
       <PromotionalPosters products={products}/>

@@ -82,6 +82,17 @@ async function uploadBufferToCloudinary(fileBuffer) {
   });
 }
 
+async function uploadCategoryImage(fileBuffer) {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader
+      .upload_stream({ folder: "shoe-fashion/categories", resource_type: "image" }, (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      })
+      .end(fileBuffer);
+  });
+}
+
 // PUBLIC ROUTE - Login (no auth required)
 router.post("/auth/login", authLimiter, async (req, res) => {
   try {
@@ -552,6 +563,15 @@ router.post("/reviews/:reviewId/reject", adminController.rejectReview);
 // PASTE THIS BLOCK before module.exports = router;
 
 // Categories
+router.post("/categories/upload-image", upload.single("image"), async (req, res) => {
+  try {
+    if (!req.file || !req.file.mimetype.startsWith('image/')) {
+      return res.status(400).json({ success: false, message: "A category image is required" });
+    }
+    const result = await uploadCategoryImage(req.file.buffer);
+    res.json({ success: true, url: result.secure_url });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
 router.get("/categories", async (req, res) => {
   try {
     const categories = await Category.find().sort({ name: 1 });

@@ -3,7 +3,7 @@ import { useCatalogCategories, useProducts, Product } from '../hooks/useProducts
 
 interface ProductContextType {
   products: Product[];
-  categories: string[];
+  categories: { name: string; image: string }[];
   loading: boolean;
   error: string | null;
 }
@@ -15,7 +15,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
   const catalogCategories = useCatalogCategories();
   const categories = useMemo(() => {
     if (catalogCategories.length > 0) return catalogCategories;
-    return Array.from(new Set(products.map((product) => product.category).filter(Boolean))).sort();
+    return Array.from(new Set(products.map((product) => product.category).filter(Boolean))).sort().map((name) => ({ name, image: '' }));
   }, [catalogCategories, products]);
 
   return (

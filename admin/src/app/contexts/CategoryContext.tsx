@@ -5,6 +5,7 @@ import { adminRequest } from '../api/client';
 export interface Category {
   id: string;
   name: string;
+  image?: string;
   productCount?: number;
 }
 
@@ -41,6 +42,7 @@ export function CategoryProvider({ children }: { children: ReactNode }) {
       const mapped = (data.categories || []).map((category: any) => ({
         id: category._id || category.id,
         name: category.name,
+        image: category.image || '',
         productCount: category.productCount || 0,
       }));
       setCategories(mapped);
@@ -70,11 +72,12 @@ export function CategoryProvider({ children }: { children: ReactNode }) {
       const data = await adminRequest<{ category: any }>('/api/v1/admin/categories', {
         method: 'POST',
         headers: { 'Idempotency-Key': creationKey },
-        body: JSON.stringify({ name: category.name }),
+        body: JSON.stringify({ name: category.name, image: category.image || '' }),
       });
       setCategories(prev => [...prev, {
         id: data.category._id || data.category.id,
         name: data.category.name,
+        image: data.category.image || '',
         productCount: 0,
       }]);
       return true;
@@ -88,9 +91,9 @@ export function CategoryProvider({ children }: { children: ReactNode }) {
     try {
       await adminRequest(`/api/v1/admin/categories/${id}`, {
         method: 'PUT',
-        body: JSON.stringify({ name: category.name }),
+        body: JSON.stringify({ name: category.name, image: category.image || '' }),
       });
-      setCategories(prev => prev.map(c => c.id === id ? { ...c, name: category.name } : c));
+      setCategories(prev => prev.map(c => c.id === id ? { ...c, name: category.name, image: category.image || '' } : c));
       return true;
     } catch (error) {
       console.error('Error updating category:', error);

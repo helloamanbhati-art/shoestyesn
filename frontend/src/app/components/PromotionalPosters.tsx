@@ -15,7 +15,7 @@ export function PromotionalPosters({ products }: PromotionalPostersProps) {
     {
       title: 'New Collection',
       label: 'Shop new collection',
-      image: firstProduct?.image || firstProduct?.images?.[0] || fallbackImage,
+      image: '/new-collection-poster.svg',
       className: 'is-new',
     },
     {

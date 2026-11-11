@@ -271,7 +271,7 @@ export function useProducts() {
 }
 
 export function useCatalogCategories() {
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<{ name: string; image: string }[]>([]);
 
   useEffect(() => {
     resilientFetch(`${API_BASE_URL}/api/v1/catalog/categories`, {
@@ -283,12 +283,10 @@ export function useCatalogCategories() {
       })
       .then((payload) => {
         const records = payload.data || payload.categories || [];
-        setCategories(
-          records
-            .map((category: any) => category.name)
-            .filter(Boolean)
-            .sort((a: string, b: string) => a.localeCompare(b)),
-        );
+        setCategories(records
+          .filter((category: any) => category.name)
+          .map((category: any) => ({ name: category.name, image: category.image || '' }))
+          .sort((a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name)));
       })
       .catch((error) => console.error('Error fetching catalog categories:', error));
   }, []);

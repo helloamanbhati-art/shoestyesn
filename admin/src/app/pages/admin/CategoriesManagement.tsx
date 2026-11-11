@@ -14,12 +14,15 @@ import {
 import { Plus, Pencil, Trash2, Layers, Package, TrendingUp } from 'lucide-react';
 import { useCategories } from '../../contexts/CategoryContext';
 import { toast } from 'sonner';
+import { adminFetch } from '../../api/client';
 
 export function CategoriesManagement() {
   const { categories, loading, error, reloadCategories, addCategory, updateCategory, deleteCategory } = useCategories();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<typeof categories[0] | null>(null);
   const [categoryName, setCategoryName] = useState('');
+  const [categoryImage, setCategoryImage] = useState('');
+  const [imageUploading, setImageUploading] = useState(false);
 
   const totalProducts = categories.reduce((sum, cat) => sum + (cat.productCount || 0), 0);
   const averageProducts = categories.length > 0 ? Math.round(totalProducts / categories.length) : 0;
@@ -50,9 +53,11 @@ export function CategoriesManagement() {
     if (category) {
       setEditingCategory(category);
       setCategoryName(category.name);
+      setCategoryImage(category.image || '');
     } else {
       setEditingCategory(null);
       setCategoryName('');
+      setCategoryImage('');
     }
     setDialogOpen(true);
   };
@@ -75,7 +80,7 @@ export function CategoriesManagement() {
 
     let success: boolean;
     if (editingCategory) {
-      success = await updateCategory(editingCategory.id, { ...editingCategory, name: categoryName.trim() });
+      success = await updateCategory(editingCategory.id, { ...editingCategory, name: categoryName.trim(), image: categoryImage });
       if (success) {
         toast.success('Category updated successfully');
       } else {
@@ -86,6 +91,7 @@ export function CategoriesManagement() {
       success = await addCategory({
         id: Date.now().toString(),
         name: categoryName.trim(),
+        image: categoryImage,
         productCount: 0,
       });
       if (success) {
@@ -98,6 +104,31 @@ export function CategoriesManagement() {
 
     setDialogOpen(false);
     setCategoryName('');
+    setCategoryImage('');
+  };
+
+  const handleImageChange = async (file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Choose an image file');
+      return;
+    }
+    const formData = new FormData();
+    formData.append('image', file);
+    setImageUploading(true);
+    try {
+      const response = await adminFetch('/api/v1/admin/categories/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.url) throw new Error(payload.message || 'Image upload failed');
+      setCategoryImage(payload.url);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Image upload failed');
+    } finally {
+      setImageUploading(false);
+    }
   };
 
   const handleDeleteCategory = async (category: typeof categories[0]) => {
@@ -192,8 +223,8 @@ export function CategoriesManagement() {
             <Card key={category.id} className="rounded-none bg-white shadow-none">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex size-12 shrink-0 items-center justify-center rounded-none bg-gray-950 text-white">
-                    <Layers className="size-5" aria-hidden="true" />
+                  <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-none bg-gray-950 text-white">
+                    {category.image ? <img src={category.image} alt="" className="size-full object-cover" /> : <Layers className="size-5" aria-hidden="true" />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <h2 className="truncate text-base font-bold">{category.name}</h2>
@@ -220,7 +251,7 @@ export function CategoriesManagement() {
           <DialogHeader>
             <DialogTitle>{editingCategory ? 'Edit Category' : 'Add New Category'}</DialogTitle>
             <DialogDescription>
-              {editingCategory ? 'Update the category name below' : 'Enter the name for the new category'}
+              {editingCategory ? 'Update the category name and photo below' : 'Enter a name and photo for the new category'}
             </DialogDescription>
           </DialogHeader>
 
@@ -236,6 +267,11 @@ export function CategoriesManagement() {
                 onKeyDown={(e) => e.key === 'Enter' && handleSaveCategory()}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="categoryImage">Category Photo *</Label>
+              <Input id="categoryImage" type="file" accept="image/*" className="rounded-none file:mr-3" disabled={imageUploading} onChange={(event) => void handleImageChange(event.target.files?.[0])} />
+              {categoryImage ? <img src={categoryImage} alt="Category preview" className="size-24 border object-cover" /> : <p className="text-sm text-gray-500">Upload a photo to show this category in the storefront.</p>}
+            </div>
           </div>
 
           <DialogFooter>
@@ -244,6 +280,7 @@ export function CategoriesManagement() {
             </Button>
             <Button
               onClick={handleSaveCategory}
+              disabled={imageUploading}
               className="rounded-none bg-green-600 font-bold text-white hover:bg-green-700"
             >
               Save Category
