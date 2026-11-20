@@ -228,7 +228,7 @@ exports.createOrder = async (req, res, next) => {
           }
 
           for (const item of quote.items) {
-            await inventoryService.reserveStock(item.product, item.quantity, { session, size: item.size });
+            await inventoryService.reserveStock(item.product, item.quantity, { session, size: item.size, variantId: item.selectedVariant?.variantId });
           }
 
           const orderNumber = `ORD-${Date.now()}-${crypto.randomBytes(5).toString('hex').toUpperCase()}`;
@@ -283,7 +283,7 @@ exports.createOrder = async (req, res, next) => {
             const current = await Order.findOne({ _id: order._id, 'stockReservation.status': 'reserved' }).session(compensation);
             if (current) {
               for (const item of current.items) {
-                await inventoryService.releaseReservedStock(item.product, item.quantity, { session: compensation, size: item.size });
+                await inventoryService.releaseReservedStock(item.product, item.quantity, { session: compensation, size: item.size, variantId: item.selectedVariant?.variantId });
               }
               current.stockReservation.status = 'released';
               current.stockReservation.releasedAt = new Date();

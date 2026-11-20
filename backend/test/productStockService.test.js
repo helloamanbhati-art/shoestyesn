@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { isProductSaleable, normalizeSizeStock, resolveInitialStock } = require('../src/services/productStockService');
+const { getVariantSizeStock, isProductSaleable, normalizeSizeStock, resolveInitialStock } = require('../src/services/productStockService');
 
 test('new products default to available stock', () => {
   assert.deepEqual(resolveInitialStock({}), {
@@ -64,4 +64,18 @@ test('size inventory is normalized and total stock comes from its quantities', (
     { size: '37', available: 3, reserved: 0 },
   ]);
   assert.deepEqual(resolveInitialStock({ sizeStock }), { available: 5, inStock: true });
+});
+
+test('variant size stock overrides product-wide legacy size stock', () => {
+  const product = {
+    sizeStock: [{ size: '38', available: 12, reserved: 0 }],
+    variants: [
+      { variantId: 'black', sizeStock: [{ size: '38', available: 0, reserved: 1 }] },
+      { variantId: 'red', sizeStock: [{ size: '38', available: 4, reserved: 0 }] },
+    ],
+  };
+  assert.equal(getVariantSizeStock(product, 'black', '38').available, 0);
+  assert.equal(getVariantSizeStock(product, 'red', '38').available, 4);
+  assert.equal(getVariantSizeStock(product, 'green', '38').available, 12);
+  assert.equal(isProductSaleable({ ...product, isActive: true, trackInventory: true }), true);
 });

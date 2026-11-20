@@ -15,6 +15,8 @@ import { Plus, Pencil, Trash2, Layers, Package, TrendingUp } from 'lucide-react'
 import { useCategories } from '../../contexts/CategoryContext';
 import { toast } from 'sonner';
 import { adminFetch } from '../../api/client';
+import { optimizeMediaForUpload } from '../../utils/optimizeMediaForUpload';
+import { getCloudinaryImageUrl } from '../../utils/cloudinaryImage';
 
 export function CategoriesManagement() {
   const { categories, loading, error, reloadCategories, addCategory, updateCategory, deleteCategory } = useCategories();
@@ -113,10 +115,10 @@ export function CategoriesManagement() {
       toast.error('Choose an image file');
       return;
     }
-    const formData = new FormData();
-    formData.append('image', file);
     setImageUploading(true);
     try {
+      const formData = new FormData();
+      formData.append('image', await optimizeMediaForUpload(file));
       const response = await adminFetch('/api/v1/admin/categories/upload-image', {
         method: 'POST',
         body: formData,
@@ -224,7 +226,7 @@ export function CategoriesManagement() {
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-none bg-gray-950 text-white">
-                    {category.image ? <img src={category.image} alt="" className="size-full object-cover" /> : <Layers className="size-5" aria-hidden="true" />}
+                    {category.image ? <img src={getCloudinaryImageUrl(category.image, 160)} alt="" className="size-full object-cover" /> : <Layers className="size-5" aria-hidden="true" />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <h2 className="truncate text-base font-bold">{category.name}</h2>
@@ -270,7 +272,7 @@ export function CategoriesManagement() {
             <div className="space-y-2">
               <Label htmlFor="categoryImage">Category Photo *</Label>
               <Input id="categoryImage" type="file" accept="image/*" className="rounded-none file:mr-3" disabled={imageUploading} onChange={(event) => void handleImageChange(event.target.files?.[0])} />
-              {categoryImage ? <img src={categoryImage} alt="Category preview" className="size-24 border object-cover" /> : <p className="text-sm text-gray-500">Upload a photo to show this category in the storefront.</p>}
+              {categoryImage ? <img src={getCloudinaryImageUrl(categoryImage, 160)} alt="Category preview" className="size-24 border object-cover" /> : <p className="text-sm text-gray-500">Upload a photo to show this category in the storefront.</p>}
             </div>
           </div>
 

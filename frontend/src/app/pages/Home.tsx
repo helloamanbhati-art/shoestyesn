@@ -8,6 +8,7 @@ import { TrendingStyles } from '../components/TrendingStyles';
 import { PromotionalPosters } from '../components/PromotionalPosters';
 import { useProductContext } from '../contexts/ProductContext';
 import { usePageTitle } from '../hooks/usePageTitle';
+import { getCloudinaryImageUrl } from '../utils/cloudinaryImage';
 import type { Product } from '../types/product';
 
 type SearchProduct = Product & { _id?: string };
@@ -140,7 +141,7 @@ export function Home() {
         <h1 id="hero-title" className="sr-only">Shoe Style featured collection</h1>
         {activeHero ? <>
           <Link to={activeHero.href} className="storefront-hero-link" aria-label={`Shop ${activeHero.category}`}>
-            <img key={activeHero.image} src={activeHero.image} alt={activeHero.alt} fetchPriority={activeHeroIndex === 0 ? 'high' : 'auto'}/>
+            <img key={activeHero.image} src={getCloudinaryImageUrl(activeHero.image, 1280)} alt={activeHero.alt} fetchPriority={activeHeroIndex === 0 ? 'high' : 'auto'}/>
           </Link>
           <Link key={activeHero.category} to={activeHero.href} className="storefront-hero-cta" aria-label={`Shop ${activeHero.category}`}>{activeHero.category}</Link>
           {heroSlides.length > 1 && <div className="storefront-hero-dots" aria-label="Choose a featured category">

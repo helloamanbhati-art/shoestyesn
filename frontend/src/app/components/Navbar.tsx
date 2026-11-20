@@ -30,7 +30,10 @@ export function Navbar({ onCartIconReady }: NavbarProps) {
   const [accountOpen, setAccountOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(() => window.scrollY > 72);
   const [searchQuery, setSearchQuery] = useState(() => new URLSearchParams(location.search).get('search') || '');
-  const dynamicLinks = categories.slice(0, 5).map((category) => ({ label: category, href: `/category/${encodeURIComponent(category)}` }));
+  const dynamicLinks = categories.slice(0, 5).map((category) => ({
+    label: category.name,
+    href: `/category/${encodeURIComponent(category.name)}`,
+  }));
   const mobileLinks = dynamicLinks.length ? [fixedLinks[0], ...dynamicLinks, ...fixedLinks.slice(1)] : fixedLinks;
 
   useEffect(() => { if (cartButtonRef.current && onCartIconReady) onCartIconReady(cartButtonRef.current); }, [onCartIconReady]);

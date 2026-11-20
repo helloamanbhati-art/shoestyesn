@@ -7,22 +7,23 @@ const variantImageSchema = new mongoose.Schema({
   sortOrder: { type: Number, default: 0 },
 });
 
+const sizeStockSchema = new mongoose.Schema({
+  size: { type: String, required: true, trim: true },
+  available: { type: Number, default: 0, min: 0 },
+  reserved: { type: Number, default: 0, min: 0 },
+}, { _id: false });
+
 const variantSchema = new mongoose.Schema({
   variantId: { type: String, required: true },
   variantName: { type: String, required: true, trim: true },
   images: { type: [variantImageSchema], default: [] },
+  sizeStock: { type: [sizeStockSchema], default: [] },
 });
 
 const outfitComponentSchema = new mongoose.Schema({
   componentId: { type: String, required: true, trim: true },
   name: { type: String, required: true, trim: true },
   availableSizes: { type: [String], default: [] },
-}, { _id: false });
-
-const sizeStockSchema = new mongoose.Schema({
-  size: { type: String, required: true, trim: true },
-  available: { type: Number, default: 0, min: 0 },
-  reserved: { type: Number, default: 0, min: 0 },
 }, { _id: false });
 
 const productSchema = new mongoose.Schema(

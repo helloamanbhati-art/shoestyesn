@@ -13,7 +13,7 @@ test('product form matches the footwear fields shown on the storefront', () => {
   assert.match(source, /MRP \(₹\)/);
   assert.match(source, /Category \*/);
   assert.match(source, /Footwear type/);
-  assert.match(source, /Quantity by size/);
+  assert.match(source, /quantity by size/);
   assert.match(source, /Product Description/);
   assert.match(source, /Colours, Photos & Videos \*/);
 });
@@ -30,7 +30,7 @@ test('footwear products provide EU sizes 36 through 41 without size 35', () => {
   assert.match(source, /FOOTWEAR_SIZES = \['36', '37', '38', '39', '40', '41'\]/);
   assert.doesNotMatch(source, /FOOTWEAR_SIZES = \[[^\]]*'35'/);
   assert.doesNotMatch(source, /FOOTWEAR_SIZES = \['3', '4', '5', '6', '7', '8'\]/);
-  assert.match(source, /Use 0 for a sold-out size/);
+  assert.match(source, /Use 0 when sold out/);
   assert.doesNotMatch(source, /Add full outfit/);
   assert.doesNotMatch(source, /Separate sizes with commas\./);
   assert.doesNotMatch(source, /New product size/);
@@ -39,10 +39,16 @@ test('footwear products provide EU sizes 36 through 41 without size 35', () => {
 });
 
 test('admin can enter an exact quantity for every footwear size', () => {
-  assert.match(source, /sizeQuantities/);
-  assert.match(source, /Quantity for EU size/);
+  assert.match(source, /variantSizeQuantities/);
+  assert.match(source, /quantity for EU size/);
   assert.match(source, /sizeStock:/);
-  assert.match(source, /Total available:/);
+  assert.match(source, /Total: \{total\}/);
+});
+
+test('admin exposes independent quantities under each variant card', () => {
+  assert.match(source, /variantsDraft\.map\(\(variant, index\)/);
+  assert.match(source, /variantSizeQuantities\[variant\.clientId\]/);
+  assert.match(source, /variantStockRows = finalizedVariants\.flatMap/);
 });
 
 test('admin explicitly controls whether a product displays the NEW badge', () => {

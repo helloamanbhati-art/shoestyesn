@@ -33,7 +33,7 @@ test('legacy footwear sizes are presented as EU sizes', () => {
 
 test('the selectable EU values come from the same women size guide', () => {
   assert.deepEqual(WOMEN_SHOE_SIZE_ROWS.map((row) => row.eu), ['36', '37', '38', '39', '40', '41', '42', '43']);
-  assert.match(productDetail, /getFootwearSizeOptions\(product\.availableSizes/);
+  assert.match(productDetail, /getFootwearSizeOptions\(availableSizes/);
   assert.match(productDetail, /WomenSizeGuideDialog/);
 });
 

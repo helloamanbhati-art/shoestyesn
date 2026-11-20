@@ -30,6 +30,7 @@ import {
   sortOrdersNewestFirst,
 } from '../../utils/orderPresentation.mjs';
 import { createInvoiceHtml } from '../../utils/invoicePresentation.mjs';
+import { getCloudinaryImageUrl } from '../../utils/cloudinaryImage';
 
 const statusConfig = {
   0: { label: 'Order Placed', color: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300' },
@@ -522,7 +523,7 @@ export function OrdersManagement() {
                           {/* Image and details container */}
                           <div className="flex items-start gap-4 flex-1 min-w-0">
                             <img
-                              src={getItemImage(item)}
+                              src={getCloudinaryImageUrl(getItemImage(item), 160)}
                               alt={item.productName}
                               className="size-20 rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity border border-gray-100 dark:border-gray-850 flex-shrink-0"
                               title="Click to view all design images"
@@ -717,7 +718,7 @@ export function OrdersManagement() {
               {/* Active Image (Big Size) */}
               <div className="aspect-square max-h-[50vh] overflow-hidden rounded-lg bg-muted flex items-center justify-center relative">
                 <img
-                  src={activeLightbox.images[activeLightbox.activeIndex]}
+                  src={getCloudinaryImageUrl(activeLightbox.images[activeLightbox.activeIndex], 960)}
                   alt="Design preview large"
                   className="max-h-full max-w-full object-contain"
                 />
@@ -734,7 +735,7 @@ export function OrdersManagement() {
                         activeLightbox.activeIndex === idx ? 'border-primary ring-2 ring-primary/20' : 'border-border hover:border-primary/60'
                       }`}
                     >
-                      <img src={imgUrl} className="w-full h-full object-cover" alt={`Thumb ${idx + 1}`} />
+                      <img src={getCloudinaryImageUrl(imgUrl, 160)} className="w-full h-full object-cover" alt={`Thumb ${idx + 1}`} />
                     </button>
                   ))}
                 </div>

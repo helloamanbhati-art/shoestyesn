@@ -38,11 +38,23 @@ function resolveInitialStock(productData = {}) {
 function isProductSaleable(product = {}) {
   if (product.isActive === false) return false;
   if (product.trackInventory === false) return true;
+  if (Array.isArray(product.variants) && product.variants.length > 0 && product.variants.some((variant) => Array.isArray(variant.sizeStock) && variant.sizeStock.length > 0)) {
+    return product.variants.some((variant) => variant.sizeStock.some((entry) => Number(entry.available || 0) > 0));
+  }
   return Number(product.stock?.available || 0) > 0;
+}
+
+function getVariantSizeStock(product, variantId, size) {
+  const variant = (product?.variants || []).find((entry) => entry.variantId === variantId);
+  if (Array.isArray(variant?.sizeStock) && variant.sizeStock.length > 0) {
+    return variant.sizeStock.find((entry) => entry.size === size) || null;
+  }
+  return product?.sizeStock?.find((entry) => entry.size === size) || null;
 }
 
 module.exports = {
   DEFAULT_NEW_PRODUCT_STOCK,
+  getVariantSizeStock,
   isProductSaleable,
   normalizeSizeStock,
   resolveInitialStock,

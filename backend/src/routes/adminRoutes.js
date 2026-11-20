@@ -314,6 +314,9 @@ router.post('/products', async (req, res) => {
             variantId: v.variantId || v.clientId || `v-${index + 1}-${Date.now()}`,
             variantName: String(v.variantName || v.name || 'Default').trim(),
             images: variantImages,
+            sizeStock: Array.isArray(v.sizeStock)
+              ? normalizeSizeStock(v.sizeStock)
+              : normalizeSizeStock(data.sizeStock),
           };
         })
       : [];
@@ -325,7 +328,16 @@ router.post('/products', async (req, res) => {
       : Array.isArray(data.images) ? data.images : [];
     const legacyImage = data.image || legacyImages[0] || '';
     const sizeStock = normalizeSizeStock(data.sizeStock);
-    const initialStock = resolveInitialStock({ ...data, sizeStock });
+    const variantSizeStock = variants.flatMap((variant) => variant.sizeStock || []);
+    const usesVariantStock = variants.length > 0 && variants.some((variant) => Array.isArray(variant.sizeStock));
+    const aggregateSizeStock = usesVariantStock
+      ? [...new Set(variantSizeStock.map((entry) => entry.size))].map((size) => ({
+          size,
+          available: variantSizeStock.filter((entry) => entry.size === size).reduce((sum, entry) => sum + entry.available, 0),
+          reserved: variantSizeStock.filter((entry) => entry.size === size).reduce((sum, entry) => sum + entry.reserved, 0),
+        }))
+      : sizeStock;
+    const initialStock = resolveInitialStock({ ...data, sizeStock: aggregateSizeStock });
 
     const productData = {
       name: data.name,
@@ -333,8 +345,10 @@ router.post('/products', async (req, res) => {
       price: data.price,
       soldBy: data.soldBy,
       clothingType: data.clothingType || null,
-      availableSizes: Array.isArray(data.availableSizes) ? data.availableSizes : [],
-      sizeStock,
+      availableSizes: usesVariantStock
+        ? [...new Set(variantSizeStock.filter((entry) => entry.available > 0).map((entry) => entry.size))]
+        : Array.isArray(data.availableSizes) ? data.availableSizes : [],
+      sizeStock: aggregateSizeStock,
       outfitComponents: Array.isArray(data.outfitComponents) ? data.outfitComponents : [],
       brand: brandId,
       category: categoryId,
@@ -439,6 +453,10 @@ router.put('/products/:productId', async (req, res) => {
             variantId: v.variantId || v.clientId || `v-${index + 1}-${Date.now()}`,
             variantName: String(v.variantName || v.name || 'Default').trim(),
             images: variantImages,
+            // Keep the submitted per-variant inventory. Falling back to the
+            // aggregate product stock below would copy shared stock onto each
+            // variant and lose the inventory split managed in the admin UI.
+            ...(Array.isArray(v.sizeStock) && { sizeStock: normalizeSizeStock(v.sizeStock) }),
           };
         })
       : undefined; // undefined = don't overwrite if not sent
@@ -450,14 +468,38 @@ router.put('/products/:productId', async (req, res) => {
       : Array.isArray(data.images) ? data.images : undefined;
     const legacyImage = data.image || (legacyImages && legacyImages[0]) || undefined;
 
-    const existingProduct = await Product.findById(req.params.productId).select('sizeStock stock');
+    const existingProduct = await Product.findById(req.params.productId).select('sizeStock stock variants');
     if (!existingProduct) return res.status(404).json({ success: false, message: 'Product not found' });
-    const sizeStock = Array.isArray(data.sizeStock)
+    let nextVariants = variants;
+    if (Array.isArray(variants)) {
+      nextVariants = variants.map((variant) => {
+        const previous = existingProduct.variants?.find((entry) => entry.variantId === variant.variantId);
+        const currentStock = Array.isArray(variant.sizeStock) ? variant.sizeStock : existingProduct.sizeStock || [];
+        return {
+          ...variant,
+          sizeStock: currentStock.map((entry) => ({
+            ...entry,
+            reserved: previous?.sizeStock?.find((current) => current.size === entry.size)?.reserved
+              ?? existingProduct.sizeStock?.find((current) => current.size === entry.size)?.reserved
+              ?? 0,
+          })),
+        };
+      });
+    }
+    let sizeStock = Array.isArray(data.sizeStock)
       ? normalizeSizeStock(data.sizeStock).map((entry) => ({
           ...entry,
           reserved: existingProduct.sizeStock?.find((current) => current.size === entry.size)?.reserved || 0,
         }))
       : undefined;
+    if (nextVariants?.some((variant) => Array.isArray(variant.sizeStock))) {
+      const entries = nextVariants.flatMap((variant) => variant.sizeStock);
+      sizeStock = [...new Set(entries.map((entry) => entry.size))].map((size) => ({
+        size,
+        available: entries.filter((entry) => entry.size === size).reduce((sum, entry) => sum + entry.available, 0),
+        reserved: entries.filter((entry) => entry.size === size).reduce((sum, entry) => sum + entry.reserved, 0),
+      }));
+    }
     const available = sizeStock?.reduce((sum, entry) => sum + entry.available, 0);
 
     const updatePayload = {
@@ -466,13 +508,17 @@ router.put('/products/:productId', async (req, res) => {
       ...(brandId !== undefined && { brand: brandId }),
       ...(categoryId !== undefined && { category: categoryId }),
       updatedBy: req.admin._id,
-      ...(variants !== undefined && { variants }),
+      ...(nextVariants !== undefined && { variants: nextVariants }),
       ...(legacyImages !== undefined && { images: legacyImages }),
       ...(legacyImage !== undefined && { image: legacyImage }),
       ...(sizeStock !== undefined && {
         sizeStock,
         'stock.available': available,
         inStock: available > 0,
+      }),
+      ...(Array.isArray(data.variants) && nextVariants?.some((variant) => Array.isArray(variant.sizeStock)) && {
+        availableSizes: [...new Set(nextVariants.flatMap((variant) => variant.sizeStock.map((entry) => entry.size)))],
+        'stock.reserved': nextVariants.flatMap((variant) => variant.sizeStock).reduce((sum, entry) => sum + entry.reserved, 0),
       }),
     };
     if (sizeStock !== undefined) delete updatePayload.stock;
@@ -486,6 +532,7 @@ router.put('/products/:productId', async (req, res) => {
     if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
     res.json({ success: true, message: 'Product updated', data: product });
   } catch (error) {
+    console.error('[PUT /products/:productId] Error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });

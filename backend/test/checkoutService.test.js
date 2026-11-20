@@ -62,3 +62,23 @@ test('checkout rejects quantity above the selected size inventory', () => {
     variantId: 'default',
   }]), (error) => error instanceof CheckoutError && error.code === 'INSUFFICIENT_SIZE_STOCK');
 });
+
+test('checkout validates size quantity against the selected variant', () => {
+  const variants = [
+    { variantId: 'black', variantName: 'Black', sizeStock: [{ size: 'M', available: 0 }] },
+    { variantId: 'red', variantName: 'Red', sizeStock: [{ size: 'M', available: 2 }] },
+  ];
+  assert.throws(() => buildOrderItems([{
+    product: product({ variants, stock: { available: 2 } }),
+    quantity: 1,
+    selectedSize: 'M',
+    variantId: 'black',
+  }]), (error) => error instanceof CheckoutError && error.code === 'INSUFFICIENT_SIZE_STOCK');
+  const [item] = buildOrderItems([{
+    product: product({ variants, stock: { available: 2 } }),
+    quantity: 2,
+    selectedSize: 'M',
+    variantId: 'red',
+  }]);
+  assert.equal(item.selectedVariant.variantId, 'red');
+});

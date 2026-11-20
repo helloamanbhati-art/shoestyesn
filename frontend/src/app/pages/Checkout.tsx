@@ -15,6 +15,7 @@ import { clearGuestData, loadGuestCheckoutProfile, saveGuestCheckoutProfile, sav
 import { clearBuyNowItem, loadBuyNowItem } from '../checkout/buyNowStorage';
 import { getCheckoutSubmitState } from '../checkout/checkoutSubmitState';
 import { getEuShoeSize, isFootwearProduct } from '../utils/womenShoeSizes';
+import { getCloudinaryImageUrl } from '../utils/cloudinaryImage';
 
 interface FormData {
   firstName: string; lastName: string; email: string; phone: string;
@@ -282,7 +283,7 @@ export function Checkout() {
                     return (
                       <li key={item.cartItemId || `${item.id}-${item.selectedVariant?.variantId || 'default'}-${item.selectedSize || ''}`} className="flex gap-3">
                         <div className="size-20 shrink-0 overflow-hidden rounded-md border bg-muted">
-                          {image ? <img src={image} alt="" className="h-full w-full object-cover" /> : <span className="grid h-full place-items-center"><ShoppingBag className="size-5 text-muted-foreground" aria-hidden="true" /></span>}
+                          {image ? <img src={getCloudinaryImageUrl(image, 160)} alt="" className="h-full w-full object-cover" /> : <span className="grid h-full place-items-center"><ShoppingBag className="size-5 text-muted-foreground" aria-hidden="true" /></span>}
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium leading-snug">{item.name}</p>

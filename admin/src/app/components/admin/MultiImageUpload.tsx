@@ -3,6 +3,7 @@ import { Upload, X, Image as ImageIcon, Star } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { cn } from '../ui/utils';
+import { getCloudinaryImageUrl } from '../../utils/cloudinaryImage';
 
 interface MultiImageUploadProps {
   files: File[];
@@ -239,7 +240,7 @@ export function MultiImageUpload({
               {/* Image Preview */}
               <div className="relative aspect-square bg-muted overflow-hidden">
                 <img
-                  src={item.url}
+                  src={getCloudinaryImageUrl(item.url, 480)}
                   alt={`Product image ${item.globalIndex + 1}`}
                   className="w-full h-full object-cover"
                   loading="lazy"

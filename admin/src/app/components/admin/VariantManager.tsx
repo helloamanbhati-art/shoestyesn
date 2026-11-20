@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { cn } from '../ui/utils';
+import { getCloudinaryImageUrl } from '../../utils/cloudinaryImage';
 
 export interface VariantImageItem {
   id: string;
@@ -75,7 +76,7 @@ function VariantMediaPreview({
   const isVideo = item.file ? isVideoFile(item.file) : isVideoUrl(localUrl);
   return isVideo ? (
     <video
-      src={localUrl}
+      src={getCloudinaryImageUrl(localUrl, 160)}
       aria-label={`Variant video ${index + 1}`}
       className="h-full w-full object-cover"
       controls

@@ -10,6 +10,11 @@ const variantJoiSchema = Joi.object({
   variantId: Joi.string().required(),
   variantName: Joi.string().trim().required(),
   images: Joi.array().items(variantImageJoiSchema).default([]),
+  sizeStock: Joi.array().items(Joi.object({
+    size: Joi.string().trim().min(1).max(50).required(),
+    available: Joi.number().integer().min(0).required(),
+    reserved: Joi.number().integer().min(0).default(0),
+  })).unique('size').default([]),
 });
 
 const outfitComponentJoiSchema = Joi.object({

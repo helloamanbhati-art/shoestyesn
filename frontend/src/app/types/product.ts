@@ -8,6 +8,7 @@ export interface ProductVariant {
   variantId: string;
   variantName: string;
   images: VariantImage[];
+  sizeStock?: Array<{ size: string; available: number; reserved?: number }>;
 }
 
 export interface SelectedVariantSnapshot {

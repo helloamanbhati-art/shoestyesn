@@ -38,6 +38,7 @@ import {
 } from '../../components/admin/VariantManager';
 import { buildProductShareUrl } from '../../utils/productShareLink.mjs';
 import { optimizeMediaForUpload } from '../../utils/optimizeMediaForUpload';
+import { getCloudinaryImageUrl } from '../../utils/cloudinaryImage';
 
 const STOREFRONT_URL = 'https://sarojinishoestyle.com';
 
@@ -51,6 +52,7 @@ interface ProductVariant {
   variantId: string;
   variantName: string;
   images: VariantImage[];
+  sizeStock?: Array<{ size: string; available: number; reserved?: number }>;
 }
 
 interface OutfitComponent { componentId: string; name: string; availableSizes: string[]; }
@@ -97,6 +99,7 @@ interface Product {
 }
 
 const emptySizeQuantities = () => Object.fromEntries(FOOTWEAR_SIZES.map((size) => [size, ''])) as Record<string, string>;
+type VariantSizeQuantities = Record<string, Record<string, string>>;
 
 const isVideoUrl = (url: string) => /\.(mp4|webm|ogg|mov|m4v)(?:[?#]|$)/i.test(url);
 
@@ -241,6 +244,7 @@ useEffect(() => {
   
   // Variants state for the form
   const [variantsDraft, setVariantsDraft] = useState<VariantDraft[]>([]);
+  const [variantSizeQuantities, setVariantSizeQuantities] = useState<VariantSizeQuantities>({});
 
   // Form state
   const [formData, setFormData] = useState({
@@ -291,6 +295,17 @@ useEffect(() => {
   const handleOpenDialog = (product?: Product) => {
     if (product) {
       setEditingProduct(product);
+      const sharedSizeQuantities = Object.fromEntries(FOOTWEAR_SIZES.map((size) => [
+        size,
+        String(product.sizeStock?.find((entry) => entry.size === size)?.available ?? 0),
+      ]));
+      setVariantSizeQuantities(Object.fromEntries((product.variants || []).map((variant, index) => [
+        variant.variantId || `v-exist-${index}`,
+        Object.fromEntries(FOOTWEAR_SIZES.map((size) => [
+          size,
+          String(variant.sizeStock?.find((entry) => entry.size === size)?.available ?? sharedSizeQuantities[size]),
+        ])),
+      ])));
       setFormData({
         name: product.name,
         description: product.description,
@@ -342,6 +357,7 @@ useEffect(() => {
     } else {
       productCreationKeyRef.current = `admin_product_${crypto.randomUUID().replaceAll('-', '')}`;
       setEditingProduct(null);
+      setVariantSizeQuantities({});
       setFormData({
         name: '',
         description: '',
@@ -359,6 +375,7 @@ useEffect(() => {
         sizeQuantities: emptySizeQuantities(),
       });
       setVariantsDraft([newVariantDraft('Default')]);
+      setVariantSizeQuantities({});
     }
     setDialogOpen(true);
   };
@@ -394,35 +411,50 @@ useEffect(() => {
     try {
       setIsSaving(true);
       
-      // Upload new files for each variant
+      // Upload media as individual requests so a large gallery does not exceed
+      // hosting proxy limits for a single multipart request.
       const finalizedVariants: ProductVariant[] = [];
       
       for (const variant of variantsDraft) {
         const filesToUpload = variant.images.filter((img) => img.file);
         let uploadedUrls: string[] = [];
         if (filesToUpload.length > 0) {
-          const imagesForm = new FormData();
           const optimizedFiles = await Promise.all(
             filesToUpload.map((image) => optimizeMediaForUpload(image.file!)),
           );
-          optimizedFiles.forEach((file) => imagesForm.append('images', file));
-          
-          const uploadRes = await adminFetch('/api/v1/admin/products/upload-images', {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            credentials: 'include',
-            body: imagesForm,
-          });
+          uploadedUrls = new Array(optimizedFiles.length);
+          let nextFileIndex = 0;
+          const uploadNextFile = async () => {
+            while (nextFileIndex < optimizedFiles.length) {
+              const fileIndex = nextFileIndex++;
+              const file = optimizedFiles[fileIndex];
+              const imageForm = new FormData();
+              imageForm.append('image', file);
+              const uploadRes = await adminFetch('/api/v1/admin/products/upload-image', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                credentials: 'include',
+                body: imageForm,
+              });
+              const uploadData = await uploadRes.json().catch(() => null);
+              if (!uploadRes.ok || typeof uploadData?.url !== 'string' || !uploadData.url) {
+                const reason = uploadData?.message || uploadData?.error?.message || `Upload returned status ${uploadRes.status}`;
+                throw new Error(`${file.name}: ${reason}`);
+              }
+              uploadedUrls[fileIndex] = uploadData.url;
+            }
+          };
 
-          const uploadData = await uploadRes.json().catch(() => null);
-          if (!uploadRes.ok) {
-            const reason = uploadData?.message || `Upload returned status ${uploadRes.status}`;
-            toast.error(`Media upload failed for ${variant.name || 'Default'}: ${reason}`);
+          try {
+            await Promise.all(Array.from(
+              { length: Math.min(3, optimizedFiles.length) },
+              () => uploadNextFile(),
+            ));
+          } catch (error) {
+            toast.error(`Could not upload media for ${variant.name || 'Default'}: ${error instanceof Error ? error.message : 'Please try again.'}`);
             setIsSaving(false);
             return;
           }
-
-          uploadedUrls = uploadData?.urls || [];
         }
         
         let uploadIdx = 0;
@@ -437,10 +469,16 @@ useEffect(() => {
           sortOrder: idx,
         }));
         
+        const variantId = variant.clientId.startsWith('v-exist-') ? variant.clientId.replace('v-exist-', '') : (variant.clientId.startsWith('v-') ? variant.clientId : `v-${crypto.randomUUID()}`);
+        const variantSizeQuantitiesDraft = variantSizeQuantities[variant.clientId] || variantSizeQuantities[variantId] || formData.sizeQuantities;
         finalizedVariants.push({
-          variantId: variant.clientId.startsWith('v-exist-') ? variant.clientId.replace('v-exist-', '') : (variant.clientId.startsWith('v-') ? variant.clientId : `v-${crypto.randomUUID()}`),
+          variantId,
           variantName: variant.name || 'Default',
           images: imagesPayload,
+          sizeStock: FOOTWEAR_SIZES.map((size) => ({
+            size,
+            available: Math.max(0, Math.floor(Number(variantSizeQuantitiesDraft[size]) || 0)),
+          })),
         });
       }
 
@@ -449,7 +487,12 @@ useEffect(() => {
         size,
         available: Math.max(0, Math.floor(Number(formData.sizeQuantities[size]) || 0)),
       }));
-      const totalAvailable = sizeStock.reduce((sum, entry) => sum + entry.available, 0);
+      const variantStockRows = finalizedVariants.flatMap((variant) => variant.sizeStock || []);
+      const aggregateSizeStock = [...new Set(variantStockRows.map((entry) => entry.size))].map((size) => ({
+        size,
+        available: variantStockRows.filter((entry) => entry.size === size).reduce((sum, entry) => sum + entry.available, 0),
+      }));
+      const totalAvailable = aggregateSizeStock.reduce((sum, entry) => sum + entry.available, 0);
       const payload = {
         name: formData.name.trim(),
         description: formData.description.trim() || formData.name.trim(),
@@ -458,12 +501,12 @@ useEffect(() => {
         price: parseFloat(formData.price),
         soldBy: 'piece',
         clothingType: formData.clothingType || null,
-        availableSizes: sizeStock.filter((entry) => entry.available > 0).map((entry) => entry.size),
-        sizeStock,
+        availableSizes: [...new Set(variantStockRows.map((entry) => entry.size))],
+        sizeStock: aggregateSizeStock,
         stock: { available: totalAvailable },
         outfitComponents: formData.outfitComponents,
         variants: finalizedVariants,
-        inStock: totalAvailable > 0,
+        inStock: finalizedVariants.some((variant) => variant.sizeStock?.some((entry) => entry.available > 0)),
         isActive: true,
         isNewArrival: formData.isNewArrival,
         compareAtPrice: parseFloat(formData.compareAtPrice) || 0,
@@ -480,8 +523,10 @@ useEffect(() => {
       credentials: 'include',
       body: JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error('Failed to update product');
     const data = await res.json();
+    if (!res.ok || !data?.success || !data?.data) {
+      throw new Error(data?.message || 'Could not update the product. Please try again.');
+    }
     const updatedProduct = {
       id: data.data._id,
       name: data.data.name,
@@ -523,8 +568,10 @@ useEffect(() => {
       credentials: 'include',
       body: JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error('Failed to create product');
     const data = await res.json();
+    if (!res.ok || !data?.success || !data?.data) {
+      throw new Error(data?.message || 'Could not create the product. Please try again.');
+    }
     const newProduct = {
       id: data.data._id,
       name: data.data.name,
@@ -742,7 +789,7 @@ useEffect(() => {
                           preload="metadata"
                         />
                       ) : <img
-                        src={product.variants?.[0]?.images?.[0]?.imageUrl || product.image || (product.images && product.images[0])}
+                        src={getCloudinaryImageUrl(product.variants?.[0]?.images?.[0]?.imageUrl || product.image || (product.images && product.images[0]) || '', 160)}
                         alt={product.name}
                         className="size-16 rounded-lg object-cover border border-gray-200 dark:border-gray-700 sm:size-20"
                         onError={(e) => {
@@ -1077,8 +1124,57 @@ useEffect(() => {
             <div className="space-y-2">
               <Label>Colours, Photos & Videos *</Label>
               <p className="text-xs text-muted-foreground">Add one entry for each colour or style. The first photo becomes its storefront preview.</p>
-              <VariantManager variants={variantsDraft} onChange={setVariantsDraft} />
+              <VariantManager
+                variants={variantsDraft}
+                onChange={(nextVariants) => {
+                  setVariantsDraft(nextVariants);
+                  setVariantSizeQuantities((current) => Object.fromEntries(nextVariants.map((variant) => [
+                    variant.clientId,
+                    current[variant.clientId] || Object.fromEntries(FOOTWEAR_SIZES.map((size) => [size, '0'])),
+                  ])));
+                }}
+              />
             </div>
+
+            {variantsDraft.map((variant, index) => {
+              const quantities = variantSizeQuantities[variant.clientId] || emptySizeQuantities();
+              const total = FOOTWEAR_SIZES.reduce((sum, size) => sum + (Number(quantities[size]) || 0), 0);
+              return (
+                <fieldset key={variant.clientId} className="space-y-3 rounded-md border p-3 sm:p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <legend className="text-sm font-medium">{variant.name || `Variant ${index + 1}`} quantity by size</legend>
+                      <p className="mt-1 text-xs text-muted-foreground">Enter available pairs for this color/style only. Use 0 when sold out.</p>
+                    </div>
+                    <Badge variant="secondary">Total: {total}</Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {FOOTWEAR_SIZES.map((size) => {
+                      const inputId = `variant-${variant.clientId}-size-${size}`;
+                      return (
+                        <div key={size} className="rounded-md border p-3">
+                          <Label htmlFor={inputId} className="mb-2 block text-xs font-semibold">EU {size}</Label>
+                          <Input
+                            id={inputId}
+                            type="number"
+                            min="0"
+                            step="1"
+                            inputMode="numeric"
+                            value={quantities[size] ?? '0'}
+                            aria-label={`${variant.name || `Variant ${index + 1}`} quantity for EU size ${size}`}
+                            onChange={(event) => setVariantSizeQuantities((current) => ({
+                              ...current,
+                              [variant.clientId]: { ...(current[variant.clientId] || emptySizeQuantities()), [size]: event.target.value },
+                            }))}
+                            placeholder="0"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+              );
+            })}
 
             <label htmlFor="isNewArrival" className="flex cursor-pointer items-start gap-3 rounded-md border p-3 sm:p-4">
               <input
@@ -1094,42 +1190,6 @@ useEffect(() => {
               </span>
             </label>
 
-            <fieldset className="space-y-3 rounded-md border p-3 sm:p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <legend className="text-sm font-medium">Quantity by size *</legend>
-                  <p className="mt-1 text-xs text-muted-foreground">Enter the pairs available for each EU size. Use 0 for a sold-out size.</p>
-                </div>
-                <Badge variant="secondary">Total available: {FOOTWEAR_SIZES.reduce((sum, size) => sum + (Number(formData.sizeQuantities[size]) || 0), 0)}</Badge>
-              </div>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {FOOTWEAR_SIZES.map((size) => {
-                  const inputId = `footwear-size-quantity-${size}`;
-                  return (
-                    <div key={size} className="rounded-md border p-3">
-                      <Label htmlFor={inputId} className="mb-2 block text-xs font-semibold">EU {size}</Label>
-                      <Input
-                        id={inputId}
-                        type="number"
-                        min="0"
-                        step="1"
-                        inputMode="numeric"
-                        value={formData.sizeQuantities[size]}
-                        aria-label={`Quantity for EU size ${size}`}
-                        onChange={(event) => setFormData((current) => ({
-                          ...current,
-                          sizeQuantities: { ...current.sizeQuantities, [size]: event.target.value },
-                        }))}
-                        placeholder="0"
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-              <p className="text-xs font-medium text-muted-foreground" aria-live="polite">
-                Sizes with zero quantity will remain visible but crossed out on the storefront.
-              </p>
-            </fieldset>
 
           </div>
 

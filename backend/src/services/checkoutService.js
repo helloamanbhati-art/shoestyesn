@@ -1,6 +1,7 @@
 const discountService = require('./discountService');
 const taxService = require('./taxService');
 const shiprocketService = require('./shiprocketService');
+const { getVariantSizeStock } = require('./productStockService');
 
 class CheckoutError extends Error {
   constructor(code, message, statusCode = 400) {
@@ -50,23 +51,28 @@ function buildOrderItems(cartItems) {
   return cartItems.map((cartItem) => {
     const product = cartItem.product;
     const quantity = Number(cartItem.quantity);
-    if (!product || product.isActive === false || product.inStock === false) {
+    if (!product || product.isActive === false) {
       throw new CheckoutError('PRODUCT_UNAVAILABLE', 'A product in your cart is no longer available', 409);
     }
     if (!Number.isInteger(quantity) || quantity < 1) {
       throw new CheckoutError('INVALID_QUANTITY', 'Cart quantity is invalid');
     }
-    if (product.trackInventory !== false && Number(product.stock?.available || 0) < quantity) {
+    const hasVariantSizeStock = Array.isArray(product.variants)
+      && product.variants.some((variant) => Array.isArray(variant.sizeStock) && variant.sizeStock.length > 0);
+    if (product.trackInventory !== false && !hasVariantSizeStock && Number(product.stock?.available || 0) < quantity) {
       throw new CheckoutError('INSUFFICIENT_STOCK', `Only ${Math.max(Number(product.stock?.available || 0), 0)} of ${product.name} remain`, 409);
     }
-    if (product.availableSizes?.length && !product.availableSizes.includes(cartItem.selectedSize)) {
+    const selectedVariant = buildVariantSnapshot(product, cartItem);
+    const variantSizeStock = product.variants?.find((variant) => variant.variantId === selectedVariant.variantId)?.sizeStock;
+    const allowedSizes = variantSizeStock?.length ? variantSizeStock.map((entry) => entry.size) : product.availableSizes;
+    if (allowedSizes?.length && !allowedSizes.includes(cartItem.selectedSize)) {
       throw new CheckoutError('SIZE_UNAVAILABLE', `${product.name} size is no longer available`, 409);
     }
-    const sizeInventory = Array.isArray(product.sizeStock)
-      ? product.sizeStock.find((entry) => entry.size === cartItem.selectedSize)
+    const sizeInventory = cartItem.selectedSize
+      ? getVariantSizeStock(product, selectedVariant.variantId, cartItem.selectedSize)
       : null;
     if (sizeInventory && Number(sizeInventory.available || 0) < quantity) {
-      throw new CheckoutError('INSUFFICIENT_SIZE_STOCK', `Only ${Math.max(Number(sizeInventory.available || 0), 0)} of ${product.name} in size ${cartItem.selectedSize} remain`, 409);
+      throw new CheckoutError('INSUFFICIENT_SIZE_STOCK', `Only ${Math.max(Number(sizeInventory.available || 0), 0)} of ${product.name} in size ${cartItem.selectedSize} (${selectedVariant.variantName}) remain`, 409);
     }
     const outfitComponents = Array.isArray(product.outfitComponents) ? product.outfitComponents : [];
     const selectedComponents = outfitComponents.map((component) => {
@@ -86,7 +92,6 @@ function buildOrderItems(cartItems) {
       : Number(product.price || 0);
     const additionalChargeAmount = Number(product.additionalChargeAmount || 0);
     const subtotal = (price + additionalChargeAmount) * quantity;
-    const selectedVariant = buildVariantSnapshot(product, cartItem);
     const brand = typeof product.brand === 'object' ? product.brand?.name : product.brand;
 
     return {

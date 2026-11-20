@@ -1,4 +1,4 @@
-const { isProductSaleable } = require('./productStockService');
+const { getVariantSizeStock } = require('./productStockService');
 
 const MAX_CART_ITEMS = 50;
 
@@ -28,29 +28,54 @@ function buildCartSelection(product, input, fallbackSizes = []) {
     throw new CartValidationError('INVALID_QUANTITY', 'Quantity must be a positive whole number');
   }
 
-  const availableStock = product.trackInventory === false
-    ? Number.POSITIVE_INFINITY
-    : Number(product.stock?.available ?? 0);
-  if (quantity > availableStock) {
-    throw new CartValidationError(
-      'INSUFFICIENT_STOCK',
-      `Only ${Math.max(availableStock, 0)} available`,
-      409,
-    );
-  }
-
-  const availableSizes = product.availableSizes?.length
+  let availableSizes = product.availableSizes?.length
     ? product.availableSizes
     : product.soldBy === 'piece'
       ? fallbackSizes
       : [];
   const selectedSize = input.selectedSize ? String(input.selectedSize).trim() : null;
 
-  if (availableSizes.length > 0 && !selectedSize) {
+  const variants = Array.isArray(product.variants) ? product.variants : [];
+  const requestedVariantId = input.variantId ? String(input.variantId) : null;
+  let selectedVariant = null;
+  if (variants.length > 0) {
+    selectedVariant = requestedVariantId
+      ? variants.find((variant) => variant.variantId === requestedVariantId)
+      : variants[0];
+    if (!selectedVariant) throw new CartValidationError('VARIANT_UNAVAILABLE', 'Selected variant is not available');
+  } else if (requestedVariantId && requestedVariantId !== 'default') {
+    throw new CartValidationError('VARIANT_UNAVAILABLE', 'Selected variant is not available');
+  }
+  if (selectedVariant?.sizeStock?.length) {
+    availableSizes = selectedVariant.sizeStock.map((entry) => entry.size);
+  }
+
+  const selectedSizeStock = selectedSize
+    ? getVariantSizeStock(product, selectedVariant?.variantId || requestedVariantId || 'default', selectedSize)
+    : null;
+  const variantHasSizeStock = Array.isArray(selectedVariant?.sizeStock) && selectedVariant.sizeStock.length > 0;
+  const effectiveSizes = variantHasSizeStock
+    ? selectedVariant.sizeStock.map((entry) => entry.size)
+    : availableSizes;
+
+  if (effectiveSizes.length > 0 && !selectedSize) {
     throw new CartValidationError('SIZE_REQUIRED', 'A size is required for this product');
   }
-  if (selectedSize && availableSizes.length > 0 && !availableSizes.includes(selectedSize)) {
+  if (selectedSize && effectiveSizes.length > 0 && !effectiveSizes.includes(selectedSize)) {
     throw new CartValidationError('SIZE_UNAVAILABLE', 'Selected size is not available');
+  }
+  if (selectedVariant?.sizeStock?.length && selectedSize && !selectedSizeStock) {
+    throw new CartValidationError('SIZE_UNAVAILABLE', 'Selected size is not available for this variant');
+  }
+  if (selectedSizeStock && Number(selectedSizeStock.available || 0) < quantity) {
+    throw new CartValidationError('INSUFFICIENT_STOCK', `Only ${Math.max(Number(selectedSizeStock.available || 0), 0)} available in this size`, 409);
+  }
+  const variantInventoryManaged = Boolean(selectedVariant?.sizeStock?.length && selectedSize);
+  const availableStock = product.trackInventory === false || variantInventoryManaged
+    ? Number.POSITIVE_INFINITY
+    : Number(product.stock?.available ?? 0);
+  if (!variantInventoryManaged && quantity > availableStock) {
+    throw new CartValidationError('INSUFFICIENT_STOCK', `Only ${Math.max(availableStock, 0)} available`, 409);
   }
 
   const outfitComponents = Array.isArray(product.outfitComponents) ? product.outfitComponents : [];
@@ -66,21 +91,6 @@ function buildCartSelection(product, input, fallbackSizes = []) {
     }
     return { componentId: component.componentId, name: component.name, size };
   });
-
-  const variants = Array.isArray(product.variants) ? product.variants : [];
-  const requestedVariantId = input.variantId ? String(input.variantId) : null;
-  let selectedVariant = null;
-
-  if (variants.length > 0) {
-    selectedVariant = requestedVariantId
-      ? variants.find((variant) => variant.variantId === requestedVariantId)
-      : variants[0];
-    if (!selectedVariant) {
-      throw new CartValidationError('VARIANT_UNAVAILABLE', 'Selected variant is not available');
-    }
-  } else if (requestedVariantId && requestedVariantId !== 'default') {
-    throw new CartValidationError('VARIANT_UNAVAILABLE', 'Selected variant is not available');
-  }
 
   let meters = null;
   if (product.soldBy === 'meter') {
@@ -150,12 +160,18 @@ function serializeProduct(product) {
     image: source.image || null,
     images: source.images || [],
     colors: source.colors || [],
-    variants: source.variants || [],
+    variants: (source.variants || []).map((variant) => ({
+      variantId: variant.variantId,
+      variantName: variant.variantName,
+      images: variant.images || [],
+      sizeStock: variant.sizeStock || [],
+    })),
     brand: source.brand || null,
     category: source.category || null,
     soldBy: source.soldBy,
     sku: source.sku || null,
     availableSizes: source.availableSizes || [],
+    sizeStock: source.sizeStock || [],
     outfitComponents: source.outfitComponents || [],
     stock: source.stock || { available: 0 },
     trackInventory: source.trackInventory !== false,
@@ -167,11 +183,18 @@ function serializeProduct(product) {
 function serializeCart(cart) {
   const items = (cart?.items || []).map((item) => {
     const product = serializeProduct(item.product);
-    const isAvailable = Boolean(
-      product
-      && isProductSaleable(product)
-      && (!product.trackInventory || product.stock.available >= item.quantity),
-    );
+    const selectedSizeStock = item.selectedSize
+      ? getVariantSizeStock(product, item.variantId || 'default', item.selectedSize)
+      : null;
+    const hasVariantInventory = Boolean(product?.variants?.some(
+      (variant) => variant.variantId === item.variantId && variant.sizeStock?.length,
+    ));
+    const stockAvailable = hasVariantInventory
+      ? Boolean(selectedSizeStock && selectedSizeStock.available >= item.quantity)
+      : product?.trackInventory === false
+        || product?.stock?.available >= item.quantity
+        || Boolean(selectedSizeStock && selectedSizeStock.available >= item.quantity);
+    const isAvailable = Boolean(product && product.isActive !== false && stockAvailable);
     const unitPrice = product ? getCurrentUnitPrice({ ...item, product }) : 0;
 
     return {
@@ -211,7 +234,9 @@ function mergeCartSelections(existingItems, incomingItems, stockByProduct) {
     const productId = normalizeId(incoming.product);
     const existing = items.find((item) => cartSelectionsMatch(item, incoming));
     const requestedQuantity = Number(incoming.quantity || 0) + Number(existing?.quantity || 0);
-    const maximum = stockByProduct.get(productId) ?? 0;
+    const maximum = stockByProduct.get(`${productId}:${incoming.variantId || 'default'}:${incoming.selectedSize || ''}`)
+      ?? stockByProduct.get(productId)
+      ?? 0;
     const appliedQuantity = Number.isFinite(maximum)
       ? Math.min(requestedQuantity, maximum)
       : requestedQuantity;

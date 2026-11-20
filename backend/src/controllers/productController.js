@@ -20,6 +20,7 @@ const CARD_PRODUCT_FIELDS = [
   "colors",
   "variants.variantId",
   "variants.variantName",
+  "variants.sizeStock",
   "variants.images.imageUrl",
   "variants.images.isPrimary",
   "variants.images.sortOrder",
@@ -77,9 +78,10 @@ exports.getProducts = async (req, res, next) => {
           ...product,
           images: Array.isArray(product.images) ? product.images.slice(0, 1) : [],
           variants: Array.isArray(product.variants)
-            ? product.variants.map(({ variantId, variantName, images, _id }) => ({
+            ? product.variants.map(({ variantId, variantName, images, sizeStock, _id }) => ({
                 variantId,
                 variantName,
+                sizeStock,
                 images: Array.isArray(images)
                   ? images.map(({ imageUrl, isPrimary, sortOrder, _id: imageId }) => ({
                       imageUrl,

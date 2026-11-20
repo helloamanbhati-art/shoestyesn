@@ -1,5 +1,6 @@
 import { Loader2 } from 'lucide-react';
 import { Link } from 'react-router';
+import { getCloudinaryImageUrl } from '../utils/cloudinaryImage';
 interface CategoryShowcaseProps {
   categories: { name: string; image: string }[];
   loading: boolean;
@@ -43,7 +44,7 @@ export function CategoryShowcase({ categories, loading, error }: CategoryShowcas
                   aria-label={`Shop all ${category} products`}
                   className="category-showcase-card"
                 >
-                  {artwork && <img className="category-showcase-image" src={artwork} alt="" loading="lazy" decoding="async" />}
+                  {artwork && <img className="category-showcase-image" src={getCloudinaryImageUrl(artwork, 480)} alt="" loading="lazy" decoding="async" />}
                   <h3>{category}</h3>
                 </Link>
               );

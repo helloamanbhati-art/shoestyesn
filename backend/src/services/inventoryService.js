@@ -1,4 +1,5 @@
 const Product = require("../models/Product");
+const { getVariantSizeStock } = require('./productStockService');
 
 function assertQuantity(quantity) {
   const parsed = Number(quantity);
@@ -21,6 +22,23 @@ exports.reserveStock = async (productId, quantity, options = {}) => {
     if (product.trackInventory === false) return product;
 
     const size = String(options.size || '').trim();
+    const variantId = String(options.variantId || '').trim();
+    if (variantId && size && product.variants?.some((variant) => variant.variantId === variantId && Array.isArray(variant.sizeStock) && variant.sizeStock.length > 0)) {
+      const selectedVariant = product.variants.find((variant) => variant.variantId === variantId);
+      const stock = getVariantSizeStock(product, variantId, size);
+      if (!selectedVariant || !stock || stock.available < amount) throw new Error('Insufficient variant size stock');
+      const updated = await Product.findOneAndUpdate(
+        { _id: productId, isActive: true, 'stock.available': { $gte: amount }, variants: { $elemMatch: { variantId, sizeStock: { $elemMatch: { size, available: { $gte: amount } } } } } },
+        { $inc: { 'stock.available': -amount, 'stock.reserved': amount, 'variants.$[variant].sizeStock.$[size].available': -amount, 'variants.$[variant].sizeStock.$[size].reserved': amount } },
+        { new: true, runValidators: true, ...withSession(options), arrayFilters: [{ 'variant.variantId': variantId }, { 'size.size': size }] },
+      );
+      if (!updated) throw new Error('Insufficient variant size stock');
+      if (updated.stock.available === 0 && !updated.variants?.some((variant) => variant.sizeStock?.some((entry) => entry.available > 0))) {
+        await Product.updateOne({ _id: productId, 'stock.available': 0 }, { $set: { inStock: false } }, withSession(options));
+        updated.inStock = false;
+      }
+      return updated;
+    }
     const query = {
         _id: productId,
         isActive: true,
@@ -46,12 +64,8 @@ exports.reserveStock = async (productId, quantity, options = {}) => {
 
     if (!updated) throw new Error("Insufficient stock");
 
-    if (updated.stock.available === 0) {
-      await Product.updateOne(
-        { _id: productId, "stock.available": 0 },
-        { $set: { inStock: false } },
-        withSession(options)
-      );
+    if (updated.stock.available === 0 && !updated.variants?.some((variant) => variant.sizeStock?.some((entry) => entry.available > 0))) {
+      await Product.updateOne({ _id: productId, "stock.available": 0 }, { $set: { inStock: false } }, withSession(options));
       updated.inStock = false;
     }
 
@@ -65,10 +79,24 @@ exports.reserveStock = async (productId, quantity, options = {}) => {
 exports.releaseReservedStock = async (productId, quantity, options = {}) => {
   try {
     const amount = assertQuantity(quantity);
-    const product = await Product.findById(productId, "trackInventory", withSession(options));
+    const product = await Product.findById(productId, null, withSession(options));
     if (!product) throw new Error("Product not found");
     if (product.trackInventory === false) return product;
     const size = String(options.size || '').trim();
+    const variantId = String(options.variantId || '').trim();
+    if (variantId && size && product.variants?.some((variant) => variant.variantId === variantId && Array.isArray(variant.sizeStock) && variant.sizeStock.length > 0)) {
+      const updated = await Product.findOneAndUpdate(
+        { _id: productId, 'stock.reserved': { $gte: amount }, variants: { $elemMatch: { variantId, sizeStock: { $elemMatch: { size, reserved: { $gte: amount } } } } } },
+        { $inc: { 'stock.available': amount, 'stock.reserved': -amount, 'variants.$[variant].sizeStock.$[size].available': amount, 'variants.$[variant].sizeStock.$[size].reserved': -amount }, $set: { inStock: true } },
+        { new: true, runValidators: true, ...withSession(options), arrayFilters: [{ 'variant.variantId': variantId }, { 'size.size': size }] },
+      );
+      if (!updated) throw new Error('Insufficient variant reserved stock');
+      if (updated.stock.available === 0 && !updated.variants?.some((variant) => variant.sizeStock?.some((entry) => entry.available > 0))) {
+        await Product.updateOne({ _id: productId, 'stock.available': 0 }, { $set: { inStock: false } }, withSession(options));
+        updated.inStock = false;
+      }
+      return updated;
+    }
     const query = {
         _id: productId,
         "stock.reserved": { $gte: amount },
@@ -102,10 +130,24 @@ exports.releaseReservedStock = async (productId, quantity, options = {}) => {
 exports.confirmStockUsage = async (productId, quantity, options = {}) => {
   try {
     const amount = assertQuantity(quantity);
-    const product = await Product.findById(productId, "trackInventory", withSession(options));
+    const product = await Product.findById(productId, null, withSession(options));
     if (!product) throw new Error("Product not found");
     if (product.trackInventory === false) return product;
     const size = String(options.size || '').trim();
+    const variantId = String(options.variantId || '').trim();
+    if (variantId && size && product.variants?.some((variant) => variant.variantId === variantId && Array.isArray(variant.sizeStock) && variant.sizeStock.length > 0)) {
+      const updated = await Product.findOneAndUpdate(
+        { _id: productId, 'stock.reserved': { $gte: amount }, variants: { $elemMatch: { variantId, sizeStock: { $elemMatch: { size, reserved: { $gte: amount } } } } } },
+        { $inc: { 'stock.reserved': -amount, totalSales: amount, 'variants.$[variant].sizeStock.$[size].reserved': -amount } },
+        { new: true, runValidators: true, ...withSession(options), arrayFilters: [{ 'variant.variantId': variantId }, { 'size.size': size }] },
+      );
+      if (!updated) throw new Error('Insufficient variant reserved stock');
+      if (updated.stock.available === 0 && updated.variants?.some((variant) => variant.sizeStock?.some((entry) => entry.available > 0))) {
+        await Product.updateOne({ _id: productId, 'stock.available': 0 }, { $set: { inStock: true } }, withSession(options));
+        updated.inStock = true;
+      }
+      return updated;
+    }
     const query = {
         _id: productId,
         "stock.reserved": { $gte: amount },

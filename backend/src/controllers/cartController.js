@@ -143,9 +143,16 @@ exports.mergeCart = async (req, res, next) => {
         continue;
       }
 
+      const variant = product.variants?.find((entry) => entry.variantId === (item.variantId || 'default'));
+      const selectedSizeStock = variant?.sizeStock?.find((entry) => entry.size === item.selectedSize);
+      const hasVariantInventory = Boolean(variant?.sizeStock?.length);
       const maximum = product.trackInventory === false
         ? Number.POSITIVE_INFINITY
-        : Number(product.stock?.available || 0);
+        : selectedSizeStock
+          ? Number(selectedSizeStock.available || 0)
+          : hasVariantInventory
+            ? 0
+            : Number(product.stock?.available || 0);
       if (maximum < 1 || product.isActive === false) {
         adjustments.push({
           productId: item.productId,
@@ -161,7 +168,7 @@ exports.mergeCart = async (req, res, next) => {
         ...item,
         quantity: appliedInputQuantity,
       }, fallbackSizes));
-      stockByProduct.set(item.productId, maximum);
+      stockByProduct.set(`${item.productId}:${item.variantId || 'default'}:${item.selectedSize || ''}`, maximum);
       if (appliedInputQuantity < item.quantity) {
         adjustments.push({
           productId: item.productId,

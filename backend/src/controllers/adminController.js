@@ -318,14 +318,14 @@ exports.updateOrderStatus = async (req, res, next) => {
 
       if (status === "delivered" && order.stockReservation?.status === "reserved") {
         for (const item of order.items) {
-          await inventoryService.confirmStockUsage(item.product, item.quantity, { session, size: item.size });
+          await inventoryService.confirmStockUsage(item.product, item.quantity, { session, size: item.size, variantId: item.selectedVariant?.variantId });
         }
         order.stockReservation.status = "consumed";
         order.stockReservation.consumedAt = new Date();
       }
       if (status === "cancelled" && order.stockReservation?.status === "reserved") {
         for (const item of order.items) {
-          await inventoryService.releaseReservedStock(item.product, item.quantity, { session, size: item.size });
+          await inventoryService.releaseReservedStock(item.product, item.quantity, { session, size: item.size, variantId: item.selectedVariant?.variantId });
         }
         order.stockReservation.status = "released";
         order.stockReservation.releasedAt = new Date();

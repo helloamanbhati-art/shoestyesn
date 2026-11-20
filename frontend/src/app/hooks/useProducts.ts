@@ -11,6 +11,7 @@ export interface ProductVariant {
   variantId: string;
   variantName: string;
   images: VariantImage[];
+  sizeStock?: Array<{ size: string; available: number; reserved?: number }>;
 }
 
 export interface Product {
@@ -52,6 +53,7 @@ const transformProduct = (product: any): Product => {
     ? product.variants.map((v: any) => ({
         variantId: v.variantId || v._id || '',
         variantName: v.variantName || v.name || 'Default',
+        sizeStock: Array.isArray(v.sizeStock) ? v.sizeStock : [],
         images: Array.isArray(v.images)
           ? v.images.map((img: any) => ({
               imageUrl: typeof img === 'string' ? img : img.imageUrl,

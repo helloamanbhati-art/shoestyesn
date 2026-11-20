@@ -1,4 +1,4 @@
-import { useParams, Link, useLocation, useNavigate } from "react-router";
+import { useParams, useLocation, useNavigate } from "react-router";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { ArrowLeft, ShoppingBag, ShoppingCart, Minus, Plus, Loader, Loader2, Check, ChevronDown, ChevronLeft, ChevronRight, Share2, MapPin } from "lucide-react";
@@ -19,6 +19,7 @@ import { STORE } from "../config/store";
 import { buildWhatsAppUrl } from "../chatbot/chatbotKnowledge";
 import { buildStockRequestMessage } from "../utils/stockRequest";
 import { checkProductDelivery, type CheckoutDeliveryCheck } from "../checkout/checkoutApi";
+import { getCloudinaryImageUrl } from "../utils/cloudinaryImage";
 
 
 interface Product {
@@ -39,6 +40,7 @@ interface Product {
   clothingType?: string;
   stock?: { available: number };
   sizeStock?: Array<{ size: string; available: number; reserved?: number }>;
+  trackInventory?: boolean;
   inStock?: boolean;
   additionalChargeName?: string;
   additionalChargeAmount?: number;
@@ -49,6 +51,14 @@ export function ProductDetail() {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const returnToPreviousPage = () => {
+    const historyIndex = window.history.state?.idx;
+    if (typeof historyIndex === 'number' && historyIndex > 0) {
+      navigate(-1);
+      return;
+    }
+    navigate('/products', { replace: true });
+  };
   usePageTitle('Product Details');
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -142,6 +152,7 @@ export function ProductDetail() {
           variants: (productData.variants || []).map((v: any) => ({
             variantId: v.variantId || v._id || '',
             variantName: v.variantName || v.name || 'Default',
+            sizeStock: Array.isArray(v.sizeStock) ? v.sizeStock : [],
             images: Array.isArray(v.images) && v.images.length > 0
               ? v.images.map((img: any) => ({
                   imageUrl: typeof img === 'string' ? img : img.imageUrl,
@@ -173,6 +184,7 @@ export function ProductDetail() {
           outfitComponents: Array.isArray(productData.outfitComponents) ? productData.outfitComponents : [],
           clothingType: productData.clothingType || '',
           inStock: productData.inStock !== false,
+          trackInventory: productData.trackInventory !== false,
           additionalChargeName: productData.additionalChargeName || '',
           additionalChargeAmount: productData.additionalChargeAmount || 0,
           compareAtPrice: productData.compareAtPrice || 0,
@@ -202,19 +214,6 @@ export function ProductDetail() {
           setSelectedVariant(matchedVariant || transformedProduct.variants[0]);
         }
 
-        // Preload all variant images in the background so switching feels instant
-        const allVariantImageUrls: string[] = [];
-        (transformedProduct.variants || []).forEach((v: any) => {
-          (v.images || []).forEach((img: any) => {
-            const url = typeof img === 'string' ? img : img.imageUrl;
-            if (url) allVariantImageUrls.push(url);
-          });
-        });
-        allVariantImageUrls.forEach((url) => {
-          const preloadImg = new window.Image();
-          preloadImg.src = url;
-        });
-
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to load product';
         setError(message);
@@ -236,7 +235,7 @@ export function ProductDetail() {
         return;
       }
     }
-    const selectedInventory = product.sizeStock?.find((entry) => entry.size === selectedSize)?.available;
+    const selectedInventory = (selectedVariant?.sizeStock?.length ? selectedVariant.sizeStock : product.sizeStock)?.find((entry) => entry.size === selectedSize)?.available;
     if (selectedInventory !== undefined && quantity > selectedInventory) {
       setQuantity(Math.max(1, selectedInventory));
       toast.error(`Only ${selectedInventory} available in this size`);
@@ -370,6 +369,8 @@ export function ProductDetail() {
 
   const handleVariantSelect = useCallback((variant: ProductVariant) => {
     setSelectedVariant(variant);
+    setSelectedSize(null);
+    setQuantity(1);
     setActiveImageIndex(0);
   }, []);
 
@@ -413,12 +414,10 @@ export function ProductDetail() {
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-2">Product Not Found</h2>
           <p className="text-muted-foreground mb-4">{error || 'The product you are looking for does not exist.'}</p>
-          <Link to="/">
-            <Button>
-              <ArrowLeft className="size-4 mr-2" />
-              Back to Products
-            </Button>
-          </Link>
+          <Button onClick={returnToPreviousPage}>
+            <ArrowLeft className="size-4 mr-2" />
+            Back to Products
+          </Button>
         </div>
       </div>
     );
@@ -429,22 +428,32 @@ export function ProductDetail() {
     : (product.variants && product.variants.find(v => v.images && v.images.length > 0)?.images) || product.images) || [];
   
   const carouselImages = galleryImages.map((img: any) => typeof img === 'string' ? img : img.imageUrl);
+  const variants = product.variants || [];
+  const productPosterImage = [product.image, ...product.images, ...variants.flatMap((variant) => variant.images.map((image) => image.imageUrl))]
+    .find((media) => media && !isVideoMediaUrl(media)) || '';
   const primaryImageForAnimation = carouselImages && carouselImages.length > 0 ? carouselImages[0] : product.image;
   const activeMedia = carouselImages[activeImageIndex] || product.image;
   const stockRequestImage = carouselImages.find((media) => !isVideoMediaUrl(media)) || product.image;
-  const variants = product.variants || [];
-  const requiresSize = Boolean(product.availableSizes?.length || product.sizeStock?.length);
+  const selectedVariantSizeStock = selectedVariant?.sizeStock?.length ? selectedVariant.sizeStock : product.sizeStock || [];
+  const availableSizes = selectedVariant?.sizeStock?.length
+    ? selectedVariant.sizeStock.map((entry) => entry.size)
+    : product.availableSizes || [];
+  const requiresSize = Boolean(availableSizes.length || selectedVariantSizeStock.length);
   const usesEuShoeSizes = isFootwearProduct(product);
   const sizeOptions = usesEuShoeSizes
-    ? getFootwearSizeOptions(product.availableSizes || [], product.sizeStock || [])
-    : (product.availableSizes || []).map((size) => {
-        const inventory = product.sizeStock?.find((entry) => entry.size === size);
+    ? getFootwearSizeOptions(availableSizes, selectedVariantSizeStock)
+    : availableSizes.map((size) => {
+        const inventory = selectedVariantSizeStock.find((entry) => entry.size === size);
         const optionQuantity = inventory ? Math.max(0, Number(inventory.available) || 0) : null;
         return { eu: size, storedSize: size, available: optionQuantity !== 0, quantity: optionQuantity };
       });
   const quantityLimit = getSizeQuantityLimit(selectedSize, sizeOptions);
   const missingComponentCount = (product.outfitComponents || []).filter((component) => !componentSizes[component.componentId]).length;
-  const purchaseDisabled = !product.inStock || (requiresSize && !selectedSize) || missingComponentCount > 0;
+  const hasVariantInventory = Boolean(selectedVariant?.sizeStock?.length);
+  const selectedVariantAvailable = product.trackInventory === false
+    || selectedVariantSizeStock.some((entry) => Number(entry.available || 0) > 0)
+    || (!hasVariantInventory && Number(product.stock?.available || 0) > 0);
+  const purchaseDisabled = !selectedVariantAvailable || (requiresSize && !selectedSize) || missingComponentCount > 0;
   const productLookupCode = product.id.slice(-8).toUpperCase();
   const hasPinkShootDetails = productLookupCode === '36A46A94';
   const hasDiscount = product.soldBy !== 'meter' && (product.compareAtPrice ?? 0) > product.price;
@@ -472,10 +481,10 @@ export function ProductDetail() {
   return (
     <>
       <nav aria-label="Product navigation" className="product-detail-back-bar flex h-14 w-full items-center border-y border-[#ececef] border-l-4 border-l-[#79b7ad] bg-white">
-        <Link to="/" className="product-detail-back-link inline-flex h-full items-center gap-2.5 px-5 text-sm font-medium text-[#626783] transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-6">
+        <button type="button" onClick={returnToPreviousPage} className="product-detail-back-link inline-flex h-full items-center gap-2.5 px-5 text-sm font-medium text-[#626783] transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-6">
           <ArrowLeft className="size-4" aria-hidden="true" />
           <span>Back to products</span>
-        </Link>
+        </button>
       </nav>
       <main className="mx-auto w-full max-w-[1440px] px-4 py-4 sm:px-6 lg:px-8">
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.12fr)_minmax(390px,0.88fr)] lg:gap-8">
@@ -485,9 +494,9 @@ export function ProductDetail() {
               {carouselImages.map((media, index) => (
                 <button key={`${media}-${index}`} type="button" onClick={() => setActiveImageIndex(index)} className={`h-20 w-[72px] shrink-0 overflow-hidden rounded-md border-2 bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${index === activeImageIndex ? 'border-primary' : 'border-transparent hover:border-muted-foreground/40'}`} aria-label={`View product media ${index + 1} of ${carouselImages.length}`} aria-pressed={index === activeImageIndex}>
                   {isVideoMediaUrl(media) ? (
-                    <video src={media} aria-hidden="true" muted playsInline preload="metadata" className="h-full w-full object-cover" />
+                    <video src={index === activeImageIndex ? media : undefined} poster={productPosterImage ? getCloudinaryImageUrl(productPosterImage, 160) : undefined} aria-hidden="true" muted playsInline preload="none" className="h-full w-full object-cover" />
                   ) : (
-                    <img src={media} alt="" className="h-full w-full object-cover" />
+                    <img src={getCloudinaryImageUrl(media, 160)} alt="" className="h-full w-full object-cover" />
                   )}
                 </button>
               ))}
@@ -495,9 +504,9 @@ export function ProductDetail() {
           )}
           <div className={`group relative order-1 flex min-h-[400px] items-center justify-center overflow-hidden rounded-lg bg-muted sm:order-2 lg:h-[calc(100dvh-150px)] lg:min-h-[540px] lg:max-h-[720px] ${carouselImages.length <= 1 ? 'sm:col-span-2' : ''}`}>
             {isVideoMediaUrl(activeMedia) ? (
-              <video src={activeMedia} aria-label={`${product.name} product video`} className="h-full w-full object-contain" controls playsInline preload="metadata" />
+              <video src={activeMedia} poster={productPosterImage ? getCloudinaryImageUrl(productPosterImage, 960) : undefined} aria-label={`${product.name} product video`} className="h-full w-full object-contain" controls playsInline preload="none" />
             ) : (
-              <img src={activeMedia} alt={`${product.name}${carouselImages.length > 1 ? `, image ${activeImageIndex + 1}` : ''}`} className="h-full w-full object-contain" loading="eager" decoding="async" />
+              <img src={getCloudinaryImageUrl(activeMedia, 1280)} alt={`${product.name}${carouselImages.length > 1 ? `, image ${activeImageIndex + 1}` : ''}`} className="h-full w-full object-contain" loading="eager" decoding="async" />
             )}
             {carouselImages.length > 1 && <><Button type="button" variant="secondary" size="icon" onClick={() => setActiveImageIndex((activeImageIndex - 1 + carouselImages.length) % carouselImages.length)} className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-background/90 shadow-sm backdrop-blur-sm sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:focus-visible:opacity-100" aria-label="Previous product image"><ChevronLeft className="size-5" /></Button><Button type="button" variant="secondary" size="icon" onClick={() => setActiveImageIndex((activeImageIndex + 1) % carouselImages.length)} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-background/90 shadow-sm backdrop-blur-sm sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:focus-visible:opacity-100" aria-label="Next product image"><ChevronRight className="size-5" /></Button><span className="absolute bottom-3 right-3 rounded-full bg-background/90 px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm" aria-live="polite">{activeImageIndex + 1} / {carouselImages.length}</span></>}
           </div>
@@ -508,7 +517,7 @@ export function ProductDetail() {
           <div className="mt-3"><h1 id="product-title" className="text-xl font-semibold leading-tight tracking-tight sm:text-2xl">{product.name}</h1></div>
           <div className="mt-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b pb-4"><div><div className="flex flex-wrap items-baseline gap-2"><p className="text-2xl font-bold text-black">₹{(product.soldBy === 'meter' && selectedMeters === 5 ? product.price + (product.compareAtPrice || 0) : product.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>{hasDiscount && <><p className="text-sm text-muted-foreground line-through" aria-label={`Original price ₹${product.compareAtPrice.toLocaleString('en-IN')}`}>₹{product.compareAtPrice.toLocaleString('en-IN')}</p><Badge className="bg-emerald-800 text-white hover:bg-emerald-800">-{discountPercentage}% OFF</Badge></>}</div><p className="mt-0.5 text-xs text-muted-foreground">MRP inclusive of all taxes</p></div><p className="text-xs text-muted-foreground">Product code: {productLookupCode}</p></div>
 
-          {variants.length > 1 && <div className="flex items-center justify-between gap-3 border-b py-3"><fieldset className="min-w-0 flex-1"><legend className="mb-2 text-sm font-semibold">Style <span className="font-normal text-muted-foreground">— {selectedVariant?.variantName}</span></legend><div className="flex flex-wrap gap-2">{variants.map((variant) => { const image = variant.images?.[0]?.imageUrl; const selected = selectedVariant?.variantId === variant.variantId; return <button key={variant.variantId} type="button" onClick={() => handleVariantSelect(variant)} className={`relative size-16 overflow-hidden rounded-md border-2 bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${selected ? 'border-primary' : 'border-transparent hover:border-muted-foreground/40'}`} aria-label={`Select ${variant.variantName}`} aria-pressed={selected} title={variant.variantName}>{image ? <img src={image} alt="" className="h-full w-full object-cover" /> : <span className="grid h-full place-items-center px-1 text-xs">{variant.variantName}</span>}{selected && <span className="absolute right-1 top-1 grid size-5 place-items-center rounded-full bg-primary text-primary-foreground"><Check className="size-3" /></span>}</button>; })}</div></fieldset><Button type="button" variant="outline" size="icon" onClick={handleShare} aria-label="Share this product" title="Share this product" className="mt-5 size-11 shrink-0 rounded-full"><Share2 className="size-5" aria-hidden="true" /></Button></div>}
+          {variants.length > 1 && <div className="flex items-center justify-between gap-3 border-b py-3"><fieldset className="min-w-0 flex-1"><legend className="mb-2 text-sm font-semibold">Style <span className="font-normal text-muted-foreground">— {selectedVariant?.variantName}</span></legend><div className="flex flex-wrap gap-2">{variants.map((variant) => { const image = variant.images?.[0]?.imageUrl; const selected = selectedVariant?.variantId === variant.variantId; return <button key={variant.variantId} type="button" onClick={() => handleVariantSelect(variant)} className={`relative size-16 overflow-hidden rounded-md border-2 bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${selected ? 'border-primary' : 'border-transparent hover:border-muted-foreground/40'}`} aria-label={`Select ${variant.variantName}`} aria-pressed={selected} title={variant.variantName}>{image ? <img src={getCloudinaryImageUrl(image, 160)} alt="" className="h-full w-full object-cover" /> : <span className="grid h-full place-items-center px-1 text-xs">{variant.variantName}</span>}{selected && <span className="absolute right-1 top-1 grid size-5 place-items-center rounded-full bg-primary text-primary-foreground"><Check className="size-3" /></span>}</button>; })}</div></fieldset><Button type="button" variant="outline" size="icon" onClick={handleShare} aria-label="Share this product" title="Share this product" className="mt-5 size-11 shrink-0 rounded-full"><Share2 className="size-5" aria-hidden="true" /></Button></div>}
 
           <section aria-labelledby="delivery-check-heading" className="my-4">
             <h2 id="delivery-check-heading" className="mb-3 text-base font-semibold">Check delivery availability</h2>
@@ -656,7 +665,7 @@ export function ProductDetail() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex items-center gap-4 rounded-md border bg-muted/20 p-3">
-            <img src={stockRequestImage} alt={product.name} className="size-20 shrink-0 rounded-md object-cover" />
+            <img src={getCloudinaryImageUrl(stockRequestImage, 160)} alt={product.name} className="size-20 shrink-0 rounded-md object-cover" />
             <div className="min-w-0"><p className="font-semibold">{product.name}</p><p className="mt-1 text-sm text-muted-foreground">EU size {stockRequestOption?.eu} · Product {productLookupCode}</p></div>
           </div>
           <AlertDialogFooter>

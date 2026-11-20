@@ -90,6 +90,24 @@ test('buildCartSelection accepts an available size and product variant', () => {
   });
 });
 
+test('buildCartSelection uses inventory for the selected variant and size', () => {
+  const variantStockProduct = {
+    ...product,
+    stock: { available: 4 },
+    sizeStock: [{ size: '38', available: 4 }],
+    variants: [
+      { variantId: 'black', variantName: 'Black', sizeStock: [{ size: '38', available: 0 }] },
+      { variantId: 'red', variantName: 'Red', sizeStock: [{ size: '38', available: 2 }] },
+    ],
+  };
+  assert.throws(() => buildCartSelection(variantStockProduct, {
+    variantId: 'black', selectedSize: '38', quantity: 1,
+  }), /only 0 available in this size/i);
+  assert.equal(buildCartSelection(variantStockProduct, {
+    variantId: 'red', selectedSize: '38', quantity: 2,
+  }).quantity, 2);
+});
+
 test('buildCartSelection rejects missing sizes for sized products', () => {
   assert.throws(
     () => buildCartSelection(product, { variantId: 'black', quantity: 1 }),
@@ -290,6 +308,17 @@ test('mergeCartSelections deduplicates selections and caps combined quantity to 
     appliedQuantity: 5,
     reason: 'STOCK_CAPPED',
   }]);
+});
+
+test('mergeCartSelections caps each variant and size independently', () => {
+  const merged = mergeCartSelections([], [
+    { product: 'product-1', variantId: 'black', selectedSize: '38', quantity: 4 },
+    { product: 'product-1', variantId: 'red', selectedSize: '38', quantity: 4 },
+  ], new Map([
+    ['product-1:black:38', 0],
+    ['product-1:red:38', 2],
+  ]));
+  assert.deepEqual(merged.items.map((item) => item.quantity), [0, 2]);
 });
 
 test('mergeCartSelections rejects more than the cart line limit', () => {

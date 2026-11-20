@@ -86,3 +86,25 @@ test('reserveStock atomically reserves the selected size and total product stock
   assert.equal(capturedUpdate.$inc['sizeStock.$.available'], -2);
   assert.equal(capturedUpdate.$inc['sizeStock.$.reserved'], 2);
 });
+
+test('reserveStock atomically reserves the selected variant size', async (t) => {
+  let capturedQuery;
+  let capturedUpdate;
+  let capturedOptions;
+  t.mock.method(Product, 'findById', async () => ({
+    trackInventory: true,
+    variants: [{ variantId: 'red', sizeStock: [{ size: '38', available: 3, reserved: 0 }] }],
+  }));
+  t.mock.method(Product, 'findOneAndUpdate', async (query, update, options) => {
+    capturedQuery = query;
+    capturedUpdate = update;
+    capturedOptions = options;
+    return { stock: { available: 1 }, variants: [], inStock: true };
+  });
+
+  await inventoryService.reserveStock('product-1', 2, { size: '38', variantId: 'red' });
+
+  assert.equal(capturedQuery.variants.$elemMatch.variantId, 'red');
+  assert.equal(capturedUpdate.$inc['variants.$[variant].sizeStock.$[size].available'], -2);
+  assert.deepEqual(capturedOptions.arrayFilters, [{ 'variant.variantId': 'red' }, { 'size.size': '38' }]);
+});

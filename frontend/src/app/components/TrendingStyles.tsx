@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 import type { Product } from '../types/product';
 import { isVideoMediaUrl } from '../utils/media';
 import { selectTrendingStyleMedia } from './trendingStyleMedia';
+import { getCloudinaryImageUrl } from '../utils/cloudinaryImage';
 
 interface TrendingStylesProps {
   products: Product[];
@@ -50,7 +51,7 @@ export function TrendingStyles({ products }: TrendingStylesProps) {
               {isVideoMediaUrl(media) ? (
                 <video src={media} muted loop playsInline preload="none" />
               ) : (
-                <img src={media} alt={product.name} loading="lazy" decoding="async" />
+                <img src={getCloudinaryImageUrl(media, 480)} alt={product.name} loading="lazy" decoding="async" />
               )}
             </Link>
           );

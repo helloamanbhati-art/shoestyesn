@@ -8,6 +8,7 @@ import { Badge } from './ui/badge';
 import { Card, CardContent } from './ui/card';
 import { useCart } from '../contexts/CartContext';
 import { getProductCardMedia, getProductVariantPreviews } from './productCardGallery';
+import { getCloudinaryImageUrl } from '../utils/cloudinaryImage';
 
 interface ProductCardProps {
   product: Product;
@@ -20,6 +21,7 @@ export function ProductCard({ product, priority = false, variant = 'catalog', ba
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const galleryMedia = getProductCardMedia(product);
+  const cardPoster = galleryMedia.find((media) => !isVideoMediaUrl(media)) || '';
   const variantPreviews = getProductVariantPreviews(product);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -147,17 +149,17 @@ export function ProductCard({ product, priority = false, variant = 'catalog', ba
               aria-label={`${product.name} image gallery. Swipe to view more images.`}
             >
               {galleryMedia.map((media, index) => isVideoMediaUrl(media) ? (
-                <video key={media} src={media} aria-label={`Image ${index + 1} of ${galleryMedia.length}`} muted loop autoPlay playsInline preload="metadata" className="h-full w-full shrink-0 snap-center select-none object-cover" />
+                <video key={media} src={index === activeImageIndex ? media : undefined} poster={cardPoster ? getCloudinaryImageUrl(cardPoster, 480) : undefined} aria-label={`Image ${index + 1} of ${galleryMedia.length}`} muted loop autoPlay={index === activeImageIndex} playsInline preload="none" className="h-full w-full shrink-0 snap-center select-none object-cover" />
               ) : (
-                <img key={media} src={media} alt={index === 0 ? product.name : `${product.name}, view ${index + 1}`} aria-label={`Image ${index + 1} of ${galleryMedia.length}`} loading={priority && index === 0 ? 'eager' : 'lazy'} fetchPriority={priority && index === 0 ? 'high' : 'auto'} decoding="async" draggable={false} className="h-full w-full shrink-0 snap-center select-none object-cover" />
+                <img key={media} src={index === activeImageIndex ? getCloudinaryImageUrl(media, 480) : undefined} alt={index === 0 ? product.name : `${product.name}, view ${index + 1}`} aria-label={`Image ${index + 1} of ${galleryMedia.length}`} loading={priority && index === 0 ? 'eager' : 'lazy'} fetchPriority={priority && index === 0 ? 'high' : 'auto'} decoding="async" draggable={false} className="h-full w-full shrink-0 snap-center select-none object-cover" />
               ))}
             </div>
 
             <div className="relative hidden h-full w-full md:block" aria-live="off">
               {galleryMedia.map((media, index) => isVideoMediaUrl(media) ? (
-                <video key={media} src={media} aria-label={`${product.name} product video ${index + 1}`} muted loop autoPlay playsInline preload="metadata" className={`absolute inset-0 h-full w-full select-none object-cover transition-opacity duration-300 ${index === activeImageIndex ? 'opacity-100' : 'opacity-0'}`} />
+                <video key={media} src={index === activeImageIndex ? media : undefined} poster={cardPoster ? getCloudinaryImageUrl(cardPoster, 480) : undefined} aria-label={`${product.name} product video ${index + 1}`} muted loop autoPlay={index === activeImageIndex} playsInline preload="none" className={`absolute inset-0 h-full w-full select-none object-cover transition-opacity duration-300 ${index === activeImageIndex ? 'opacity-100' : 'opacity-0'}`} />
               ) : (
-                <img key={media} src={media} alt={index === 0 ? product.name : ''} loading={priority && index === 0 ? 'eager' : 'lazy'} fetchPriority={priority && index === 0 ? 'high' : 'auto'} decoding="async" className={`absolute inset-0 h-full w-full select-none object-cover transition duration-300 ${index === activeImageIndex ? 'opacity-100' : 'opacity-0'} ${isEditorial && galleryMedia.length === 1 ? 'group-hover:scale-[1.025]' : ''}`} />
+                <img key={media} src={index === activeImageIndex ? getCloudinaryImageUrl(media, 480) : undefined} alt={index === 0 ? product.name : ''} loading={priority && index === 0 ? 'eager' : 'lazy'} fetchPriority={priority && index === 0 ? 'high' : 'auto'} decoding="async" className={`absolute inset-0 h-full w-full select-none object-cover transition duration-300 ${index === activeImageIndex ? 'opacity-100' : 'opacity-0'} ${isEditorial && galleryMedia.length === 1 ? 'group-hover:scale-[1.025]' : ''}`} />
               ))}
             </div>
 
@@ -199,7 +201,7 @@ export function ProductCard({ product, priority = false, variant = 'catalog', ba
             <div className="flex gap-2 overflow-x-auto px-2 pt-2 md:px-3 md:pt-3" role="list" aria-label={`${product.name} available variants`}>
               {variantPreviews.map((preview) => (
                 <span key={preview.id} className="block size-8 shrink-0 overflow-hidden rounded-full border border-neutral-300 bg-white p-0.5 md:size-10" role="listitem" title={preview.name}>
-                  <img src={preview.image} alt={`${product.name} in ${preview.name}`} loading="lazy" decoding="async" className="h-full w-full rounded-full object-cover" />
+                  <img src={getCloudinaryImageUrl(preview.image, 160)} alt={`${product.name} in ${preview.name}`} loading="lazy" decoding="async" className="h-full w-full rounded-full object-cover" />
                 </span>
               ))}
             </div>
