@@ -46,6 +46,9 @@ const addressSchema = Joi.object({
 // database; guest selections contain identifiers and quantities only.
 exports.createOrderSchema = Joi.object({
   addressId: objectId,
+  expectedShippingCost: Joi.number().min(0).required(),
+  expectedTotal: Joi.number().min(0).required(),
+  expectedDeliveryPincode: Joi.string().pattern(/^\d{6}$/).required(),
   checkoutMode: Joi.string().valid('buyNow'),
   guest: Joi.object({
     email: Joi.string().trim().lowercase().email().required(),

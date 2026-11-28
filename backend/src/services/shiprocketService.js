@@ -6,12 +6,6 @@ let cachedToken = null;
 let tokenExpiresAt = 0;
 let tokenRequestPromise = null;
 const serviceabilityCache = new Map();
-const DEFAULT_ITEM_PACKAGE = Object.freeze({
-  weightKg: 0.5,
-  lengthCm: 25,
-  breadthCm: 18,
-  heightCm: 10,
-});
 const SERVICEABILITY_CACHE_TTL_MS = 45_000;
 
 class ShiprocketError extends Error {
@@ -148,11 +142,11 @@ function buildParcel(items) {
   let height = 0;
   for (const item of items) {
     const quantity = Number(item.quantity);
-    const itemWeight = positiveNumber(item.shippingWeightKg) || DEFAULT_ITEM_PACKAGE.weightKg;
-    const itemLength = positiveNumber(item.shippingLengthCm) || DEFAULT_ITEM_PACKAGE.lengthCm;
-    const itemBreadth = positiveNumber(item.shippingBreadthCm) || DEFAULT_ITEM_PACKAGE.breadthCm;
-    const itemHeight = positiveNumber(item.shippingHeightCm) || DEFAULT_ITEM_PACKAGE.heightCm;
-    if (!Number.isInteger(quantity) || quantity < 1) {
+    const itemWeight = positiveNumber(item.shippingWeightKg);
+    const itemLength = positiveNumber(item.shippingLengthCm);
+    const itemBreadth = positiveNumber(item.shippingBreadthCm);
+    const itemHeight = positiveNumber(item.shippingHeightCm);
+    if (!Number.isInteger(quantity) || quantity < 1 || !itemWeight || !itemLength || !itemBreadth || !itemHeight) {
       throw new ShiprocketError('PACKAGE_DATA_MISSING', 'Shipping details are incomplete for this item.', 409);
     }
     weight += itemWeight * quantity;

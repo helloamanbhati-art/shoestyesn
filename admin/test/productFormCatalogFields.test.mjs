@@ -51,6 +51,11 @@ test('admin exposes independent quantities under each variant card', () => {
   assert.match(source, /variantStockRows = finalizedVariants\.flatMap/);
 });
 
+test('editing keeps each variant quantity instead of copying aggregate stock into it', () => {
+  assert.match(source, /String\(variant\.sizeStock\?\.find\(\(entry\) => entry\.size === size\)\?\.available \?\? 0\)/);
+  assert.doesNotMatch(source, /variant\.sizeStock\?\.find\(\(entry\) => entry\.size === size\)\?\.available \?\? sharedSizeQuantities\[size\]/);
+});
+
 test('admin explicitly controls whether a product displays the NEW badge', () => {
   assert.match(source, /id="isNewArrival"/);
   assert.match(source, /Show NEW badge on storefront/);

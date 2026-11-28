@@ -15,14 +15,7 @@
     );
   } else {
     root.render(
-      <ClerkProvider
-        publishableKey={publishableKey}
-        fallback={
-          <main style={{ display: 'grid', minHeight: '100vh', placeItems: 'center', fontFamily: 'sans-serif' }}>
-            <p>Loading Shoe Style…</p>
-          </main>
-        }
-      >
+      <ClerkProvider publishableKey={publishableKey}>
         <App />
       </ClerkProvider>,
     );

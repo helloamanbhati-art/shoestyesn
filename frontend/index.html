@@ -28,6 +28,7 @@
   <meta name="twitter:image:alt" content="Jai Mata Di Shoe Style logo" />
 
   <link rel="icon" type="image/png" href="/shoe-style-logo.png" />
+  <link rel="preload" as="image" href="/new-collection-poster.svg" fetchpriority="high" />
   <link rel="preconnect" href="https://res.cloudinary.com" crossorigin />
   <link rel="dns-prefetch" href="https://res.cloudinary.com" />
 
@@ -40,11 +41,56 @@
     #root {
       height: 100%;
     }
+
+    .storefront-boot {
+      min-height: 100vh;
+      padding: 20px 0 0;
+      font-family: Arial, sans-serif;
+      color: #171717;
+    }
+
+    .storefront-boot-header {
+      display: flex;
+      height: 72px;
+      align-items: center;
+      justify-content: center;
+      border-bottom: 1px solid #eee;
+    }
+
+    .storefront-boot-header img {
+      width: 150px;
+      height: auto;
+    }
+
+    .storefront-boot-hero {
+      display: block;
+      width: min(100%, 1760px);
+      margin: 0 auto;
+    }
+
+    .storefront-boot-hero img {
+      display: block;
+      width: 100%;
+      height: min(67vw, 650px);
+      min-height: 360px;
+      object-fit: cover;
+    }
+
+    @media (max-width: 767px) {
+      .storefront-boot { padding-top: 0; }
+      .storefront-boot-header { height: 68px; }
+      .storefront-boot-hero img { height: auto; min-height: 0; aspect-ratio: 395 / 366; }
+    }
   </style>
 </head>
 
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <main class="storefront-boot" aria-label="Shoe Style storefront">
+      <header class="storefront-boot-header"><img src="/shoe-style-logo.svg" alt="Shoe Style" fetchpriority="high" /></header>
+      <div class="storefront-boot-hero"><img src="/new-collection-poster.svg" alt="Explore the new Shoe Style collection" fetchpriority="high" /></div>
+    </main>
+  </div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>

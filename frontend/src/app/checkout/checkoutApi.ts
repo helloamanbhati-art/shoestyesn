@@ -28,7 +28,7 @@ export interface CheckoutQuote {
   shippingCost: number;
   total: number;
   currency: 'INR';
-  delivery?: { available: boolean; courier: string | null; estimatedDelivery: string | null };
+  delivery?: { available: boolean; courier: string | null; estimatedDelivery: string | null; pincode: string };
 }
 
 export interface CheckoutDeliveryCheck {
@@ -109,6 +109,9 @@ export async function createCheckoutOrder(input: {
   couponCode?: string;
   customerNotes?: string;
   checkoutMode?: 'buyNow';
+  expectedShippingCost: number;
+  expectedTotal: number;
+  expectedDeliveryPincode: string;
   idempotencyKey: string;
 }): Promise<CheckoutOrder> {
   return apiRequest('/api/v1/orders', {
@@ -118,6 +121,9 @@ export async function createCheckoutOrder(input: {
       ...(input.addressId ? { addressId: input.addressId } : { guest: input.guest, items: input.items }),
       ...(input.addressId && input.items ? { items: input.items } : {}),
       ...(input.checkoutMode ? { checkoutMode: input.checkoutMode } : {}),
+      expectedShippingCost: input.expectedShippingCost,
+      expectedTotal: input.expectedTotal,
+      expectedDeliveryPincode: input.expectedDeliveryPincode,
       paymentMethod: 'razorpay',
       shippingMethod: 'standard',
       couponCode: input.couponCode || '',

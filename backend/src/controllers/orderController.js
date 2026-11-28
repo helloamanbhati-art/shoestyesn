@@ -68,6 +68,7 @@ function publicQuote(quote) {
         available: quote.delivery.available,
         courier: quote.delivery.selected?.name || null,
         estimatedDelivery: quote.delivery.selected?.etd || null,
+        pincode: quote.deliveryPincode,
       },
     } : {}),
   };
@@ -206,6 +207,12 @@ exports.createOrder = async (req, res, next) => {
         undefined,
         true,
       );
+      const sameMoney = (left, right) => Math.round(Number(left) * 100) === Math.round(Number(right) * 100);
+      if (String(preflightAddress.zipCode) !== String(input.expectedDeliveryPincode)
+        || !sameMoney(deliveryQuote.shippingCost, input.expectedShippingCost)
+        || !sameMoney(deliveryQuote.total, input.expectedTotal)) {
+        throw new CheckoutError('SHIPPING_QUOTE_CHANGED', 'The delivery charge or total changed. We have refreshed your checkout amount; review it and try again.', 409);
+      }
 
       const session = await mongoose.startSession();
       try {

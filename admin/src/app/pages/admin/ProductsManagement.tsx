@@ -295,15 +295,11 @@ useEffect(() => {
   const handleOpenDialog = (product?: Product) => {
     if (product) {
       setEditingProduct(product);
-      const sharedSizeQuantities = Object.fromEntries(FOOTWEAR_SIZES.map((size) => [
-        size,
-        String(product.sizeStock?.find((entry) => entry.size === size)?.available ?? 0),
-      ]));
       setVariantSizeQuantities(Object.fromEntries((product.variants || []).map((variant, index) => [
         variant.variantId || `v-exist-${index}`,
         Object.fromEntries(FOOTWEAR_SIZES.map((size) => [
           size,
-          String(variant.sizeStock?.find((entry) => entry.size === size)?.available ?? sharedSizeQuantities[size]),
+          String(variant.sizeStock?.find((entry) => entry.size === size)?.available ?? 0),
         ])),
       ])));
       setFormData({
@@ -400,6 +396,16 @@ useEffect(() => {
   const handleSaveProduct = async () => {
     if (!formData.name.trim() || !formData.category || !formData.price) {
       toast.error('Please fill in all required fields');
+      return;
+    }
+    const packedMeasurements = [
+      formData.shippingWeightKg,
+      formData.shippingLengthCm,
+      formData.shippingBreadthCm,
+      formData.shippingHeightCm,
+    ].map(Number);
+    if (packedMeasurements.some((value) => !Number.isFinite(value) || value <= 0)) {
+      toast.error('Enter the packed unit weight, length, breadth, and height to calculate Shiprocket delivery.');
       return;
     }
     const totalMedia = variantsDraft.reduce((acc, v) => acc + v.images.length, 0);

@@ -29,14 +29,13 @@ function normalizeProduct(product: SearchProduct): Product {
   };
 }
 
-function NewArrivalsRail({ products, loading, error }: { products: Product[]; loading: boolean; error: string | null }) {
+function NewArrivalsRail({ products, error }: { products: Product[]; error: string | null }) {
   return <section id="new-arrivals-title" className="new-arrivals" aria-label="New arrivals">
     <div className="new-arrivals-heading">
       <p className="new-arrivals-kicker"><strong>New arrivals</strong><span>Fresh arrivals, selected from our latest collection</span></p>
     </div>
-    {loading && <div className="storefront-status" role="status">Loading the collection...</div>}
     {error && <div className="storefront-status" role="alert">The collection is taking a moment to load.</div>}
-    {!loading && !error && products.length === 0 && <div className="storefront-status" role="status">The new collection will appear here soon.</div>}
+    {!error && products.length === 0 && <div className="storefront-status">Browse by category to find your next pair.</div>}
     {products.length > 0 && <div className="storefront-product-grid new-arrivals-product-grid">{products.map((product, index) => <Fragment key={product.id}>
       {index === 2 && <Link className="new-arrivals-mobile-view-all" to="/products">View all products <ArrowRight size={15}/></Link>}
       <div className={`new-arrivals-card ${index % 3 === 2 ? 'is-wide' : ''}`}><ProductCard product={product} priority={index < 4} variant="editorial"/></div>
@@ -47,7 +46,7 @@ function NewArrivalsRail({ products, loading, error }: { products: Product[]; lo
 
 export function Home() {
   usePageTitle();
-  const { products, categories, loading, error } = useProductContext();
+  const { products, categories, error } = useProductContext();
   const [params, setParams] = useSearchParams();
   const initialQuery = params.get('search') || '';
   const [query, setQuery] = useState(initialQuery);
@@ -147,7 +146,12 @@ export function Home() {
           {heroSlides.length > 1 && <div className="storefront-hero-dots" aria-label="Choose a featured category">
             {heroSlides.map((slide, index) => <button key={slide.category} type="button" className={index === activeHeroIndex ? 'is-active' : ''} onClick={() => setActiveHeroIndex(index)} aria-label={`Show ${slide.category} banner`} aria-current={index === activeHeroIndex ? 'true' : undefined}/>) }
           </div>}
-        </> : <div className="storefront-hero-skeleton" role="status" aria-label="Loading featured collection"/>}
+        </> : <>
+          <Link to="/products" className="storefront-hero-link" aria-label="Shop the new Shoe Style collection">
+            <img src="/new-collection-poster.svg" alt="Explore the new Shoe Style collection" fetchPriority="high" />
+          </Link>
+          <Link to="/products" className="storefront-hero-cta" aria-label="Shop the collection">Shop Collection</Link>
+        </>}
       </section>
       <section className="storefront-benefits" aria-label="Shopping benefits">
         <div className="storefront-benefits-track">
@@ -159,10 +163,10 @@ export function Home() {
           <div aria-hidden="true"><strong>Secure checkout</strong><span>Protected online payments</span></div>
         </div>
       </section>
-      <CategoryShowcase categories={categories} loading={loading} error={error}/>
-      <NewArrivalsRail products={collection} loading={loading} error={error}/>
+      <CategoryShowcase categories={categories}/>
+      <NewArrivalsRail products={collection} error={error}/>
       <TrendingStyles products={products}/>
-      <PromotionalPosters products={products}/>
+      {products.length > 0 && <PromotionalPosters products={products}/>}
     </>}
   </div>;
 }

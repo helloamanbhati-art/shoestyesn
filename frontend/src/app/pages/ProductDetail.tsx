@@ -1,7 +1,7 @@
 import { useParams, useLocation, useNavigate } from "react-router";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import { ArrowLeft, ShoppingBag, ShoppingCart, Minus, Plus, Loader, Loader2, Check, ChevronDown, ChevronLeft, ChevronRight, Share2, MapPin } from "lucide-react";
+import { ArrowLeft, ShoppingBag, ShoppingCart, Minus, Plus, Loader2, Check, ChevronDown, ChevronLeft, ChevronRight, Share2, MapPin } from "lucide-react";
 import { useCart } from "../contexts/CartContext";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -399,10 +399,18 @@ export function ProductDetail() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="text-center space-y-4">
-          <Loader className="size-8 animate-spin mx-auto text-primary" />
-          <h2 className="text-2xl font-semibold">Loading product...</h2>
+      <div className="mx-auto grid w-full max-w-[1440px] gap-8 px-4 py-8 md:px-8 lg:grid-cols-2" role="status" aria-label="Loading product details" aria-busy="true">
+        <div className="aspect-[4/5] animate-pulse bg-neutral-100" aria-hidden="true" />
+        <div className="space-y-5 py-2" aria-hidden="true">
+          <div className="h-3 w-1/4 animate-pulse bg-neutral-100" />
+          <div className="h-10 w-3/4 animate-pulse bg-neutral-100" />
+          <div className="h-7 w-1/3 animate-pulse bg-neutral-100" />
+          <div className="h-20 w-full animate-pulse bg-neutral-100" />
+          <div className="h-4 w-1/3 animate-pulse bg-neutral-100" />
+          <div className="grid grid-cols-4 gap-3">
+            {Array.from({ length: 4 }, (_, index) => <div key={index} className="h-12 animate-pulse bg-neutral-100" />)}
+          </div>
+          <div className="h-12 w-full animate-pulse bg-neutral-100" />
         </div>
       </div>
     );

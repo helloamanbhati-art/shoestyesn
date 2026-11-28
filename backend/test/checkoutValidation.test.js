@@ -8,9 +8,15 @@ const {
 const { addAddressSchema } = require('../src/validation/customerValidation');
 
 const addressId = '507f1f77bcf86cd799439011';
+const savedAddressQuote = {
+  expectedShippingCost: 150,
+  expectedTotal: 1500,
+  expectedDeliveryPincode: '302001',
+};
 
 test('order creation accepts a saved address reference and never accepts client cart lines', () => {
   const valid = createOrderSchema.validate({
+    ...savedAddressQuote,
     addressId,
     paymentMethod: 'razorpay',
     shippingMethod: 'standard',
@@ -20,6 +26,7 @@ test('order creation accepts a saved address reference and never accepts client 
   assert.equal(valid.error, undefined);
 
   const forged = createOrderSchema.validate({
+    ...savedAddressQuote,
     addressId,
     items: [{ productId: addressId, price: 1, quantity: 99 }],
   });
@@ -28,6 +35,7 @@ test('order creation accepts a saved address reference and never accepts client 
 
 test('signed-in buy now accepts one validated selection without accepting a client price', () => {
   const valid = createOrderSchema.validate({
+    ...savedAddressQuote,
     addressId,
     checkoutMode: 'buyNow',
     items: [{ productId: addressId, variantId: 'default', selectedSize: 'M', quantity: 1 }],
@@ -35,6 +43,7 @@ test('signed-in buy now accepts one validated selection without accepting a clie
   assert.equal(valid.error, undefined);
 
   const forged = createOrderSchema.validate({
+    ...savedAddressQuote,
     addressId,
     checkoutMode: 'buyNow',
     items: [{ productId: addressId, variantId: 'default', selectedSize: 'M', quantity: 1, price: 1 }],
@@ -42,6 +51,7 @@ test('signed-in buy now accepts one validated selection without accepting a clie
   assert.ok(forged.error);
 
   const multipleItems = createOrderSchema.validate({
+    ...savedAddressQuote,
     addressId,
     checkoutMode: 'buyNow',
     items: [
@@ -89,6 +99,9 @@ test('saved checkout addresses are validated and normalized', () => {
 
 test('guest checkout accepts contact, address, and product selections without client prices', () => {
   const guestCheckout = {
+    expectedShippingCost: 150,
+    expectedTotal: 1500,
+    expectedDeliveryPincode: '395007',
     guest: {
       email: 'guest@example.com',
       shippingAddress: {

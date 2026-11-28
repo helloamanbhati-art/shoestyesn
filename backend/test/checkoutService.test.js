@@ -4,7 +4,6 @@ const assert = require('node:assert/strict');
 const {
   CheckoutError,
   buildOrderItems,
-  getShippingCost,
 } = require('../src/services/checkoutService');
 
 function product(overrides = {}) {
@@ -26,11 +25,6 @@ function product(overrides = {}) {
     ...overrides,
   };
 }
-
-test('shipping is temporarily free for payment testing', () => {
-  assert.equal(getShippingCost('Rajasthan'), 0);
-  assert.equal(getShippingCost('Gujarat'), 0);
-});
 
 test('order items are priced from populated products, not client input', () => {
   const items = buildOrderItems([{

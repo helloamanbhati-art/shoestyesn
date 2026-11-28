@@ -1,4 +1,4 @@
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Link, useParams } from 'react-router';
 import { ProductGrid } from '../components/ProductGrid';
 import { useProductContext } from '../contexts/ProductContext';
@@ -23,11 +23,14 @@ export function CategoryProducts() {
           </Link>
         </div>
         {loading ? (
-          <div className="grid min-h-96 place-items-center px-4 text-center" role="status" aria-live="polite">
-            <div>
-              <Loader2 className="mx-auto animate-spin" aria-hidden="true" />
-              <p className="mt-4 text-sm font-semibold">Loading this collection…</p>
-            </div>
+          <div className="grid grid-cols-2 gap-x-2 gap-y-5 px-1 md:grid-cols-3 md:gap-6 md:px-6 lg:grid-cols-4" role="status" aria-label="Loading collection" aria-busy="true">
+            {Array.from({ length: 8 }, (_, index) => (
+              <div key={index} className="animate-pulse" aria-hidden="true">
+                <div className="aspect-[3/4] bg-neutral-100" />
+                <div className="mt-3 h-3 w-3/4 bg-neutral-100" />
+                <div className="mt-2 h-3 w-1/3 bg-neutral-100" />
+              </div>
+            ))}
           </div>
         ) : error ? (
           <div className="px-4 py-24 text-center" role="alert">

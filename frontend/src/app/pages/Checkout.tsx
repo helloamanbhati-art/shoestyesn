@@ -67,6 +67,7 @@ export function Checkout() {
   const checkoutItems = useMemo(() => buyNowItem ? [buyNowItem] : (isBuyNow ? [] : items), [buyNowItem, isBuyNow, items]);
   const [form, setForm] = useState<FormData>(() => loadGuestCheckoutProfile() || emptyForm);
   const [quote, setQuote] = useState<CheckoutQuote | null>(null);
+  const [quoteRefreshKey, setQuoteRefreshKey] = useState(0);
   const [isQuoting, setIsQuoting] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const idempotencyKey = useRef(createIdempotencyKey());
@@ -127,7 +128,7 @@ export function Checkout() {
         .finally(() => setIsQuoting(false));
     }, 400);
     return () => window.clearTimeout(timer);
-  }, [checkoutItems.length, checkoutSelections, form, isAuthenticated, isBuyNow]);
+  }, [checkoutItems.length, checkoutSelections, form, isAuthenticated, isBuyNow, quoteRefreshKey]);
 
   useEffect(() => {
     if (skipNextGuestSave.current) {
@@ -192,6 +193,9 @@ export function Checkout() {
         result = await createCheckoutOrder({
           addressId: saved.id,
           ...(isBuyNow ? { items: checkoutSelections, checkoutMode: 'buyNow' as const } : {}),
+          expectedShippingCost: quote.shippingCost,
+          expectedTotal: quote.total,
+          expectedDeliveryPincode: quote.delivery?.pincode || form.zip,
           idempotencyKey: idempotencyKey.current,
         });
       } else {
@@ -200,6 +204,9 @@ export function Checkout() {
           guest: { email: form.email.trim(), shippingAddress: addressFrom(form) },
           items: checkoutSelections,
           ...(isBuyNow ? { checkoutMode: 'buyNow' as const } : {}),
+          expectedShippingCost: quote.shippingCost,
+          expectedTotal: quote.total,
+          expectedDeliveryPincode: quote.delivery?.pincode || form.zip,
           idempotencyKey: idempotencyKey.current,
         });
         if (!result.guestAccessToken) throw new Error('Guest order access could not be created');
@@ -213,6 +220,10 @@ export function Checkout() {
       // lets the customer safely retry without reusing a cancelled checkout.
       idempotencyKey.current = createIdempotencyKey();
       toast.error(error instanceof Error ? error.message : 'Checkout could not be created');
+      if (error instanceof Error && error.message.includes('delivery charge or total changed')) {
+        setQuote(null);
+        setQuoteRefreshKey((current) => current + 1);
+      }
       setIsProcessing(false);
     }
   };
@@ -303,7 +314,8 @@ export function Checkout() {
               <Price label="Subtotal" value={displayed.subtotal} />
               {displayed.discount > 0 && <Price label="Discount" value={-displayed.discount} />}
               <Price label="Tax" value={displayed.tax} />
-              <Price label="Shipping" value={displayed.shippingCost} />
+              <Price label="Shiprocket delivery" value={displayed.shippingCost} />
+              {quote?.delivery?.courier && <p className="text-xs text-muted-foreground">Rate from {quote.delivery.courier} for PIN {quote.delivery.pincode}.</p>}
               {quote?.delivery?.estimatedDelivery && <p className="text-xs text-muted-foreground">Estimated delivery: {quote.delivery.estimatedDelivery}</p>}
               <div className="flex justify-between border-t pt-3 font-semibold text-lg"><span>Total</span><span>₹{displayed.total.toLocaleString('en-IN')}</span></div>
               {isQuoting && <p className="text-xs text-muted-foreground">Updating from the server…</p>}

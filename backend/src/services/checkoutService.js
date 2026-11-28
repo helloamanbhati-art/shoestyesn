@@ -12,13 +12,6 @@ class CheckoutError extends Error {
   }
 }
 
-function getShippingCost(state) {
-  // Temporary payment-test mode: remove delivery charges from every checkout.
-  // Restore the state-based rate policy after the payment flow is verified.
-  void state;
-  return 0;
-}
-
 function productId(product) {
   return String(product?._id || product?.id || '');
 }
@@ -125,6 +118,10 @@ function buildOrderItems(cartItems) {
 
 async function quoteCart(cartItems, shippingState, couponCode, customerId, deliveryPincode, knownDelivery, forceDeliveryRefresh = false) {
   const items = buildOrderItems(cartItems);
+  if (!deliveryPincode && !knownDelivery) {
+    throw new CheckoutError('DELIVERY_PINCODE_REQUIRED', 'Enter your delivery PIN code to calculate shipping.', 400);
+  }
+  const parcel = shiprocketService.buildParcel(items);
   const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
   let discount = 0;
   if (couponCode) {
@@ -132,7 +129,7 @@ async function quoteCart(cartItems, shippingState, couponCode, customerId, deliv
     discount = discountService.calculateDiscount(coupon, subtotal);
   }
   const tax = await taxService.getOrderTax(items, shippingState);
-  let shippingCost = getShippingCost(shippingState);
+  let shippingCost = null;
   let delivery = null;
   if (knownDelivery) {
     delivery = knownDelivery;
@@ -141,7 +138,6 @@ async function quoteCart(cartItems, shippingState, couponCode, customerId, deliv
     }
     shippingCost = Number(delivery.selected.rate);
   } else if (deliveryPincode) {
-    const parcel = shiprocketService.buildParcel(items);
     delivery = await shiprocketService.checkServiceability({
       deliveryPincode,
       parcel,
@@ -153,6 +149,10 @@ async function quoteCart(cartItems, shippingState, couponCode, customerId, deliv
     }
     shippingCost = delivery.selected.rate;
   }
+  if (!Number.isFinite(shippingCost)) {
+    throw new CheckoutError('DELIVERY_UNAVAILABLE', 'Delivery is not available to this PIN code.', 422);
+  }
+  shippingCost = Number(shippingCost.toFixed(2));
   return {
     items,
     subtotal,
@@ -160,14 +160,14 @@ async function quoteCart(cartItems, shippingState, couponCode, customerId, deliv
     tax,
     shippingCost,
     delivery,
-    package: delivery || knownDelivery ? shiprocketService.buildParcel(items) : null,
-    total: Math.max(0, subtotal - discount + tax + shippingCost),
+    package: parcel,
+    deliveryPincode: delivery ? String(deliveryPincode || '') : null,
+    total: Number(Math.max(0, subtotal - discount + tax + shippingCost).toFixed(2)),
   };
 }
 
 module.exports = {
   CheckoutError,
   buildOrderItems,
-  getShippingCost,
   quoteCart,
 };
